@@ -257,21 +257,76 @@ let totalScraped = 0;
 let selectedCountries = [];
 let currentScrapingCountry = "";
 
-// Country completate — salvate in localStorage
-let completedCountries = {};
-try { completedCountries = JSON.parse(localStorage.getItem("wca_completed_countries")||"{}"); } catch(e){}
-function markCountryCompleted(code, count){
+// === DIRECTORY LOCALE PER PAESE ===
+// Ogni paese ha una directory in localStorage: wca_dir_XX = { ids: {id: "pending"|"done"|"failed"}, ts, total }
+function getDirectory(code){
+  if(!code) return null;
+  try { return JSON.parse(localStorage.getItem("wca_dir_"+code)); } catch(e){ return null; }
+}
+function saveDirectory(code, dir){
   if(!code) return;
-  completedCountries[code] = { count, ts: Date.now() };
-  try { localStorage.setItem("wca_completed_countries", JSON.stringify(completedCountries)); } catch(e){}
+  try { localStorage.setItem("wca_dir_"+code, JSON.stringify(dir)); } catch(e){ console.warn("saveDir err:", e.message); }
+}
+function createDirectory(code, memberIds){
+  const ids = {};
+  for(const id of memberIds) ids[String(id)] = "pending";
+  const dir = { ids, ts: Date.now(), total: memberIds.length };
+  saveDirectory(code, dir);
+  return dir;
+}
+function markIdDone(code, id){
+  const dir = getDirectory(code);
+  if(!dir) return;
+  dir.ids[String(id)] = "done";
+  saveDirectory(code, dir);
+}
+function markIdFailed(code, id){
+  const dir = getDirectory(code);
+  if(!dir) return;
+  dir.ids[String(id)] = "failed";
+  saveDirectory(code, dir);
+}
+function getPendingIds(code){
+  const dir = getDirectory(code);
+  if(!dir) return [];
+  return Object.keys(dir.ids).filter(id => dir.ids[id] === "pending");
+}
+function getDoneCount(code){
+  const dir = getDirectory(code);
+  if(!dir) return 0;
+  return Object.values(dir.ids).filter(s => s === "done").length;
 }
 function isCountryCompleted(code){
-  return code && completedCountries[code];
+  const dir = getDirectory(code);
+  if(!dir) return false;
+  const pending = Object.values(dir.ids).filter(s => s === "pending").length;
+  return pending === 0;
 }
-function resetCompletedCountries(){
-  completedCountries = {};
-  try { localStorage.removeItem("wca_completed_countries"); } catch(e){}
-  log("Country completate resettate","ok");
+function markCountryCompleted(code, count){
+  // La directory stessa è il flag — se tutti done/failed, è completo
+  // Non serve fare nulla di extra, isCountryCompleted() legge lo stato
+}
+
+// === JOBS SOSPESI ===
+function getSuspendedJobs(){
+  try { return JSON.parse(localStorage.getItem("wca_suspended_jobs")||"[]"); } catch(e){ return []; }
+}
+function saveSuspendedJob(countryCode, countryName, pendingIds, allMembers){
+  const jobs = getSuspendedJobs().filter(j => j.code !== countryCode); // rimuovi vecchio job stesso paese
+  jobs.unshift({
+    code: countryCode,
+    name: countryName,
+    pending: pendingIds.length,
+    total: allMembers.length,
+    done: allMembers.length - pendingIds.length,
+    ts: Date.now(),
+    members: allMembers, // salva i membri per ripresa
+  });
+  try { localStorage.setItem("wca_suspended_jobs", JSON.stringify(jobs)); } catch(e){}
+}
+function removeSuspendedJob(countryCode){
+  const jobs = getSuspendedJobs().filter(j => j.code !== countryCode);
+  try { localStorage.setItem("wca_suspended_jobs", JSON.stringify(jobs)); } catch(e){}
 }
 
 // Pattern di delay variabile (in secondi) — simula un umano al PC
@@ -609,6 +664,16 @@ function stopScraping(){
 // Salva lo stato del download interrotto in localStorage
 function saveScrapingState(){
   if(discoveredMembers.length === 0) return;
+  // Salva job sospeso per ripresa veloce
+  if(currentScrapingCountry){
+    const pending = getPendingIds(currentScrapingCountry);
+    const cName = selectedCountries.find(c => c.code === currentScrapingCountry)?.name || currentScrapingCountry;
+    if(pending.length > 0){
+      saveSuspendedJob(currentScrapingCountry, cName, pending, discoveredMembers);
+      log(`💾 Job sospeso: ${cName} — ${pending.length} profili rimanenti`,"ok");
+    }
+  }
+  // Salva anche nel formato vecchio per compatibilità
   const state = {
     discoveredMembers,
     scrapedIds: scrapedProfiles.map(p => p.wca_id),
@@ -618,7 +683,6 @@ function saveScrapingState(){
   try {
     localStorage.setItem("wca_scraping_state", JSON.stringify(state));
     document.getElementById("btnResume").style.display = "inline-block";
-    log(`Stato salvato: ${discoveredMembers.length} membri. Puoi riprendere con "Continua Download".`,"ok");
   } catch(e){ console.warn("saveState error:", e.message); }
 }
 
@@ -683,7 +747,7 @@ async function resumeScraping(){
 
   for(let i=0; i<total && scraping; i++){
     const member = toDownload[i];
-    markAttempted(member.id);
+    
     setStatus(`Download ${i+1}/${total} — ID ${member.id}`, true);
     setProgress(i+1, total);
     showActivity("📥", `Download profilo ${i+1}/${total} — ID ${member.id} (${member.name||""})`);
@@ -700,6 +764,7 @@ async function resumeScraping(){
           if(data.error?.includes("SSO") && retries < MAX_RETRIES){ retries++; log(`SSO fallito, retry ${retries}...`,"warn"); await sleepWithActivity("🔄", `SSO fallito — retry ${retries}`, 15000); continue; }
           addFailedProfile(member.id); updateResultRow(member.id, "sso_failed");
           saveToSupabase({wca_id: member.id, company_name: "[SSO FAILED]", state: "sso_failed", country_code: currentScrapingCountry});
+          markIdFailed(currentScrapingCountry, member.id);
           consecutiveFailures++; done = true; break;
         }
         const profile = data.results?.[0];
@@ -738,18 +803,16 @@ async function resumeScraping(){
 
 // Controlla se c'è un download interrotto all'avvio
 (function checkSavedState(){
-  try {
-    const state = JSON.parse(localStorage.getItem("wca_scraping_state"));
-    if(state && state.discoveredMembers?.length > 0){
-      const ageMin = Math.round((Date.now() - state.timestamp) / 60000);
-      // Mostra bottone se meno di 24 ore
-      if(ageMin < 1440){
-        document.getElementById("btnResume").style.display = "inline-block";
-        const countryNames = state.countries?.map(c => c.name).join(", ") || "Tutti";
-        log(`Download interrotto trovato: ${state.discoveredMembers.length} membri (${countryNames}, ${ageMin}min fa). Clicca "Continua Download" per riprendere.`,"warn");
-      }
+  // Mostra jobs sospesi
+  const jobs = getSuspendedJobs();
+  if(jobs.length > 0){
+    document.getElementById("btnResume").style.display = "inline-block";
+    for(const job of jobs){
+      const ageMin = Math.round((Date.now() - job.ts) / 60000);
+      const ageStr = ageMin < 60 ? ageMin+"min" : Math.round(ageMin/60)+"h";
+      log(`⏸ Job sospeso: ${countryFlag(job.code)} ${job.name} — ${job.done}/${job.total} fatti, ${job.pending} rimanenti (${ageStr} fa)`,"warn");
     }
-  } catch(e){ console.warn("checkSavedState error:", e.message); }
+  }
 })();
 
 function getSelectedNetworks(){
@@ -759,27 +822,18 @@ function getSelectedNetworks(){
 
 // Confronto SERVER-SIDE: manda TUTTI gli ID discover al server, il server confronta con Supabase
 // e restituisce SOLO quelli mancanti. Zero dipendenza da localStorage.
-async function checkMissingIds(discoverIds, countryCode){
-  const t0 = performance.now();
-  try {
-    showActivity("🔍", `Confronto rapido ${discoverIds.length} ID...`);
-    const resp = await fetch(API+"/api/check-ids", {
-      method: "POST",
-      headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({ids: discoverIds, country: countryCode || ""})
-    });
-    const data = await resp.json();
-    const ms = Math.round(performance.now() - t0);
-    if(!data.success){
-      log(`⚠️ Errore confronto: ${data.error||"sconosciuto"}`,"warn");
-      return {missing: discoverIds, total_in_db: 0, elapsed_ms: ms};
-    }
-    log(`⚡ Confronto completato in ${ms}ms — ${data.found} in DB, ${data.missing.length} mancanti`, data.missing.length > 0 ? "warn" : "ok");
-    return data;
-  } catch(e){
-    log(`❌ Errore confronto: ${e.message}`,"err");
-    return {missing: discoverIds, total_in_db: 0, elapsed_ms: Math.round(performance.now() - t0)};
+// checkMissingIds ora usa la directory locale — ZERO query server
+function checkMissingIdsLocal(discoverIds, countryCode){
+  const dir = getDirectory(countryCode);
+  if(!dir){
+    // Nessuna directory = primo scraping, tutti mancanti
+    log(`📂 ${countryCode}: nessuna directory locale — primo scraping`,"ok");
+    return { missing: discoverIds, found: 0 };
   }
+  const missing = discoverIds.filter(id => dir.ids[String(id)] !== "done");
+  const found = discoverIds.length - missing.length;
+  log(`📂 Directory locale ${countryCode}: ${found} già fatti, ${missing.length} da fare`,"ok");
+  return { missing, found };
 }
 
 // Cache discover per paese — evita di rifare discover se già fatto
@@ -859,40 +913,49 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
     return;
   }
 
-  // === CONFRONTO RAPIDO CON DATABASE ===
-  setStatus(`${countryName}: confronto rapido ${discoveredMembers.length} ID...`, true);
+  // === CONFRONTO CON DIRECTORY LOCALE (istantaneo, zero query) ===
   const allDiscoverIds = discoveredMembers.map(m => m.id);
-  const checkResult = await checkMissingIds(allDiscoverIds, country);
-  const missingSet = new Set(checkResult.missing.map(String));
-  const inDb = discoveredMembers.length - missingSet.size;
-  hideActivity();
 
-  // Segna nella tabella quelli già in DB
+  // Crea/aggiorna directory locale per questo paese
+  let dir = getDirectory(country);
+  if(!dir){
+    dir = createDirectory(country, allDiscoverIds);
+    log(`📂 Directory creata per ${countryName}: ${allDiscoverIds.length} ID`,"ok");
+  } else {
+    // Aggiungi eventuali nuovi ID non presenti nella directory
+    let added = 0;
+    for(const id of allDiscoverIds){
+      if(!(String(id) in dir.ids)){ dir.ids[String(id)] = "pending"; added++; }
+    }
+    if(added > 0){ dir.total = Object.keys(dir.ids).length; saveDirectory(country, dir); log(`📂 Directory aggiornata: +${added} nuovi ID`,"ok"); }
+  }
+
+  const localCheck = checkMissingIdsLocal(allDiscoverIds, country);
+  const inDb = localCheck.found;
+
+  // Segna nella tabella quelli già fatti
   for(const m of discoveredMembers){
-    if(!missingSet.has(String(m.id))) updateResultRow(m.id, "in_db");
+    if(dir.ids[String(m.id)] === "done") updateResultRow(m.id, "in_db");
   }
 
   let toDownload;
   if(updateAddress){
-    // Aggiornamento address: riscarica TUTTI
     toDownload = [...discoveredMembers];
     log(`🔄 Aggiornamento address: riscarico tutti i ${toDownload.length} profili`,"warn");
     setStatus(`${countryName}: aggiornamento address di ${toDownload.length} profili`, true);
-  } else if(missingSet.size === 0){
-    // TUTTO GIÀ IN DB — popup chiaro
-    markCountryCompleted(country, discoveredMembers.length);
+  } else if(localCheck.missing.length === 0){
     setProgress(100, 100);
-    setStatus(`✅ ${countryName}: COMPLETO — ${discoveredMembers.length} partner tutti in DB`, true);
+    setStatus(`✅ ${countryName}: COMPLETO — ${discoveredMembers.length} partner tutti fatti`, true);
     showActivity("✅", `${countryName} completo!`);
-
-    alert(`${countryFlag(country)} ${countryName}: COMPLETO!\n\n${discoveredMembers.length} partner già tutti presenti nel database.\nNessun download necessario.`);
-
+    alert(`${countryFlag(country)} ${countryName}: COMPLETO!\n\n${discoveredMembers.length} partner già tutti scaricati.\nNessun download necessario.`);
     setTimeout(hideActivity, 3000);
+    removeSuspendedJob(country);
     return;
   } else {
+    const missingSet = new Set(localCheck.missing.map(String));
     toDownload = discoveredMembers.filter(m => missingSet.has(String(m.id)));
-    setStatus(`${countryName}: ${inDb} in DB, ${toDownload.length} da scaricare`, true);
-    log(`📥 ${countryName}: avvio download di ${toDownload.length} profili mancanti`,"ok");
+    setStatus(`${countryName}: ${inDb} fatti, ${toDownload.length} da scaricare`, true);
+    log(`📥 ${countryName}: ${inDb} già fatti, avvio download di ${toDownload.length} mancanti`,"ok");
   }
 
   // === FASE 2: DOWNLOAD — 1 PROFILO ALLA VOLTA con delay variabile ===
@@ -904,7 +967,7 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
 
   for(let i=0; i<total && scraping; i++){
     const member = toDownload[i];
-    markAttempted(member.id); // Segna come tentato — non verrà riprovato
+    
     setStatus(`FASE 2 ${countryName}: ${i+1}/${total} — ID ${member.id}`, true);
     setProgress(i+1, total);
     showActivity("📥", `Download profilo ${i+1}/${total} — ID ${member.id} (${member.name||""})`);
@@ -945,6 +1008,7 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
             const limited = profile.access_limited ? " [LIMITATO]" : "";
             log(`✓ ${profile.company_name} (${profile.wca_id}) contatti:${profile.contacts?.length||0}${limited}`,"ok");
             saveToSupabase(profile);
+            markIdDone(currentScrapingCountry, profile.wca_id);
             updateResultRow(profile.wca_id, "ok");
             totalScraped++;
             consecutiveFailures = 0;
@@ -955,6 +1019,7 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
             updateResultRow(member.id, "not_found");
             // Salva in Supabase come not_found così non viene ritentato
             saveToSupabase({wca_id: member.id, company_name: "[NOT FOUND]", state: "not_found", country_code: currentScrapingCountry});
+            markIdFailed(currentScrapingCountry, member.id);
             consecutiveFailures = 0;
             success = true;
           } else if(profile.state==="login_redirect"){
@@ -970,6 +1035,7 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
             updateResultRow(member.id, "login_redirect");
             // Salva in Supabase come failed così non viene ritentato
             saveToSupabase({wca_id: member.id, company_name: "[LOGIN FAILED]", state: "login_redirect", country_code: currentScrapingCountry});
+            markIdFailed(currentScrapingCountry, member.id);
             consecutiveFailures++;
             success = true;
           } else {
@@ -1008,6 +1074,7 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
   log(`═══ FASE 2 ${countryName} COMPLETATA: ${totalScraped} salvati in DB ═══`,"ok");
   // Marca country come completata
   markCountryCompleted(country, discoveredMembers.length);
+  removeSuspendedJob(country);
   // Download completato per questa country — aggiorna stato salvato
   saveScrapingState();
 
