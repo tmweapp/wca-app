@@ -22,7 +22,7 @@ module.exports = async (req, res) => {
 
     for (let i = 0; i < ids.length; i += BATCH) {
       const batch = ids.slice(i, i + BATCH);
-      const inFilter = batch.map(id => `"${id}"`).join(",");
+      const inFilter = batch.join(",");
       let url = `${SUPABASE_URL}/rest/v1/wca_partners?select=wca_id&wca_id=in.(${inFilter})`;
 
       const resp = await fetch(url, {
