@@ -572,6 +572,8 @@ async function resumeScraping(){
   log(`Ripresa download interrotto (${ageMin}min fa): ${state.discoveredMembers.length} membri trovati`,"ok");
   discoveredMembers = state.discoveredMembers;
   if(state.countries) selectedCountries = state.countries;
+  // Ripristina il paese corrente dallo stato salvato
+  if(state.countries?.length > 0) currentScrapingCountry = state.countries[0].code;
   updateResultsTable();
   document.getElementById("resultsCard").style.display = "block";
   document.getElementById("tabsSection").style.display = "block";
@@ -582,9 +584,10 @@ async function resumeScraping(){
   document.getElementById("btnResume").style.display = "none";
   document.getElementById("btnStop").disabled = false;
 
-  // Carica ID già in Supabase
+  // Carica ID già in Supabase (filtra per paese corrente)
   setStatus("Caricamento partner già scaricati...", true);
-  const existingIds = await loadExistingIds();
+  log(`🔍 Verifica partner già scaricati per ${currentScrapingCountry || "tutti"}...`);
+  const existingIds = await loadExistingIds(currentScrapingCountry);
   const toDownload = discoveredMembers.filter(m => !existingIds.has(String(m.id)));
   const skipped = discoveredMembers.length - toDownload.length;
   if(skipped > 0){
@@ -679,100 +682,125 @@ function getSelectedNetworks(){
 }
 
 // Carica gli ID già presenti in Supabase per evitare duplicati
-async function loadExistingIds(){
+async function loadExistingIds(countryCode){
   const existing = new Set();
   try {
     let page = 0;
     const pageSize = 1000;
+    // Filtra per paese se specificato — evita di caricare TUTTI gli ID
+    const countryParam = countryCode ? `&country=${encodeURIComponent(countryCode)}` : "";
     while(true){
-      const resp = await fetch(API+`/api/partners?select=wca_id&limit=${pageSize}&page=${page+1}`);
+      const url = API+`/api/partners?select=wca_id&limit=${pageSize}&page=${page+1}${countryParam}`;
+      log(`📡 loadExistingIds: ${url}`);
+      const resp = await fetch(url);
       const data = await resp.json();
+      log(`📡 Risposta: success=${data.success}, partners=${data.partners?.length||0}, error=${data.error||"none"}`);
       if(!data.success || !data.partners?.length){
-        if(!data.success) log("Attenzione: impossibile caricare ID da Supabase — "+( data.error||"errore"),"warn");
+        if(!data.success) log("⚠️ Supabase errore: "+(data.error||"sconosciuto"),"warn");
         break;
       }
       for(const p of data.partners) existing.add(String(p.wca_id));
       if(data.partners.length < pageSize) break;
       page++;
     }
-  } catch(e){ log("Errore caricamento ID esistenti: "+e.message,"warn"); }
-  log(`ID già in Supabase: ${existing.size}`);
+  } catch(e){ log("❌ Errore caricamento ID esistenti: "+e.message,"err"); }
+  log(`🗂 ID già in Supabase${countryCode?" per "+countryCode:""}: ${existing.size}`);
   return existing;
 }
 
+// Cache discover per paese — evita di rifare discover se già fatto
+const discoverCache = {};
+
 async function scrapeDiscoverCountry(country, countryName){
   currentScrapingCountry = country;
+
   // === FASE 0: CARICA ID GIÀ IN SUPABASE ===
   setStatus("Caricamento partner già scaricati da Supabase...", true);
-  showActivity("🔍", "Caricamento partner già in Supabase...");
+  showActivity("🔍", "Verifica partner già in Supabase...");
   log("Caricamento ID già presenti in Supabase...");
-  const existingIds = await loadExistingIds();
-  if(existingIds.size > 0) log(`${existingIds.size} partner già in Supabase — verranno saltati`,"ok");
+  const existingIds = await loadExistingIds(country);
+  if(existingIds.size > 0) log(`🗂 ${existingIds.size} partner già in Supabase per ${countryName}`,"ok");
 
-  // === FASE 1: DISCOVER — raccogli TUTTI gli ID da tutte le pagine ===
-  setStatus(`FASE 1: Ricerca membri ${countryName}...`, true);
-  showActivity("📋", `Discover ${countryName} — ricerca pagina 1...`);
-  log(`═══ FASE 1: DISCOVER ${countryName} — raccolta ID ═══`);
-  discoveredMembers = [];
-  let page = 1;
-  const searchTerm = document.getElementById("txtSearch").value.trim();
-  const searchBy = document.getElementById("selSearchBy").value;
-  const networks = getSelectedNetworks();
-  let estimatedTotal = null;
+  // === FASE 1: DISCOVER ===
+  // Controlla cache discover (valida 10 min)
+  const cacheKey = `${country}_${getSelectedNetworks().join(",")}`;
+  const cached = discoverCache[cacheKey];
+  const cacheAge = cached ? (Date.now() - cached.ts) / 60000 : 999;
 
-  while(scraping){
-    try {
-      setStatus(`FASE 1 ${countryName}: pagina ${page}... (${discoveredMembers.length} trovati)`, true);
-      showActivity("📋", `Discover ${countryName} — scarico pagina ${page}... (${discoveredMembers.length} trovati)`);
-      const resp = await fetch(API+"/api/discover",{
-        method:"POST",headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({cookies:sessionCookies, wcaToken, page, filters:{country,searchTerm,searchBy,networks}})
-      });
-      const data = await resp.json();
-      if(!data.success){
-        log("Errore discover: "+(data.error||"sconosciuto"),"err");
-        if(data.error==="login_required"){log("Sessione scaduta, rifai login","err");return;}
-        break;
+  if(cached && cacheAge < 10){
+    log(`📋 Discover ${countryName}: uso cache (${cached.members.length} membri, ${Math.round(cacheAge)}min fa)`,"ok");
+    discoveredMembers = cached.members;
+    updateResultsTable();
+    document.getElementById("resultsCard").style.display = "block";
+  } else {
+    setStatus(`FASE 1: Ricerca membri ${countryName}...`, true);
+    showActivity("📋", `Discover ${countryName} — ricerca pagina 1...`);
+    log(`═══ FASE 1: DISCOVER ${countryName} — raccolta ID ═══`);
+    discoveredMembers = [];
+    let page = 1;
+    const searchTerm = document.getElementById("txtSearch").value.trim();
+    const searchBy = document.getElementById("selSearchBy").value;
+    const networks = getSelectedNetworks();
+    let estimatedTotal = null;
+
+    while(scraping){
+      try {
+        setStatus(`FASE 1 ${countryName}: pagina ${page}... (${discoveredMembers.length} trovati)`, true);
+        showActivity("📋", `Discover ${countryName} — scarico pagina ${page}... (${discoveredMembers.length} trovati)`);
+        const resp = await fetch(API+"/api/discover",{
+          method:"POST",headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({cookies:sessionCookies, wcaToken, page, filters:{country,searchTerm,searchBy,networks}})
+        });
+        const data = await resp.json();
+        if(!data.success){
+          log("Errore discover: "+(data.error||"sconosciuto"),"err");
+          if(data.error==="login_required"){log("Sessione scaduta, rifai login","err");return;}
+          break;
+        }
+        const newMembers = data.members || [];
+        if(data.totalResults && !estimatedTotal) estimatedTotal = data.totalResults;
+        log(`Pagina ${page}: +${newMembers.length} (totale: ${discoveredMembers.length + newMembers.length}${estimatedTotal ? " / ~"+estimatedTotal : ""})`);
+        discoveredMembers.push(...newMembers);
+        updateResultsTable();
+        if(estimatedTotal) setProgress(discoveredMembers.length, estimatedTotal);
+        if(newMembers.length === 0 || !data.hasNext) break;
+        page++;
+        const pageDelay = getNextDelay();
+        log(`⏱ Pausa ${(pageDelay/1000).toFixed(0)}s...`);
+        await sleepWithActivity("📋", `Discover ${countryName} — pausa prima di pagina ${page+1}`, pageDelay);
+      } catch(e){
+        log("Errore discover: "+e.message,"err"); break;
       }
-      const newMembers = data.members || [];
-      if(data.totalResults && !estimatedTotal) estimatedTotal = data.totalResults;
-      log(`Pagina ${page}: +${newMembers.length} (totale: ${discoveredMembers.length + newMembers.length}${estimatedTotal ? " / ~"+estimatedTotal : ""})`);
-      discoveredMembers.push(...newMembers);
-      updateResultsTable();
-      if(estimatedTotal) setProgress(discoveredMembers.length, estimatedTotal);
-      if(newMembers.length === 0 || !data.hasNext) break;
-      page++;
-      // Delay variabile tra pagine discover
-      const pageDelay = getNextDelay();
-      log(`⏱ Pausa ${(pageDelay/1000).toFixed(0)}s...`);
-      await sleepWithActivity("📋", `Discover ${countryName} — pausa prima di pagina ${page+1}`, pageDelay);
-    } catch(e){
-      log("Errore discover: "+e.message,"err"); break;
     }
-  }
-  hideActivity();
+    hideActivity();
 
-  document.getElementById("resultsCard").style.display = "block";
-  log(`═══ FASE 1 COMPLETATA: ${discoveredMembers.length} membri in ${page} pagine ═══`,"ok");
-  // Salva stato discover per permettere ripresa
-  saveScrapingState();
+    document.getElementById("resultsCard").style.display = "block";
+    log(`═══ FASE 1 COMPLETATA: ${discoveredMembers.length} membri in ${page} pagine ═══`,"ok");
+
+    // Salva in cache
+    discoverCache[cacheKey] = { members: [...discoveredMembers], ts: Date.now() };
+    saveScrapingState();
+  }
 
   if(discoveredMembers.length === 0){
     log("Nessun membro trovato.","warn");
     return;
   }
 
-  // Filtra i membri già in Supabase
+  // === FILTRO: confronta discover vs Supabase ===
   const toDownload = discoveredMembers.filter(m => !existingIds.has(String(m.id)));
   const skipped = discoveredMembers.length - toDownload.length;
+
+  log(`📊 Riepilogo ${countryName}: ${discoveredMembers.length} trovati, ${skipped} già in DB, ${toDownload.length} da scaricare`,"ok");
+
   if(skipped > 0){
-    log(`⏭ ${skipped} già in DB — saltati. ${toDownload.length} nuovi.`,"ok");
     for(const m of discoveredMembers){
       if(existingIds.has(String(m.id))) updateResultRow(m.id, "in_db");
     }
   }
   if(toDownload.length === 0){
-    log("Tutti i partner già in Supabase!","ok");
+    log(`✅ ${countryName}: tutti i ${discoveredMembers.length} partner già in Supabase! Nessun download necessario.`,"ok");
+    setProgress(100, 100);
     return;
   }
 
@@ -1066,11 +1094,15 @@ async function scrapeOne(wcaId, memberInfo){
 async function saveToSupabase(profile){
   try{
     if(currentScrapingCountry && !profile.country_code) profile.country_code = currentScrapingCountry;
-    await fetch(API+"/api/save",{
+    const resp = await fetch(API+"/api/save",{
       method:"POST",headers:{"Content-Type":"application/json"},
       body:JSON.stringify({profile})
     });
-  } catch(e){log(`Errore save ${profile.wca_id}: ${e.message}`,"err");}
+    const data = await resp.json();
+    if(!data.success){
+      log(`⚠️ Save fallito ${profile.wca_id}: ${data.error}`,"warn");
+    }
+  } catch(e){log(`❌ Errore save ${profile.wca_id}: ${e.message}`,"err");}
 }
 
 function trimScrapedTabs(maxTabs){
