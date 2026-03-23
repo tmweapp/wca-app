@@ -1,10 +1,6 @@
 const fetch = require("node-fetch");
 const cheerio = require("cheerio");
-
-const BASE = "https://www.wcaworld.com";
-const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
-const SUPABASE_URL = (process.env.SUPABASE_URL || "https://dlldkrzoxvjxpgkkttxu.supabase.co").trim();
-const SUPABASE_KEY = (process.env.SUPABASE_SERVICE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRsbGRrcnpveHZqeHBna2t0dHh1Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1ODcyMDU4NCwiZXhwIjoyMDc0Mjk2NTg0fQ.py_d96kA6Mqvi0ugBm4gmIlJSoOC_KbwUM7cgDR-O_E").trim();
+const { BASE, UA, SUPABASE_URL, SUPABASE_KEY, getCachedCookies, saveCookiesToCache, testCookies, ssoLogin } = require("./utils/auth");
 
 const SB = { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json" };
 
@@ -19,97 +15,15 @@ function getDelay(idx) {
   return d * 1000;
 }
 
-// === SSO LOGIN (copiato da scrape.js) ===
-async function getCachedCookies() {
-  try {
-    const resp = await fetch(`${SUPABASE_URL}/rest/v1/wca_session?select=*&id=eq.1`, {
-      headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` },
-    });
-    if (!resp.ok) return null;
-    const rows = await resp.json();
-    if (!rows?.length) return null;
-    const age = Date.now() - new Date(rows[0].updated_at).getTime();
-    if (age > 10 * 60 * 1000) return null;
-    return rows[0].cookies;
-  } catch (e) { return null; }
-}
-
-async function saveCookiesToCache(cookies) {
-  try {
-    await fetch(`${SUPABASE_URL}/rest/v1/wca_session`, {
-      method: "POST",
-      headers: { ...SB, "Prefer": "resolution=merge-duplicates" },
-      body: JSON.stringify({ id: 1, cookies, updated_at: new Date().toISOString() }),
-    });
-  } catch (e) {}
-}
-
-async function testCookies(cookies) {
-  try {
-    const resp = await fetch(`${BASE}/Directory`, {
-      headers: { "User-Agent": UA, "Cookie": cookies }, redirect: "manual",
-    });
-    const loc = resp.headers.get("location") || "";
-    if (loc.toLowerCase().includes("/login")) return false;
-    if (resp.status === 200) {
-      const html = await resp.text();
-      return !html.includes('type="password"') && /logout|sign.?out/i.test(html);
-    }
-    return resp.status >= 200 && resp.status < 400;
-  } catch (e) { return false; }
-}
-
-async function ssoLogin() {
-  const username = process.env.WCA_USERNAME || "tmsrlmin";
-  const password = process.env.WCA_PASSWORD || "G0u3v!VvCn";
-  let resp = await fetch(`${BASE}/Account/Login`, { headers: { "User-Agent": UA }, redirect: "manual" });
-  let baseCookies = (resp.headers.raw()["set-cookie"] || []).map(c => c.split(";")[0]);
-  let currentUrl = `${BASE}/Account/Login`;
-  let rc = 0;
-  while (resp.status >= 300 && resp.status < 400 && rc < 5) {
-    const loc = resp.headers.get("location") || "";
-    currentUrl = loc.startsWith("http") ? loc : new URL(loc, currentUrl).href;
-    resp = await fetch(currentUrl, { headers: { "User-Agent": UA, "Cookie": baseCookies.join("; ") }, redirect: "manual" });
-    baseCookies = [...baseCookies, ...(resp.headers.raw()["set-cookie"] || []).map(c => c.split(";")[0])];
-    rc++;
-  }
-  const loginHtml = resp.status === 200 ? await resp.text() : "";
-  const ssoUrlMatch = loginHtml.match(/action\s*[:=]\s*['"]?(https:\/\/sso\.api\.wcaworld\.com[^'"&\s]+[^'"]*)/i);
-  if (!ssoUrlMatch) return null;
-  const ssoUrl = ssoUrlMatch[1].replace(/&amp;/g, "&");
-
-  const ssoResp = await fetch(ssoUrl, {
-    method: "POST",
-    headers: { "User-Agent": UA, "Content-Type": "application/x-www-form-urlencoded", "Origin": "https://sso.api.wcaworld.com", "Referer": ssoUrl },
-    body: `UserName=${encodeURIComponent(username)}&Password=${encodeURIComponent(password)}&pwd=${encodeURIComponent(password)}`,
-    redirect: "manual",
-  });
-  const ssoCookies = (ssoResp.headers.raw()["set-cookie"] || []).map(c => c.split(";")[0]);
-  if (!ssoCookies.some(c => c.includes(".ASPXAUTH")) || ssoResp.status < 300 || ssoResp.status >= 400) return null;
-
-  let allCookies = [...baseCookies, ...ssoCookies];
-  let callbackUrl = ssoResp.headers.get("location") || "";
-  if (callbackUrl && !callbackUrl.startsWith("http")) callbackUrl = new URL(callbackUrl, ssoUrl).href;
-  let followCount = 0;
-  while (callbackUrl && followCount < 8) {
-    const cbResp = await fetch(callbackUrl, { headers: { "User-Agent": UA, "Cookie": allCookies.join("; ") }, redirect: "manual" });
-    allCookies = [...allCookies, ...(cbResp.headers.raw()["set-cookie"] || []).map(c => c.split(";")[0])];
-    const nextLoc = cbResp.headers.get("location") || "";
-    callbackUrl = nextLoc ? (nextLoc.startsWith("http") ? nextLoc : new URL(nextLoc, callbackUrl).href) : null;
-    followCount++;
-    if (cbResp.status === 200) break;
-  }
-  const cookieMap = {};
-  for (const c of allCookies) { const eq = c.indexOf("="); if (eq > 0) cookieMap[c.substring(0, eq)] = c; }
-  return Object.values(cookieMap).join("; ");
-}
-
 async function getValidCookies() {
   let cookies = await getCachedCookies();
   if (cookies && await testCookies(cookies)) return cookies;
-  cookies = await ssoLogin();
-  if (cookies) await saveCookiesToCache(cookies);
-  return cookies;
+  const result = await ssoLogin();
+  if (result && result.success && result.cookies) {
+    await saveCookiesToCache(result.cookies);
+    return result.cookies;
+  }
+  return null;
 }
 
 // === DISCOVER ===
@@ -374,7 +288,7 @@ module.exports = async (req, res) => {
       if (timeLeft() < 8000) {
         // Re-trigger per continuare
         const workerUrl = `https://${req.headers.host}/api/worker?jobId=${job.id}`;
-        fetch(workerUrl, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" }).catch(() => {});
+        fetch(workerUrl, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" }).catch(e => console.log(`[worker] Retrigger error: ${e.message}`));
         return res.json({ success: true, phase: "discover_done", members: toDownload.length });
       }
     }
@@ -416,7 +330,7 @@ module.exports = async (req, res) => {
           });
           await sleep(Math.min(15000, timeLeft() - 2000));
           const workerUrl = `https://${req.headers.host}/api/worker?jobId=${job.id}`;
-          fetch(workerUrl, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" }).catch(() => {});
+          fetch(workerUrl, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" }).catch(e => console.log(`[worker] Retrigger error: ${e.message}`));
           return res.json({ success: true, phase: "next_country" });
         } else {
           await updateJob(job.id, {
@@ -434,7 +348,7 @@ module.exports = async (req, res) => {
         await updateJob(job.id, { last_activity: "SSO login fallito — riproverò al prossimo ciclo", error_log: errorLog, consecutive_failures: failures + 1 });
         // Re-trigger tra un po'
         const workerUrl = `https://${req.headers.host}/api/worker?jobId=${job.id}`;
-        setTimeout(() => fetch(workerUrl, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" }).catch(() => {}), 15000);
+        setTimeout(() => fetch(workerUrl, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" }).catch(e => console.log(`[worker] Retrigger error: ${e.message}`)), 15000);
         return res.json({ success: false, error: "SSO failed, will retry" });
       }
 
@@ -459,7 +373,7 @@ module.exports = async (req, res) => {
           failures++;
           errorLog.push({ t: new Date().toISOString(), m: `login_redirect: ${member.id}` });
           // Invalida cookies
-          await saveCookiesToCache("");
+          await saveCookiesToCache("").catch(e => console.log(`[worker] Error clearing cache: ${e.message}`));
           console.log(`[worker] ✗ login_redirect ${member.id}`);
         } else if (profile.state === "not_found") {
           console.log(`[worker] ✗ not_found ${member.id}`);
@@ -508,7 +422,7 @@ module.exports = async (req, res) => {
       // Se ci sono ancora profili, ri-triggera
       if (idx < members.length) {
         const workerUrl = `https://${req.headers.host}/api/worker?jobId=${job.id}`;
-        fetch(workerUrl, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" }).catch(() => {});
+        fetch(workerUrl, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" }).catch(e => console.log(`[worker] Retrigger error: ${e.message}`));
         return res.json({ success: true, phase: "downloading", processed, remaining: members.length - idx });
       }
 
@@ -525,7 +439,7 @@ module.exports = async (req, res) => {
           last_activity: `✅ ${country.name} completato (${scraped} salvati). Pausa 15s, poi: ${countries[nextCountryIdx].name}`,
         });
         const workerUrl = `https://${req.headers.host}/api/worker?jobId=${job.id}`;
-        setTimeout(() => fetch(workerUrl, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" }).catch(() => {}), 15000);
+        setTimeout(() => fetch(workerUrl, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" }).catch(e => console.log(`[worker] Retrigger error: ${e.message}`)), 15000);
       } else {
         await updateJob(job.id, {
           status: "completed",

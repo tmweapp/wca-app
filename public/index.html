@@ -289,7 +289,7 @@ async function loadCountryCounts(){
     const resp = await fetch(API+"/api/partners?action=country_counts");
     const data = await resp.json();
     if(data.success && data.counts) countryPartnerCounts = data.counts;
-  } catch(e){}
+  } catch(e){ console.warn("loadCountryCounts error:", e.message); }
 }
 
 // Country selector
@@ -464,7 +464,7 @@ function showCountdown(icon, text, seconds){
   }, 1000);
 }
 // Sleep con countdown visivo
-async function sleepWithActivity(ms, icon, text){
+async function sleepWithActivity(icon, text, ms){
   const secs = Math.round(ms/1000);
   showCountdown(icon || "⏸", text || `Pausa ${secs}s...`, secs);
   await sleep(ms);
@@ -557,7 +557,7 @@ function saveScrapingState(){
     localStorage.setItem("wca_scraping_state", JSON.stringify(state));
     document.getElementById("btnResume").style.display = "inline-block";
     log(`Stato salvato: ${discoveredMembers.length} membri. Puoi riprendere con "Continua Download".`,"ok");
-  } catch(e){}
+  } catch(e){ console.warn("saveState error:", e.message); }
 }
 
 // Ripristina e continua il download interrotto
@@ -599,7 +599,11 @@ async function resumeScraping(){
     }
   }
   if(toDownload.length === 0){
-    log("Tutti i partner già in Supabase! Download completo.","ok");
+    log(`✅ Tutti i ${discoveredMembers.length} partner già in Supabase! Download completo.`,"ok");
+    setProgress(100, 100);
+    setStatus(`✅ COMPLETO — tutti i ${discoveredMembers.length} partner già in DB`, true);
+    showActivity("✅", `Completo! ${discoveredMembers.length} partner già tutti in database.`);
+    setTimeout(hideActivity, 5000);
     scraping = false;
     document.getElementById("btnStart").disabled = false;
     document.getElementById("btnStop").disabled = true;
@@ -681,7 +685,7 @@ async function resumeScraping(){
         log(`Download interrotto trovato: ${state.discoveredMembers.length} membri (${countryNames}, ${ageMin}min fa). Clicca "Continua Download" per riprendere.`,"warn");
       }
     }
-  } catch(e){}
+  } catch(e){ console.warn("checkSavedState error:", e.message); }
 })();
 
 function getSelectedNetworks(){
@@ -1473,7 +1477,7 @@ async function pollBgStatus(){
       if(bgPollInterval){ clearInterval(bgPollInterval); bgPollInterval = null; }
       if(j.status === "completed") log(`Job #${j.id} completato! ${j.totalScraped} profili salvati.`,"ok");
     }
-  } catch(e){}
+  } catch(e){ console.warn("pollBgJob error:", e.message); }
 }
 
 async function pauseBackgroundJob(){
@@ -1516,7 +1520,7 @@ async function cancelBackgroundJob(){
       startBgPolling();
       log(`Job #${bgJobId} in corso in background (${data.job.status})`, "ok");
     }
-  } catch(e){}
+  } catch(e){ console.warn("bgJob restore error:", e.message); }
 })();
 
 // Contatori header + flags bar
@@ -1547,7 +1551,7 @@ async function loadHeaderCounts(){
         return `<span onclick="selectFlagCountry('${code}','${nameMap[code]||code}')" title="${nameMap[code]||code}: ${cnt} partner" style="cursor:pointer;font-size:1.1rem;padding:1px 2px;border-radius:3px;position:relative;${isSelected?'background:#2563eb33;outline:1px solid #3b82f6':''}">${countryFlag(code)}<span style="position:absolute;bottom:-4px;right:-2px;background:#059669;color:#fff;font-size:.5rem;padding:0 3px;border-radius:4px;line-height:1.2">${cnt}</span></span>`;
       }).join("");
     }
-  } catch(e){}
+  } catch(e){ console.warn("loadHeaderCounts error:", e.message); }
 }
 
 // Click su bandiera header: seleziona il paese e offre di completare il download

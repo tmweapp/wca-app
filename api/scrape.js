@@ -1,62 +1,6 @@
 const fetch = require("node-fetch");
 const cheerio = require("cheerio");
-
-const BASE = "https://www.wcaworld.com";
-const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
-const SUPABASE_URL = process.env.SUPABASE_URL || "https://dlldkrzoxvjxpgkkttxu.supabase.co";
-const SUPABASE_KEY = (process.env.SUPABASE_SERVICE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRsbGRrcnpveHZqeHBna2t0dHh1Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1ODcyMDU4NCwiZXhwIjoyMDc0Mjk2NTg0fQ.py_d96kA6Mqvi0ugBm4gmIlJSoOC_KbwUM7cgDR-O_E").trim();
-
-// Cache sessione SSO in Supabase — evita login ripetuti
-async function getCachedCookies() {
-  try {
-    const resp = await fetch(`${SUPABASE_URL}/rest/v1/wca_session?select=*&id=eq.1`, {
-      headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` },
-      timeout: 5000,
-    });
-    if (!resp.ok) return null;
-    const rows = await resp.json();
-    if (!rows || rows.length === 0) return null;
-    const row = rows[0];
-    // Cookie validi per max 10 minuti
-    const age = Date.now() - new Date(row.updated_at).getTime();
-    if (age > 10 * 60 * 1000) { console.log("[scrape] Cached cookies scaduti (>10min)"); return null; }
-    console.log(`[scrape] Usando cookies cached (età: ${Math.round(age/1000)}s)`);
-    return row.cookies;
-  } catch (e) { console.log("[scrape] Cache read error: " + e.message); return null; }
-}
-
-async function saveCookiesToCache(cookies) {
-  try {
-    await fetch(`${SUPABASE_URL}/rest/v1/wca_session`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json", "apikey": SUPABASE_KEY,
-        "Authorization": `Bearer ${SUPABASE_KEY}`, "Prefer": "resolution=merge-duplicates",
-      },
-      body: JSON.stringify({ id: 1, cookies, updated_at: new Date().toISOString() }),
-      timeout: 5000,
-    });
-    console.log("[scrape] Cookies salvati in cache");
-  } catch (e) { console.log("[scrape] Cache save error: " + e.message); }
-}
-
-// Test rapido: i cookies funzionano? Fai un HEAD su /Directory
-async function testCookies(cookies) {
-  try {
-    const resp = await fetch(`${BASE}/Directory`, {
-      headers: { "User-Agent": UA, "Cookie": cookies },
-      redirect: "manual", timeout: 8000,
-    });
-    // Se redirect al login → cookies non validi
-    const loc = resp.headers.get("location") || "";
-    if (loc.toLowerCase().includes("/login") || loc.toLowerCase().includes("/signin")) return false;
-    if (resp.status === 200) {
-      const html = await resp.text();
-      return !html.includes('type="password"') && /logout|sign.?out/i.test(html);
-    }
-    return resp.status >= 200 && resp.status < 400;
-  } catch (e) { return false; }
-}
+const { BASE, UA, SUPABASE_URL, SUPABASE_KEY, getCachedCookies, saveCookiesToCache, testCookies, ssoLogin, cookieJar } = require("./utils/auth");
 
 
 function extractProfile($, wcaId) {
@@ -519,152 +463,6 @@ async function fetchProfile(wcaId, cookies, profileHref) {
   return { wca_id: wcaId, state: "not_found" };
 }
 
-// SSO login interno — 1 login per batch, stesso IP dei fetch profili
-// IMPORTANTE: i cookie vengono separati per dominio, come fa un browser reale.
-// sso.api.wcaworld.com ha i suoi cookie, wcaworld.com ha i suoi.
-// Mescolandoli si confonde WCA che vede .ASPXAUTH di SSO e non setta il proprio.
-function cookieJar() {
-  const jar = {}; // domain → { name: "name=value" }
-  return {
-    add(domain, setCookieHeaders) {
-      if (!jar[domain]) jar[domain] = {};
-      for (const raw of setCookieHeaders) {
-        const c = raw.split(";")[0];
-        const eq = c.indexOf("=");
-        if (eq > 0) jar[domain][c.substring(0, eq)] = c;
-      }
-    },
-    get(domain) {
-      if (!jar[domain]) return "";
-      return Object.values(jar[domain]).join("; ");
-    },
-    getAll() {
-      const all = {};
-      for (const d of Object.keys(jar)) {
-        for (const [k, v] of Object.entries(jar[d])) all[k] = v;
-      }
-      return Object.values(all).join("; ");
-    },
-    keys(domain) {
-      if (!jar[domain]) return [];
-      return Object.keys(jar[domain]);
-    },
-    dump() {
-      const result = {};
-      for (const d of Object.keys(jar)) result[d] = Object.keys(jar[d]);
-      return result;
-    }
-  };
-}
-
-async function ssoLogin() {
-  const username = process.env.WCA_USERNAME || "tmsrlmin";
-  const password = process.env.WCA_PASSWORD || "G0u3v!VvCn";
-  const WCA_DOMAIN = "wcaworld.com";
-  const SSO_DOMAIN = "sso.api.wcaworld.com";
-  const jar = cookieJar();
-
-  // Step 1: GET login page → get WCA base cookies + SSO URL
-  let resp = await fetch(`${BASE}/Account/Login`, { headers: { "User-Agent": UA }, redirect: "manual" });
-  jar.add(WCA_DOMAIN, resp.headers.raw()["set-cookie"] || []);
-  let currentUrl = `${BASE}/Account/Login`;
-  let rc = 0;
-  while (resp.status >= 300 && resp.status < 400 && rc < 5) {
-    const loc = resp.headers.get("location") || "";
-    currentUrl = loc.startsWith("http") ? loc : new URL(loc, currentUrl).href;
-    resp = await fetch(currentUrl, { headers: { "User-Agent": UA, "Cookie": jar.get(WCA_DOMAIN) }, redirect: "manual" });
-    jar.add(WCA_DOMAIN, resp.headers.raw()["set-cookie"] || []);
-    rc++;
-  }
-  const loginHtml = resp.status === 200 ? await resp.text() : "";
-  const ssoUrlMatch = loginHtml.match(/action\s*[:=]\s*['"]?(https:\/\/sso\.api\.wcaworld\.com[^'"&\s]+[^'"]*)/i);
-  if (!ssoUrlMatch) { console.log("[scrape] SSO URL not found in login page"); return null; }
-  const ssoUrl = ssoUrlMatch[1].replace(/&amp;/g, "&");
-  console.log(`[scrape] SSO URL: ${ssoUrl.substring(0, 80)}...`);
-
-  // Step 2: POST credentials to SSO endpoint (cookies go to SSO domain only)
-  const ssoResp = await fetch(ssoUrl, {
-    method: "POST",
-    headers: {
-      "User-Agent": UA,
-      "Content-Type": "application/x-www-form-urlencoded",
-      "Origin": "https://sso.api.wcaworld.com",
-      "Referer": ssoUrl,
-    },
-    body: `UserName=${encodeURIComponent(username)}&Password=${encodeURIComponent(password)}&pwd=${encodeURIComponent(password)}`,
-    redirect: "manual",
-  });
-  jar.add(SSO_DOMAIN, ssoResp.headers.raw()["set-cookie"] || []);
-  const hasAuth = jar.keys(SSO_DOMAIN).includes(".ASPXAUTH");
-  console.log(`[scrape] SSO POST status=${ssoResp.status} hasAuth=${hasAuth} ssoCookies=${jar.keys(SSO_DOMAIN).join(",")}`);
-  if (!hasAuth || ssoResp.status < 300 || ssoResp.status >= 400) {
-    console.log("[scrape] SSO login failed - no ASPXAUTH or no redirect");
-    return null;
-  }
-
-  // Step 3: Follow redirect chain back to WCA
-  // CRITICAL: send only WCA-domain cookies to wcaworld.com URLs, NOT sso cookies
-  let callbackUrl = ssoResp.headers.get("location") || "";
-  console.log(`[scrape] SSO redirect: ${callbackUrl.substring(0, 120)}`);
-  let followCount = 0;
-  while (callbackUrl && followCount < 8) {
-    const cbUrl = callbackUrl.startsWith("http") ? callbackUrl : new URL(callbackUrl, ssoUrl).href;
-    const cbDomain = cbUrl.includes("sso.api.wcaworld.com") ? SSO_DOMAIN : WCA_DOMAIN;
-    const cbResp = await fetch(cbUrl, {
-      headers: { "User-Agent": UA, "Cookie": jar.get(cbDomain) },
-      redirect: "manual",
-    });
-    const newCookies = cbResp.headers.raw()["set-cookie"] || [];
-    jar.add(cbDomain, newCookies);
-    const gotAuth = newCookies.some(c => c.includes(".ASPXAUTH"));
-    console.log(`[scrape] Callback ${followCount + 1}: ${cbDomain} status=${cbResp.status} +${newCookies.length}cookies gotAuth=${gotAuth}`);
-    const nextLoc = cbResp.headers.get("location") || "";
-    if (nextLoc) {
-      callbackUrl = nextLoc.startsWith("http") ? nextLoc : new URL(nextLoc, cbUrl).href;
-    } else {
-      callbackUrl = null;
-    }
-    if (cbResp.status === 200) break;
-    followCount++;
-  }
-
-  // Check if WCA domain got its own .ASPXAUTH
-  const wcaHasAuth = jar.keys(WCA_DOMAIN).includes(".ASPXAUTH");
-  console.log(`[scrape] After callbacks: WCA hasAuth=${wcaHasAuth} cookies=${jar.keys(WCA_DOMAIN).join(",")}`);
-
-  // Step 4: Warmup — visit /Directory with WCA cookies only
-  let wcaCookies = jar.get(WCA_DOMAIN);
-  try {
-    let wr = await fetch(`${BASE}/Directory`, {
-      headers: { "User-Agent": UA, "Cookie": wcaCookies },
-      redirect: "manual",
-    });
-    jar.add(WCA_DOMAIN, wr.headers.raw()["set-cookie"] || []);
-    let wLoc = wr.headers.get("location") || "";
-    let wCount = 0;
-    while (wLoc && wCount < 3) {
-      const wNext = wLoc.startsWith("http") ? wLoc : new URL(wLoc, `${BASE}/Directory`).href;
-      wr = await fetch(wNext, { headers: { "User-Agent": UA, "Cookie": jar.get(WCA_DOMAIN) }, redirect: "manual" });
-      jar.add(WCA_DOMAIN, wr.headers.raw()["set-cookie"] || []);
-      wLoc = wr.headers.get("location") || ""; wCount++;
-    }
-    wcaCookies = jar.get(WCA_DOMAIN);
-    console.log(`[scrape] Warmup /Directory status=${wr.status}`);
-    if (wr.status === 200) {
-      const wHtml = await wr.text();
-      const hasLogout = /logout|sign.?out/i.test(wHtml);
-      const hasMembersOnly = /Members\s*Only/i.test(wHtml);
-      console.log(`[scrape] Warmup auth: hasLogout=${hasLogout} hasMembersOnly=${hasMembersOnly}`);
-    }
-  } catch (e) {
-    console.log(`[scrape] Warmup error: ${e.message}`);
-  }
-
-  console.log(`[scrape] SSO complete: WCA cookies=${jar.keys(WCA_DOMAIN).join(",")}`);
-  console.log(`[scrape] Cookie jar dump: ${JSON.stringify(jar.dump())}`);
-  return wcaCookies;
-}
-
 module.exports = async (req, res) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
@@ -688,8 +486,9 @@ module.exports = async (req, res) => {
     }
     // 2. Se no cache valida, SSO login e salva in cache
     if (!cookies) {
-      cookies = await ssoLogin();
-      if (!cookies) return res.status(500).json({ success: false, error: "SSO login fallito" });
+      const loginResult = await ssoLogin();
+      if (!loginResult.success) return res.status(500).json({ success: false, error: loginResult.error || "SSO login fallito" });
+      cookies = loginResult.cookies;
       await saveCookiesToCache(cookies);
     }
 
