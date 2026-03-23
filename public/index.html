@@ -587,7 +587,7 @@ async function resumeScraping(){
   // Carica ID già in Supabase (filtra per paese corrente)
   setStatus("Caricamento partner già scaricati...", true);
   log(`🔍 Verifica partner già scaricati per ${currentScrapingCountry || "tutti"}...`);
-  const existingIds = await loadExistingIds(currentScrapingCountry);
+  const existingIds = await loadExistingIds();
   const toDownload = discoveredMembers.filter(m => !existingIds.has(String(m.id)));
   const skipped = discoveredMembers.length - toDownload.length;
   if(skipped > 0){
@@ -613,6 +613,7 @@ async function resumeScraping(){
 
   for(let i=0; i<total && scraping; i++){
     const member = toDownload[i];
+    markAttempted(member.id);
     setStatus(`Download ${i+1}/${total} — ID ${member.id}`, true);
     setProgress(i+1, total);
     showActivity("📥", `Download profilo ${i+1}/${total} — ID ${member.id} (${member.name||""})`);
@@ -687,19 +688,20 @@ function getSelectedNetworks(){
 }
 
 // Carica gli ID già presenti in Supabase per evitare duplicati
-async function loadExistingIds(countryCode){
+// Set persistente di TUTTI gli ID già tentati (salvato in localStorage)
+let attemptedIds = new Set();
+try { const saved = JSON.parse(localStorage.getItem("wca_attempted_ids")); if(Array.isArray(saved)) attemptedIds = new Set(saved); } catch(e){}
+function markAttempted(id){ attemptedIds.add(String(id)); try{ localStorage.setItem("wca_attempted_ids", JSON.stringify([...attemptedIds])); }catch(e){} }
+
+async function loadExistingIds(){
   const existing = new Set();
+  // 1. Carica TUTTI gli ID da Supabase (senza filtro paese)
   try {
     let page = 0;
     const pageSize = 1000;
-    // Filtra per paese se specificato — evita di caricare TUTTI gli ID
-    const countryParam = countryCode ? `&country=${encodeURIComponent(countryCode)}` : "";
     while(true){
-      const url = API+`/api/partners?select=wca_id&limit=${pageSize}&page=${page+1}${countryParam}`;
-      log(`📡 loadExistingIds: ${url}`);
-      const resp = await fetch(url);
+      const resp = await fetch(API+`/api/partners?select=wca_id&limit=${pageSize}&page=${page+1}`);
       const data = await resp.json();
-      log(`📡 Risposta: success=${data.success}, partners=${data.partners?.length||0}, error=${data.error||"none"}`);
       if(!data.success || !data.partners?.length){
         if(!data.success) log("⚠️ Supabase errore: "+(data.error||"sconosciuto"),"warn");
         break;
@@ -709,10 +711,12 @@ async function loadExistingIds(countryCode){
       page++;
     }
   } catch(e){ log("❌ Errore caricamento ID esistenti: "+e.message,"err"); }
-  // Aggiungi anche i profili falliti da localStorage
-  const failedCount = failedProfilesList.length;
+  const dbCount = existing.size;
+  // 2. Aggiungi i profili falliti da localStorage
   for(const f of failedProfilesList) existing.add(String(f.id));
-  log(`🗂 Già noti: ${existing.size} (${existing.size - failedCount} in Supabase + ${failedCount} falliti)`);
+  // 3. Aggiungi TUTTI gli ID già tentati in sessioni precedenti
+  for(const id of attemptedIds) existing.add(id);
+  log(`🗂 Già noti: ${existing.size} (${dbCount} in Supabase, ${attemptedIds.size} tentati, ${failedProfilesList.length} falliti)`);
   return existing;
 }
 
@@ -726,7 +730,7 @@ async function scrapeDiscoverCountry(country, countryName){
   setStatus("Caricamento partner già scaricati da Supabase...", true);
   showActivity("🔍", "Verifica partner già in Supabase...");
   log("Caricamento ID già presenti in Supabase...");
-  const existingIds = await loadExistingIds(country);
+  const existingIds = await loadExistingIds();
   if(existingIds.size > 0) log(`🗂 ${existingIds.size} partner già in Supabase per ${countryName}`,"ok");
 
   // === FASE 1: DISCOVER ===
@@ -821,6 +825,7 @@ async function scrapeDiscoverCountry(country, countryName){
 
   for(let i=0; i<total && scraping; i++){
     const member = toDownload[i];
+    markAttempted(member.id); // Segna come tentato — non verrà riprovato
     setStatus(`FASE 2 ${countryName}: ${i+1}/${total} — ID ${member.id}`, true);
     setProgress(i+1, total);
     showActivity("📥", `Download profilo ${i+1}/${total} — ID ${member.id} (${member.name||""})`);
