@@ -528,12 +528,9 @@ async function startScraping(){
   if(!sessionCookies){log("Devi prima fare il login","err");return;}
 
   const updateAddress = document.getElementById("chkUpdateAddress").checked;
-  if(updateAddress && !confirm("Vuoi davvero aggiornare gli address dei partner già scaricati? Questo sovrascriverà i dati esistenti in Supabase.")){
-    return;
-  }
 
   scraping = true;
-  delayIndex = 0; // reset pattern delay
+  delayIndex = 0;
   document.getElementById("btnStart").disabled = true;
   document.getElementById("btnStop").disabled = false;
   document.getElementById("tabsSection").style.display = "block";
@@ -541,32 +538,61 @@ async function startScraping(){
   if(currentMode === "range"){
     await scrapeRange();
   } else {
-    // Multi-country: se selezionati più paesi, scrape uno alla volta con pausa
     const countries = selectedCountries.length > 0 ? [...selectedCountries] : [{code:"", name:"Tutti"}];
+    let skippedAll = 0;
+
     for(let ci = 0; ci < countries.length && scraping; ci++){
       const c = countries[ci];
-      // Salta country già completate (a meno che non si voglia aggiornare address)
-      if(!updateAddress && c.code && isCountryCompleted(c.code)){
+
+      // === CHECK RAPIDO: country già completata? Popup immediato ===
+      if(c.code && isCountryCompleted(c.code)){
         const info = completedCountries[c.code];
-        const ageMin = Math.round((Date.now() - info.ts) / 60000);
-        log(`⏭ ${c.name} (${c.code}): già completato (${info.count} partner, ${ageMin}min fa) — saltato`,"ok");
-        continue;
+        const ageH = Math.round((Date.now() - info.ts) / 3600000);
+        const ageStr = ageH < 1 ? "meno di 1 ora fa" : ageH < 24 ? `${ageH} ore fa` : `${Math.round(ageH/24)} giorni fa`;
+
+        if(updateAddress){
+          if(!confirm(`${countryFlag(c.code)} ${c.name}: già completato (${info.count} partner, ${ageStr}).\n\nVuoi AGGIORNARE gli address di tutti i ${info.count} partner?`)){
+            log(`⏭ ${c.name}: aggiornamento annullato dall'utente`,"warn");
+            skippedAll++;
+            continue;
+          }
+        } else {
+          // Popup informativo: country completa, chiedi se vuole verificare o saltare
+          const action = confirm(`${countryFlag(c.code)} ${c.name}: GIÀ COMPLETATO\n\n${info.count} partner scaricati (${ageStr}).\nTutti gli address sono già nel database.\n\nPremi OK per verificare comunque, Annulla per saltare.`);
+          if(!action){
+            log(`⏭ ${c.name} (${c.code}): completato (${info.count} partner) — saltato`,"ok");
+            setStatus(`${c.name}: già completo — saltato`, true);
+            skippedAll++;
+            continue;
+          }
+          log(`🔄 ${c.name}: verifica richiesta dall'utente nonostante già completato`,"warn");
+        }
       }
+
       if(countries.length > 1) log(`═══ PAESE ${ci+1}/${countries.length}: ${c.name} (${c.code}) ═══`,"ok");
       await scrapeDiscoverCountry(c.code, c.name, updateAddress);
-      // Pausa 15s tra paesi
+
       if(ci + 1 < countries.length && scraping){
         log(`⏸ Pausa ${COUNTRY_PAUSE}s prima del prossimo paese...`);
         await sleepWithActivity("🌍", `Pausa tra paesi — prossimo: ${countries[ci+1].name}`, COUNTRY_PAUSE * 1000);
       }
+    }
+
+    if(skippedAll === countries.length){
+      log("✅ Tutti i paesi selezionati sono già completi! Nulla da fare.","ok");
+      setStatus("✅ Tutti i paesi già completi!", true);
+      showActivity("✅", "Tutti i paesi selezionati sono già completi nel database.");
+      setTimeout(hideActivity, 5000);
     }
   }
 
   scraping = false;
   document.getElementById("btnStart").disabled = false;
   document.getElementById("btnStop").disabled = true;
-  setStatus("Scraping completato!", true);
-  log("Scraping terminato. Profili totali salvati: "+totalScraped, "ok");
+  if(totalScraped > 0){
+    setStatus(`Scraping completato! ${totalScraped} profili salvati.`, true);
+    log(`Scraping terminato. Profili totali salvati: ${totalScraped}`, "ok");
+  }
 }
 
 function stopScraping(){
@@ -621,25 +647,32 @@ async function resumeScraping(){
   document.getElementById("btnStop").disabled = false;
 
   // Confronto SERVER-SIDE con Supabase
-  setStatus("Confronto con database...", true);
-  log(`🔍 Confronto ID con Supabase...`);
+  log(`🔍 Confronto ${discoveredMembers.length} ID con database...`,"ok");
+  setStatus(`Confronto ${discoveredMembers.length} ID con database...`, true);
+  showActivity("🔍", `Confronto ${discoveredMembers.length} ID con Supabase...`);
+
   const allIds = discoveredMembers.map(m => m.id);
   const checkResult = await checkMissingIds(allIds);
   const missingSet = new Set(checkResult.missing.map(String));
-  const toDownload = discoveredMembers.filter(m => missingSet.has(String(m.id)));
-  const skipped = discoveredMembers.length - toDownload.length;
-  if(skipped > 0){
-    log(`⏭ ${skipped} già in DB — saltati. ${toDownload.length} restanti.`,"ok");
-    for(const m of discoveredMembers){
-      if(!missingSet.has(String(m.id))) updateResultRow(m.id, "in_db");
-    }
+  const inDb = discoveredMembers.length - missingSet.size;
+  hideActivity();
+
+  log(`📊 Risultato: ${inDb} già in DB, ${missingSet.size} mancanti`,"ok");
+
+  for(const m of discoveredMembers){
+    if(!missingSet.has(String(m.id))) updateResultRow(m.id, "in_db");
   }
+
+  const toDownload = discoveredMembers.filter(m => missingSet.has(String(m.id)));
+
   if(toDownload.length === 0){
-    log(`✅ Tutti i ${discoveredMembers.length} partner già in Supabase! Download completo.`,"ok");
     setProgress(100, 100);
-    setStatus(`✅ COMPLETO — tutti i ${discoveredMembers.length} partner già in DB`, true);
-    showActivity("✅", `Completo! ${discoveredMembers.length} partner già tutti in database.`);
-    setTimeout(hideActivity, 5000);
+    setStatus(`✅ COMPLETO — ${discoveredMembers.length} partner tutti in DB`, true);
+    showActivity("✅", "Tutto in database!");
+
+    alert(`COMPLETO!\n\n${discoveredMembers.length} partner già tutti presenti nel database.\nNessun download necessario.`);
+
+    setTimeout(hideActivity, 3000);
     scraping = false;
     document.getElementById("btnStart").disabled = false;
     document.getElementById("btnStop").disabled = true;
@@ -765,14 +798,18 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
   const cacheAge = cached ? (Date.now() - cached.ts) / 60000 : 999;
 
   if(cached && cacheAge < 10){
-    log(`📋 Discover ${countryName}: uso cache (${cached.members.length} membri, ${Math.round(cacheAge)}min fa)`,"ok");
+    log(`📋 ${countryName}: ${cached.members.length} membri in cache (${Math.round(cacheAge)}min fa) — salto discover`,"ok");
+    setStatus(`${countryName}: ${cached.members.length} membri trovati (cache)`, true);
+    showActivity("📋", `${countryName}: ${cached.members.length} membri dalla cache`);
     discoveredMembers = cached.members;
     updateResultsTable();
     document.getElementById("resultsCard").style.display = "block";
+    setTimeout(hideActivity, 2000);
   } else {
-    setStatus(`FASE 1: Ricerca membri ${countryName}...`, true);
-    showActivity("📋", `Discover ${countryName} — ricerca pagina 1...`);
-    log(`═══ FASE 1: DISCOVER ${countryName} — raccolta ID ═══`);
+    log(`📋 ${countryName}: avvio ricerca partner nel directory WCA...`,"ok");
+    setStatus(`${countryName}: ricerca partner in corso...`, true);
+    showActivity("📋", `${countryName} — ricerca pagina 1...`);
+    log(`═══ DISCOVER ${countryName} — raccolta ID ═══`);
     discoveredMembers = [];
     let page = 1;
     const searchTerm = document.getElementById("txtSearch").value.trim();
@@ -812,7 +849,8 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
     hideActivity();
 
     document.getElementById("resultsCard").style.display = "block";
-    log(`═══ FASE 1 COMPLETATA: ${discoveredMembers.length} membri in ${page} pagine ═══`,"ok");
+    log(`📋 Discover completato: ${discoveredMembers.length} partner trovati per ${countryName} (${page} pagine)`,"ok");
+    setStatus(`${countryName}: ${discoveredMembers.length} partner trovati — confronto con DB...`, true);
 
     // Salva in cache
     discoverCache[cacheKey] = { members: [...discoveredMembers], ts: Date.now() };
@@ -824,41 +862,45 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
     return;
   }
 
-  // === FILTRO SERVER-SIDE: manda gli ID al server, lui confronta con Supabase ===
+  // === CONFRONTO CON DATABASE ===
+  log(`🔍 Confronto ${discoveredMembers.length} ID di ${countryName} con il database...`,"ok");
+  setStatus(`${countryName}: confronto ${discoveredMembers.length} ID con database...`, true);
+  showActivity("🔍", `Confronto ${discoveredMembers.length} ID con Supabase...`);
+
+  const allDiscoverIds = discoveredMembers.map(m => m.id);
+  const checkResult = await checkMissingIds(allDiscoverIds);
+  const missingSet = new Set(checkResult.missing.map(String));
+  const inDb = discoveredMembers.length - missingSet.size;
+  hideActivity();
+
+  log(`📊 ${countryName}: ${discoveredMembers.length} trovati, ${inDb} già in DB, ${missingSet.size} mancanti`,"ok");
+
+  // Segna nella tabella quelli già in DB
+  for(const m of discoveredMembers){
+    if(!missingSet.has(String(m.id))) updateResultRow(m.id, "in_db");
+  }
+
   let toDownload;
   if(updateAddress){
-    // Modalità aggiornamento: riscarica TUTTI per aggiornare address
+    // Aggiornamento address: riscarica TUTTI
     toDownload = [...discoveredMembers];
-    log(`🔄 Modalità aggiornamento address: riscarico tutti i ${toDownload.length} profili per ${countryName}`,"warn");
-    setStatus(`${countryName}: aggiornamento ${toDownload.length} profili`, true);
+    log(`🔄 Aggiornamento address: riscarico tutti i ${toDownload.length} profili`,"warn");
+    setStatus(`${countryName}: aggiornamento address di ${toDownload.length} profili`, true);
+  } else if(missingSet.size === 0){
+    // TUTTO GIÀ IN DB — popup chiaro
+    markCountryCompleted(country, discoveredMembers.length);
+    setProgress(100, 100);
+    setStatus(`✅ ${countryName}: COMPLETO — ${discoveredMembers.length} partner tutti in DB`, true);
+    showActivity("✅", `${countryName} completo!`);
+
+    alert(`${countryFlag(country)} ${countryName}: COMPLETO!\n\n${discoveredMembers.length} partner già tutti presenti nel database.\nNessun download necessario.`);
+
+    setTimeout(hideActivity, 3000);
+    return;
   } else {
-    setStatus("Confronto con database...", true);
-    showActivity("🔍", `Confronto ${discoveredMembers.length} ID con Supabase...`);
-    const allDiscoverIds = discoveredMembers.map(m => m.id);
-    const checkResult = await checkMissingIds(allDiscoverIds);
-    const missingSet = new Set(checkResult.missing.map(String));
-    hideActivity();
-
     toDownload = discoveredMembers.filter(m => missingSet.has(String(m.id)));
-    const skipped = discoveredMembers.length - toDownload.length;
-
-    setStatus(`${countryName}: ${skipped} già in DB, ${toDownload.length} da scaricare`, true);
-    log(`📊 Riepilogo ${countryName}: ${discoveredMembers.length} trovati, ${skipped} già in DB, ${toDownload.length} da scaricare`,"ok");
-
-    // Segna nella tabella quelli già in DB
-    for(const m of discoveredMembers){
-      if(!missingSet.has(String(m.id))) updateResultRow(m.id, "in_db");
-    }
-
-    if(toDownload.length === 0){
-      markCountryCompleted(country, discoveredMembers.length);
-      log(`✅ ${countryName}: COMPLETO — tutti i ${discoveredMembers.length} partner già in Supabase!`,"ok");
-      setProgress(100, 100);
-      setStatus(`✅ ${countryName}: COMPLETO — ${discoveredMembers.length} partner già tutti in DB`, true);
-      showActivity("✅", `${countryName} completo! ${discoveredMembers.length} partner già in database.`);
-      setTimeout(hideActivity, 5000);
-      return;
-    }
+    setStatus(`${countryName}: ${inDb} in DB, ${toDownload.length} da scaricare`, true);
+    log(`📥 ${countryName}: avvio download di ${toDownload.length} profili mancanti`,"ok");
   }
 
   // === FASE 2: DOWNLOAD — 1 PROFILO ALLA VOLTA con delay variabile ===
