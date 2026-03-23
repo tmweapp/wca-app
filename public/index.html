@@ -687,56 +687,68 @@ function saveScrapingState(){
 }
 
 // Ripristina e continua il download interrotto
-async function resumeScraping(){
-  let state;
-  try { state = JSON.parse(localStorage.getItem("wca_scraping_state")); } catch(e){}
-  if(!state || !state.discoveredMembers?.length){
-    log("Nessun download interrotto da riprendere.","warn");
-    return;
+async function resumeScraping(jobCode){
+  let members, countryCode, countryName;
+
+  if(jobCode){
+    const jobs = getSuspendedJobs();
+    const job = jobs.find(j => j.code === jobCode);
+    if(!job){ log("Job non trovato","err"); return; }
+    members = job.members;
+    countryCode = job.code;
+    countryName = job.name;
+  } else {
+    // Fallback: primo job sospeso o stato vecchio
+    const jobs = getSuspendedJobs();
+    if(jobs.length > 0){
+      members = jobs[0].members;
+      countryCode = jobs[0].code;
+      countryName = jobs[0].name;
+    } else {
+      let state;
+      try { state = JSON.parse(localStorage.getItem("wca_scraping_state")); } catch(e){}
+      if(!state || !state.discoveredMembers?.length){
+        log("Nessun download interrotto da riprendere.","warn");
+        return;
+      }
+      members = state.discoveredMembers;
+      countryCode = state.countries?.[0]?.code || "";
+      countryName = state.countries?.[0]?.name || "Sconosciuto";
+    }
   }
-  const ageMin = Math.round((Date.now() - state.timestamp) / 60000);
-  log(`Ripresa download interrotto (${ageMin}min fa): ${state.discoveredMembers.length} membri trovati`,"ok");
-  discoveredMembers = state.discoveredMembers;
-  if(state.countries) selectedCountries = state.countries;
-  // Ripristina il paese corrente dallo stato salvato
-  if(state.countries?.length > 0) currentScrapingCountry = state.countries[0].code;
+
+  // === USA DIRECTORY LOCALE — ZERO QUERY SERVER ===
+  const pendingIds = getPendingIds(countryCode);
+  const pendingSet = new Set(pendingIds);
+  const toDownload = members.filter(m => pendingSet.has(String(m.id)));
+  const done = members.length - toDownload.length;
+
+  currentScrapingCountry = countryCode;
+  discoveredMembers = members;
   updateResultsTable();
   document.getElementById("resultsCard").style.display = "block";
   document.getElementById("tabsSection").style.display = "block";
+
+  for(const m of members){
+    if(!pendingSet.has(String(m.id))) updateResultRow(m.id, "in_db");
+  }
+
+  log(`📂 ${countryName}: ${done} già fatti, ${toDownload.length} da scaricare — RIPRESA IMMEDIATA`,"ok");
+
+  if(toDownload.length === 0){
+    setProgress(100, 100);
+    setStatus(`✅ ${countryName}: COMPLETO — tutti i ${members.length} partner fatti`, true);
+    alert(`${countryName}: COMPLETO!\n\n${members.length} partner già tutti scaricati.`);
+    removeSuspendedJob(countryCode);
+    return;
+  }
 
   scraping = true;
   delayIndex = 0;
   document.getElementById("btnStart").disabled = true;
   document.getElementById("btnResume").style.display = "none";
   document.getElementById("btnStop").disabled = false;
-
-  // Confronto rapido con Supabase
-  setStatus(`Confronto rapido ${discoveredMembers.length} ID...`, true);
-  const allIds = discoveredMembers.map(m => m.id);
-  const checkResult = await checkMissingIds(allIds, currentScrapingCountry);
-  const missingSet = new Set(checkResult.missing.map(String));
-  const inDb = discoveredMembers.length - missingSet.size;
-  hideActivity();
-
-  for(const m of discoveredMembers){
-    if(!missingSet.has(String(m.id))) updateResultRow(m.id, "in_db");
-  }
-
-  const toDownload = discoveredMembers.filter(m => missingSet.has(String(m.id)));
-
-  if(toDownload.length === 0){
-    setProgress(100, 100);
-    setStatus(`✅ COMPLETO — ${discoveredMembers.length} partner tutti in DB`, true);
-    showActivity("✅", "Tutto in database!");
-
-    alert(`COMPLETO!\n\n${discoveredMembers.length} partner già tutti presenti nel database.\nNessun download necessario.`);
-
-    setTimeout(hideActivity, 3000);
-    scraping = false;
-    document.getElementById("btnStart").disabled = false;
-    document.getElementById("btnStop").disabled = true;
-    return;
-  }
+  setStatus(`${countryName}: ripresa ${toDownload.length} profili...`, true);
 
   // Riprendi la Fase 2
   log(`═══ RIPRESA DOWNLOAD — ${toDownload.length} profili restanti ═══`);
