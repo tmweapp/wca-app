@@ -10,33 +10,45 @@ module.exports = async (req, res) => {
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
 
+  const start = Date.now();
   try {
-    const { ids } = req.body || {};
+    const { ids, country } = req.body || {};
     if (!ids || !Array.isArray(ids)) return res.status(400).json({ error: "ids array richiesto" });
 
-    // Carica TUTTI gli wca_id da Supabase
+    // METODO VELOCE: query Supabase con filtro IN per gli ID specifici
+    // Supabase supporta filtro "in" nella query string — max ~300 ID per batch
     const existing = new Set();
-    let page = 0;
-    while (true) {
-      const url = `${SUPABASE_URL}/rest/v1/wca_partners?select=wca_id&limit=1000&offset=${page * 1000}`;
+    const BATCH = 300;
+
+    for (let i = 0; i < ids.length; i += BATCH) {
+      const batch = ids.slice(i, i + BATCH);
+      const inFilter = batch.map(id => `"${id}"`).join(",");
+      let url = `${SUPABASE_URL}/rest/v1/wca_partners?select=wca_id&wca_id=in.(${inFilter})`;
+
       const resp = await fetch(url, {
         headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` },
       });
-      if (!resp.ok) break;
+      if (!resp.ok) {
+        console.log(`[check-ids] Supabase error batch ${i}: ${resp.status}`);
+        continue;
+      }
       const rows = await resp.json();
-      if (!rows?.length) break;
       for (const r of rows) existing.add(String(r.wca_id));
-      if (rows.length < 1000) break;
-      page++;
     }
 
-    // Confronta: quali ID mancano?
     const missing = ids.filter(id => !existing.has(String(id)));
-    const found = ids.length - missing.length;
+    const elapsed = Date.now() - start;
 
-    console.log(`[check-ids] Richiesti: ${ids.length}, In DB: ${existing.size}, Trovati: ${found}, Mancanti: ${missing.length}`);
-    return res.json({ success: true, total_in_db: existing.size, checked: ids.length, found, missing });
+    console.log(`[check-ids] ${ids.length} ID, ${existing.size} in DB, ${missing.length} mancanti — ${elapsed}ms`);
+    return res.json({
+      success: true,
+      total_in_db: existing.size,
+      checked: ids.length,
+      found: existing.size,
+      missing,
+      elapsed_ms: elapsed,
+    });
   } catch (err) {
-    return res.status(500).json({ success: false, error: err.message });
+    return res.status(500).json({ success: false, error: err.message, elapsed_ms: Date.now() - start });
   }
 };

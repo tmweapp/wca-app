@@ -646,18 +646,13 @@ async function resumeScraping(){
   document.getElementById("btnResume").style.display = "none";
   document.getElementById("btnStop").disabled = false;
 
-  // Confronto SERVER-SIDE con Supabase
-  log(`🔍 Confronto ${discoveredMembers.length} ID con database...`,"ok");
-  setStatus(`Confronto ${discoveredMembers.length} ID con database...`, true);
-  showActivity("🔍", `Confronto ${discoveredMembers.length} ID con Supabase...`);
-
+  // Confronto rapido con Supabase
+  setStatus(`Confronto rapido ${discoveredMembers.length} ID...`, true);
   const allIds = discoveredMembers.map(m => m.id);
-  const checkResult = await checkMissingIds(allIds);
+  const checkResult = await checkMissingIds(allIds, "ripresa");
   const missingSet = new Set(checkResult.missing.map(String));
   const inDb = discoveredMembers.length - missingSet.size;
   hideActivity();
-
-  log(`📊 Risultato: ${inDb} già in DB, ${missingSet.size} mancanti`,"ok");
 
   for(const m of discoveredMembers){
     if(!missingSet.has(String(m.id))) updateResultRow(m.id, "in_db");
@@ -764,24 +759,26 @@ function getSelectedNetworks(){
 
 // Confronto SERVER-SIDE: manda TUTTI gli ID discover al server, il server confronta con Supabase
 // e restituisce SOLO quelli mancanti. Zero dipendenza da localStorage.
-async function checkMissingIds(discoverIds){
+async function checkMissingIds(discoverIds, countryName){
+  const t0 = performance.now();
   try {
-    log(`📡 Confronto ${discoverIds.length} ID con Supabase (server-side)...`);
+    showActivity("🔍", `Confronto rapido ${discoverIds.length} ID...`);
     const resp = await fetch(API+"/api/check-ids", {
       method: "POST",
       headers: {"Content-Type": "application/json"},
       body: JSON.stringify({ids: discoverIds})
     });
     const data = await resp.json();
+    const ms = Math.round(performance.now() - t0);
     if(!data.success){
-      log("⚠️ check-ids errore: "+(data.error||"sconosciuto"),"warn");
-      return {missing: discoverIds, total_in_db: 0}; // fallback: scarica tutti
+      log(`⚠️ Errore confronto: ${data.error||"sconosciuto"}`,"warn");
+      return {missing: discoverIds, total_in_db: 0, elapsed_ms: ms};
     }
-    log(`🗂 DB ha ${data.total_in_db} partner | Controllati: ${data.checked} | Già in DB: ${data.found} | Mancanti: ${data.missing.length}`);
+    log(`⚡ Confronto completato in ${ms}ms — ${data.found} in DB, ${data.missing.length} mancanti`, data.missing.length > 0 ? "warn" : "ok");
     return data;
   } catch(e){
-    log("❌ Errore check-ids: "+e.message,"err");
-    return {missing: discoverIds, total_in_db: 0};
+    log(`❌ Errore confronto: ${e.message}`,"err");
+    return {missing: discoverIds, total_in_db: 0, elapsed_ms: Math.round(performance.now() - t0)};
   }
 }
 
@@ -862,18 +859,13 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
     return;
   }
 
-  // === CONFRONTO CON DATABASE ===
-  log(`🔍 Confronto ${discoveredMembers.length} ID di ${countryName} con il database...`,"ok");
-  setStatus(`${countryName}: confronto ${discoveredMembers.length} ID con database...`, true);
-  showActivity("🔍", `Confronto ${discoveredMembers.length} ID con Supabase...`);
-
+  // === CONFRONTO RAPIDO CON DATABASE ===
+  setStatus(`${countryName}: confronto rapido ${discoveredMembers.length} ID...`, true);
   const allDiscoverIds = discoveredMembers.map(m => m.id);
-  const checkResult = await checkMissingIds(allDiscoverIds);
+  const checkResult = await checkMissingIds(allDiscoverIds, countryName);
   const missingSet = new Set(checkResult.missing.map(String));
   const inDb = discoveredMembers.length - missingSet.size;
   hideActivity();
-
-  log(`📊 ${countryName}: ${discoveredMembers.length} trovati, ${inDb} già in DB, ${missingSet.size} mancanti`,"ok");
 
   // Segna nella tabella quelli già in DB
   for(const m of discoveredMembers){
