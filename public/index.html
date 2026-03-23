@@ -795,16 +795,20 @@ async function scrapeDiscoverCountry(country, countryName){
   const toDownload = discoveredMembers.filter(m => missingSet.has(String(m.id)));
   const skipped = discoveredMembers.length - toDownload.length;
 
+  setStatus(`${countryName}: ${skipped} già in DB, ${toDownload.length} da scaricare`, true);
   log(`📊 Riepilogo ${countryName}: ${discoveredMembers.length} trovati, ${skipped} già in DB, ${toDownload.length} da scaricare`,"ok");
 
-  if(skipped > 0){
-    for(const m of discoveredMembers){
-      if(!missingSet.has(String(m.id))) updateResultRow(m.id, "in_db");
-    }
+  // Segna nella tabella quelli già in DB
+  for(const m of discoveredMembers){
+    if(!missingSet.has(String(m.id))) updateResultRow(m.id, "in_db");
   }
+
   if(toDownload.length === 0){
-    log(`✅ ${countryName}: tutti i ${discoveredMembers.length} partner già in Supabase! Nessun download necessario.`,"ok");
+    log(`✅ ${countryName}: COMPLETO — tutti i ${discoveredMembers.length} partner già in Supabase!`,"ok");
     setProgress(100, 100);
+    setStatus(`✅ ${countryName}: COMPLETO — ${discoveredMembers.length} partner già tutti in DB`, true);
+    showActivity("✅", `${countryName} completo! ${discoveredMembers.length} partner già in database.`);
+    setTimeout(hideActivity, 5000);
     return;
   }
 
