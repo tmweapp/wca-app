@@ -188,6 +188,11 @@ tr:hover td{background:#334155}
         <input type="number" id="txtRangeTo" value="500" min="1">
       </div>
       <!-- Delay gestito automaticamente con pattern variabile -->
+      <div class="field" style="align-self:center;margin-top:18px">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;white-space:nowrap">
+          <input type="checkbox" id="chkUpdateAddress" style="accent-color:#d97706"> Aggiorna address esistenti
+        </label>
+      </div>
     </div>
     <!-- Networks -->
     <details style="margin-top:12px">
@@ -252,6 +257,23 @@ let totalScraped = 0;
 let selectedCountries = [];
 let currentScrapingCountry = "";
 
+// Country completate — salvate in localStorage
+let completedCountries = {};
+try { completedCountries = JSON.parse(localStorage.getItem("wca_completed_countries")||"{}"); } catch(e){}
+function markCountryCompleted(code, count){
+  if(!code) return;
+  completedCountries[code] = { count, ts: Date.now() };
+  try { localStorage.setItem("wca_completed_countries", JSON.stringify(completedCountries)); } catch(e){}
+}
+function isCountryCompleted(code){
+  return code && completedCountries[code];
+}
+function resetCompletedCountries(){
+  completedCountries = {};
+  try { localStorage.removeItem("wca_completed_countries"); } catch(e){}
+  log("Country completate resettate","ok");
+}
+
 // Pattern di delay variabile (in secondi) — simula un umano al PC
 const DELAY_PATTERN = [3,3,2,3,8,3,5,3,12,3,4,3,6,3,9,3,3,3,10];
 const COUNTRY_PAUSE = 15; // 15 secondi di pausa tra un paese e l'altro
@@ -303,8 +325,9 @@ async function initCountrySelector(){
       const flag = countryFlag(code);
       const cnt = countryPartnerCounts[code] || 0;
       const cntBadge = cnt > 0 ? `<span style="margin-left:auto;background:#059669;color:#fff;font-size:.65rem;padding:1px 6px;border-radius:8px;min-width:20px;text-align:center">${cnt}</span>` : `<span style="margin-left:auto;color:#475569;font-size:.65rem">0</span>`;
+      const doneBadge = isCountryCompleted(code) ? `<span style="background:#065f46;color:#34d399;font-size:.6rem;padding:1px 5px;border-radius:4px">✓</span>` : "";
       html += `<label style="display:flex;align-items:center;gap:6px;padding:4px 8px;font-size:.8rem;cursor:pointer;border-bottom:1px solid #1e293b" data-code="${code}" data-name="${name.toLowerCase()}">
-        <input type="checkbox" value="${code}" onchange="toggleCountry('${code}','${name}')" style="accent-color:#2563eb"> ${flag} ${name} (${code}) ${cntBadge}
+        <input type="checkbox" value="${code}" onchange="toggleCountry('${code}','${name}')" style="accent-color:#2563eb"> ${flag} ${name} (${code}) ${doneBadge} ${cntBadge}
       </label>`;
     }
   }
@@ -503,6 +526,12 @@ async function doLogin(){
 
 async function startScraping(){
   if(!sessionCookies){log("Devi prima fare il login","err");return;}
+
+  const updateAddress = document.getElementById("chkUpdateAddress").checked;
+  if(updateAddress && !confirm("Vuoi davvero aggiornare gli address dei partner già scaricati? Questo sovrascriverà i dati esistenti in Supabase.")){
+    return;
+  }
+
   scraping = true;
   delayIndex = 0; // reset pattern delay
   document.getElementById("btnStart").disabled = true;
@@ -516,8 +545,15 @@ async function startScraping(){
     const countries = selectedCountries.length > 0 ? [...selectedCountries] : [{code:"", name:"Tutti"}];
     for(let ci = 0; ci < countries.length && scraping; ci++){
       const c = countries[ci];
+      // Salta country già completate (a meno che non si voglia aggiornare address)
+      if(!updateAddress && c.code && isCountryCompleted(c.code)){
+        const info = completedCountries[c.code];
+        const ageMin = Math.round((Date.now() - info.ts) / 60000);
+        log(`⏭ ${c.name} (${c.code}): già completato (${info.count} partner, ${ageMin}min fa) — saltato`,"ok");
+        continue;
+      }
       if(countries.length > 1) log(`═══ PAESE ${ci+1}/${countries.length}: ${c.name} (${c.code}) ═══`,"ok");
-      await scrapeDiscoverCountry(c.code, c.name);
+      await scrapeDiscoverCountry(c.code, c.name, updateAddress);
       // Pausa 15s tra paesi
       if(ci + 1 < countries.length && scraping){
         log(`⏸ Pausa ${COUNTRY_PAUSE}s prima del prossimo paese...`);
@@ -719,7 +755,7 @@ async function checkMissingIds(discoverIds){
 // Cache discover per paese — evita di rifare discover se già fatto
 const discoverCache = {};
 
-async function scrapeDiscoverCountry(country, countryName){
+async function scrapeDiscoverCountry(country, countryName, updateAddress = false){
   currentScrapingCountry = country;
 
   // === FASE 1: DISCOVER ===
@@ -789,31 +825,40 @@ async function scrapeDiscoverCountry(country, countryName){
   }
 
   // === FILTRO SERVER-SIDE: manda gli ID al server, lui confronta con Supabase ===
-  setStatus("Confronto con database...", true);
-  showActivity("🔍", `Confronto ${discoveredMembers.length} ID con Supabase...`);
-  const allDiscoverIds = discoveredMembers.map(m => m.id);
-  const checkResult = await checkMissingIds(allDiscoverIds);
-  const missingSet = new Set(checkResult.missing.map(String));
-  hideActivity();
+  let toDownload;
+  if(updateAddress){
+    // Modalità aggiornamento: riscarica TUTTI per aggiornare address
+    toDownload = [...discoveredMembers];
+    log(`🔄 Modalità aggiornamento address: riscarico tutti i ${toDownload.length} profili per ${countryName}`,"warn");
+    setStatus(`${countryName}: aggiornamento ${toDownload.length} profili`, true);
+  } else {
+    setStatus("Confronto con database...", true);
+    showActivity("🔍", `Confronto ${discoveredMembers.length} ID con Supabase...`);
+    const allDiscoverIds = discoveredMembers.map(m => m.id);
+    const checkResult = await checkMissingIds(allDiscoverIds);
+    const missingSet = new Set(checkResult.missing.map(String));
+    hideActivity();
 
-  const toDownload = discoveredMembers.filter(m => missingSet.has(String(m.id)));
-  const skipped = discoveredMembers.length - toDownload.length;
+    toDownload = discoveredMembers.filter(m => missingSet.has(String(m.id)));
+    const skipped = discoveredMembers.length - toDownload.length;
 
-  setStatus(`${countryName}: ${skipped} già in DB, ${toDownload.length} da scaricare`, true);
-  log(`📊 Riepilogo ${countryName}: ${discoveredMembers.length} trovati, ${skipped} già in DB, ${toDownload.length} da scaricare`,"ok");
+    setStatus(`${countryName}: ${skipped} già in DB, ${toDownload.length} da scaricare`, true);
+    log(`📊 Riepilogo ${countryName}: ${discoveredMembers.length} trovati, ${skipped} già in DB, ${toDownload.length} da scaricare`,"ok");
 
-  // Segna nella tabella quelli già in DB
-  for(const m of discoveredMembers){
-    if(!missingSet.has(String(m.id))) updateResultRow(m.id, "in_db");
-  }
+    // Segna nella tabella quelli già in DB
+    for(const m of discoveredMembers){
+      if(!missingSet.has(String(m.id))) updateResultRow(m.id, "in_db");
+    }
 
-  if(toDownload.length === 0){
-    log(`✅ ${countryName}: COMPLETO — tutti i ${discoveredMembers.length} partner già in Supabase!`,"ok");
-    setProgress(100, 100);
-    setStatus(`✅ ${countryName}: COMPLETO — ${discoveredMembers.length} partner già tutti in DB`, true);
-    showActivity("✅", `${countryName} completo! ${discoveredMembers.length} partner già in database.`);
-    setTimeout(hideActivity, 5000);
-    return;
+    if(toDownload.length === 0){
+      markCountryCompleted(country, discoveredMembers.length);
+      log(`✅ ${countryName}: COMPLETO — tutti i ${discoveredMembers.length} partner già in Supabase!`,"ok");
+      setProgress(100, 100);
+      setStatus(`✅ ${countryName}: COMPLETO — ${discoveredMembers.length} partner già tutti in DB`, true);
+      showActivity("✅", `${countryName} completo! ${discoveredMembers.length} partner già in database.`);
+      setTimeout(hideActivity, 5000);
+      return;
+    }
   }
 
   // === FASE 2: DOWNLOAD — 1 PROFILO ALLA VOLTA con delay variabile ===
@@ -927,6 +972,8 @@ async function scrapeDiscoverCountry(country, countryName){
   }
   hideActivity();
   log(`═══ FASE 2 ${countryName} COMPLETATA: ${totalScraped} salvati in DB ═══`,"ok");
+  // Marca country come completata
+  markCountryCompleted(country, discoveredMembers.length);
   // Download completato per questa country — aggiorna stato salvato
   saveScrapingState();
 
