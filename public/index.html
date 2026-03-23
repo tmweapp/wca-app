@@ -649,7 +649,7 @@ async function resumeScraping(){
   // Confronto rapido con Supabase
   setStatus(`Confronto rapido ${discoveredMembers.length} ID...`, true);
   const allIds = discoveredMembers.map(m => m.id);
-  const checkResult = await checkMissingIds(allIds, "ripresa");
+  const checkResult = await checkMissingIds(allIds, currentScrapingCountry);
   const missingSet = new Set(checkResult.missing.map(String));
   const inDb = discoveredMembers.length - missingSet.size;
   hideActivity();
@@ -759,14 +759,14 @@ function getSelectedNetworks(){
 
 // Confronto SERVER-SIDE: manda TUTTI gli ID discover al server, il server confronta con Supabase
 // e restituisce SOLO quelli mancanti. Zero dipendenza da localStorage.
-async function checkMissingIds(discoverIds, countryName){
+async function checkMissingIds(discoverIds, countryCode){
   const t0 = performance.now();
   try {
     showActivity("🔍", `Confronto rapido ${discoverIds.length} ID...`);
     const resp = await fetch(API+"/api/check-ids", {
       method: "POST",
       headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({ids: discoverIds})
+      body: JSON.stringify({ids: discoverIds, country: countryCode || ""})
     });
     const data = await resp.json();
     const ms = Math.round(performance.now() - t0);
@@ -862,7 +862,7 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
   // === CONFRONTO RAPIDO CON DATABASE ===
   setStatus(`${countryName}: confronto rapido ${discoveredMembers.length} ID...`, true);
   const allDiscoverIds = discoveredMembers.map(m => m.id);
-  const checkResult = await checkMissingIds(allDiscoverIds, countryName);
+  const checkResult = await checkMissingIds(allDiscoverIds, country);
   const missingSet = new Set(checkResult.missing.map(String));
   const inDb = discoveredMembers.length - missingSet.size;
   hideActivity();
