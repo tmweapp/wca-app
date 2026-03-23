@@ -709,7 +709,10 @@ async function loadExistingIds(countryCode){
       page++;
     }
   } catch(e){ log("❌ Errore caricamento ID esistenti: "+e.message,"err"); }
-  log(`🗂 ID già in Supabase${countryCode?" per "+countryCode:""}: ${existing.size}`);
+  // Aggiungi anche i profili falliti da localStorage
+  const failedCount = failedProfilesList.length;
+  for(const f of failedProfilesList) existing.add(String(f.id));
+  log(`🗂 Già noti: ${existing.size} (${existing.size - failedCount} in Supabase + ${failedCount} falliti)`);
   return existing;
 }
 
@@ -1355,6 +1358,8 @@ function dateStr(){return new Date().toISOString().slice(0,10).replace(/-/g,"");
 function downloadBlob(blob,name){const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;a.click();}
 
 let failedProfilesList = [];
+// Carica failed da localStorage all'avvio
+try { const saved = JSON.parse(localStorage.getItem("wca_failed_profiles")); if(Array.isArray(saved)) failedProfilesList = saved; } catch(e){}
 
 function addFailedProfile(wcaId) {
   if (failedProfilesList.find(f => f.id === wcaId)) return;
