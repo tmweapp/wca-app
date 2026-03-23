@@ -1,0 +1,1526 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WCA Partner Scraper</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh}
+.header{background:linear-gradient(135deg,#1e293b,#334155);padding:16px 24px;display:flex;align-items:center;gap:16px;border-bottom:1px solid #475569}
+.header h1{font-size:1.4rem;color:#38bdf8}
+.header .badge{background:#059669;color:#fff;font-size:.7rem;padding:2px 8px;border-radius:10px}
+.container{max-width:1400px;margin:0 auto;padding:16px}
+.card{background:#1e293b;border-radius:12px;border:1px solid #334155;padding:16px;margin-bottom:16px}
+.card h2{font-size:1rem;color:#94a3b8;margin-bottom:12px}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
+.field{display:flex;flex-direction:column;gap:4px}
+.field label{font-size:.75rem;color:#64748b;text-transform:uppercase;letter-spacing:.5px}
+.field select,.field input{background:#0f172a;border:1px solid #475569;color:#e2e8f0;padding:8px 12px;border-radius:6px;font-size:.85rem}
+.field select{min-width:180px}
+.btn{padding:8px 20px;border:none;border-radius:6px;font-size:.85rem;font-weight:600;cursor:pointer;transition:all .2s}
+.btn-primary{background:#2563eb;color:#fff}.btn-primary:hover{background:#1d4ed8}
+.btn-success{background:#059669;color:#fff}.btn-success:hover{background:#047857}
+.btn-warning{background:#d97706;color:#fff}.btn-warning:hover{background:#b45309}
+.btn-danger{background:#dc2626;color:#fff}.btn-danger:hover{background:#b91c1c}
+.btn-secondary{background:#475569;color:#fff}.btn-secondary:hover{background:#64748b}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-sm{padding:6px 14px;font-size:.78rem}
+.status-bar{display:flex;align-items:center;gap:12px;padding:10px 16px;background:#1e293b;border-radius:8px;margin-bottom:12px;border:1px solid #334155;font-size:.85rem}
+.status-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.status-dot.off{background:#dc2626}.status-dot.on{background:#22c55e;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+.progress-bar{flex:1;background:#334155;border-radius:4px;height:6px;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,#2563eb,#38bdf8);transition:width .3s;width:0}
+.networks-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:6px}
+.networks-grid label{font-size:.8rem;display:flex;align-items:center;gap:6px;padding:4px 8px;border-radius:4px;cursor:pointer}
+.networks-grid label:hover{background:#334155}
+.networks-grid input[type=checkbox]{accent-color:#2563eb}
+.tabs-section{margin-bottom:12px}
+.tabs-section h3{font-size:.85rem;color:#94a3b8;margin-bottom:8px}
+.scraped-tabs-bar{display:flex;gap:6px;overflow-x:auto;padding:8px 0;scrollbar-width:thin;scrollbar-color:#475569 transparent}
+.scraped-tabs-bar::-webkit-scrollbar{height:6px}
+.scraped-tabs-bar::-webkit-scrollbar-track{background:transparent}
+.scraped-tabs-bar::-webkit-scrollbar-thumb{background:#475569;border-radius:3px}
+.scraped-tab{flex-shrink:0;display:flex;align-items:center;gap:6px;padding:6px 12px;background:#334155;border:1px solid #475569;border-radius:8px;cursor:pointer;transition:all .2s;max-width:200px}
+.scraped-tab:hover{background:#475569}
+.scraped-tab.active{background:#1e40af;border-color:#3b82f6}
+.scraped-tab img{width:24px;height:24px;border-radius:4px;object-fit:contain;background:#fff}
+.scraped-tab .tab-name{font-size:.75rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px}
+.profile-preview{background:#0f172a;border:1px solid #334155;border-radius:10px;padding:16px;max-height:70vh;overflow-y:auto;display:none}
+.profile-preview.visible{display:block}
+.profile-preview h3{color:#38bdf8;font-size:1.1rem;margin-bottom:8px;display:flex;align-items:center;gap:10px}
+.profile-preview img.logo{width:60px;height:60px;object-fit:contain;background:#fff;border-radius:8px;padding:4px}
+.profile-preview .info-grid{display:grid;grid-template-columns:140px 1fr;gap:4px 12px;font-size:.82rem;margin:10px 0}
+.profile-preview .info-grid .lbl{color:#64748b;font-weight:600}
+.profile-preview .info-grid .val{color:#cbd5e1}
+.profile-preview .section-title{color:#94a3b8;font-size:.85rem;font-weight:700;margin:12px 0 6px;border-bottom:1px solid #334155;padding-bottom:4px}
+.contact-card{background:#1e293b;border:1px solid #334155;border-radius:8px;padding:10px;margin-bottom:6px;font-size:.8rem}
+.contact-card strong{color:#38bdf8}
+.tags{display:flex;flex-wrap:wrap;gap:4px;margin:4px 0}
+.tag{background:#334155;color:#94a3b8;padding:2px 8px;border-radius:4px;font-size:.72rem}
+.results-table-wrap{max-height:300px;overflow-y:auto;margin-top:12px}
+table{width:100%;border-collapse:collapse;font-size:.8rem}
+th{background:#334155;color:#94a3b8;padding:8px;text-align:left;position:sticky;top:0}
+td{padding:6px 8px;border-bottom:1px solid #1e293b}
+tr:hover td{background:#334155}
+.log-area{background:#0f172a;border:1px solid #334155;border-radius:8px;padding:10px;max-height:150px;overflow-y:auto;font-family:'Fira Code',monospace;font-size:.75rem;color:#64748b;margin-top:8px}
+.log-area .ok{color:#22c55e}.log-area .err{color:#ef4444}.log-area .warn{color:#eab308}
+.flex-between{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+.mode-selector{display:flex;gap:6px}
+.mode-selector .btn{font-size:.78rem}
+.mode-selector .btn.active{outline:2px solid #38bdf8}
+.gm-badge{display:inline-block;padding:1px 6px;border-radius:4px;font-size:.7rem;font-weight:700}
+.gm-badge.covered{background:#059669;color:#fff}
+.gm-badge.not-covered{background:#dc2626;color:#fff}
+.access-badge{display:inline-block;padding:2px 6px;border-radius:4px;font-size:.65rem;font-weight:700}
+.access-badge.limited{background:#92400e;color:#fbbf24}
+.access-badge.full{background:#065f46;color:#6ee7b7}
+.scraped-tab.limited{border-color:#92400e;opacity:.8}
+.hidden{display:none}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>WCA Partner Scraper</h1>
+  <span class="badge" id="loginBadge">NON CONNESSO</span>
+  <span style="background:#334155;color:#94a3b8;font-size:.7rem;padding:3px 10px;border-radius:10px;display:inline-flex;align-items:center;gap:4px">📊 <span id="headerTotalPartners">0</span> partner</span>
+  <span style="background:#92400e;color:#fbbf24;font-size:.7rem;padding:3px 10px;border-radius:10px;display:inline-flex;align-items:center;gap:4px">🔒 <span id="headerLimitedPartners">0</span> limitati</span>
+  <div id="headerFlags" style="display:flex;gap:2px;align-items:center;flex-wrap:wrap;margin:0 8px;max-width:400px;overflow:hidden"></div>
+  <div style="flex:1"></div>
+  <button class="btn btn-secondary btn-sm" onclick="window.open('/settings.html','_blank')">⚙ Network</button>
+  <button class="btn btn-secondary btn-sm" onclick="openAgenda()">Apri Agenda Partner</button>
+  <button class="btn btn-warning btn-sm" onclick="openVerifica()">Verifica Non Trovati (<span id="failedCountHeader">0</span>)</button>
+</div>
+
+<div class="container">
+  <!-- STATUS -->
+  <div class="status-bar">
+    <div class="status-dot off" id="statusDot"></div>
+    <span id="statusText">Clicca "Login WCA" per iniziare</span>
+    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+    <span id="progressText" style="font-size:.78rem;color:#64748b">0/0</span>
+  </div>
+  <!-- ACTIVITY TICKER -->
+  <div id="activityBar" style="display:none;padding:6px 16px;background:#0f172a;border:1px solid #334155;border-radius:8px;margin-bottom:12px;font-size:.8rem;font-family:monospace;color:#94a3b8;display:none">
+    <div style="display:flex;align-items:center;gap:8px">
+      <span id="activityIcon" style="font-size:1rem">⏳</span>
+      <span id="activityText">In attesa...</span>
+      <span id="activityTimer" style="margin-left:auto;color:#64748b;font-size:.75rem"></span>
+    </div>
+  </div>
+
+  <!-- BACKGROUND JOB PANEL -->
+  <div id="bgJobPanel" style="display:none;padding:12px 16px;background:linear-gradient(135deg,#1e1b4b,#312e81);border:1px solid #4f46e5;border-radius:8px;margin-bottom:12px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <h3 style="font-size:.9rem;color:#a5b4fc;margin:0">🖥 Job in Background</h3>
+      <div style="display:flex;gap:6px">
+        <span id="bgJobStatus" style="font-size:.7rem;padding:2px 8px;border-radius:4px;background:#4f46e5;color:#fff">—</span>
+        <button class="btn btn-sm" id="bgPauseBtn" onclick="pauseBackgroundJob()" style="background:#d97706;color:#fff;font-size:.7rem;padding:2px 10px">⏸ Pausa</button>
+        <button class="btn btn-sm" id="bgResumeBtn" onclick="resumeBackgroundJob()" style="display:none;background:#059669;color:#fff;font-size:.7rem;padding:2px 10px">▶ Riprendi</button>
+        <button class="btn btn-sm" onclick="cancelBackgroundJob()" style="background:#dc2626;color:#fff;font-size:.7rem;padding:2px 10px">✗ Annulla</button>
+      </div>
+    </div>
+    <div style="font-size:.8rem;color:#c7d2fe" id="bgJobActivity">—</div>
+    <div style="display:flex;gap:16px;margin-top:6px;font-size:.75rem;color:#818cf8">
+      <span>Paese: <strong id="bgJobCountry">—</strong></span>
+      <span>Progresso: <strong id="bgJobProgress">0/0</strong></span>
+      <span>Salvati: <strong id="bgJobScraped">0</strong></span>
+      <span>Saltati: <strong id="bgJobSkipped">0</strong></span>
+    </div>
+    <div class="progress-bar" style="margin-top:6px;height:4px"><div class="progress-fill" id="bgProgressFill" style="background:#818cf8"></div></div>
+  </div>
+
+  <!-- LOGIN + CONFIG -->
+  <div class="card">
+    <div class="flex-between">
+      <h2>Configurazione</h2>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-primary" id="btnLogin" onclick="doLogin()">Login WCA</button>
+        <button class="btn btn-success" id="btnStart" onclick="startScraping()" disabled>Avvia Scraping</button>
+        <button class="btn btn-success" id="btnStartBg" onclick="startBackgroundJob()" style="background:#7c3aed">▶ Background</button>
+        <button class="btn btn-warning" id="btnResume" onclick="resumeScraping()" style="display:none">▶ Continua Download</button>
+        <button class="btn btn-danger btn-sm" id="btnStop" onclick="stopScraping()" disabled>Stop</button>
+      </div>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <div class="field">
+        <label>Modalità</label>
+        <div class="mode-selector">
+          <button class="btn btn-sm btn-secondary active" data-mode="discover" onclick="setMode('discover',this)">Discover</button>
+          <button class="btn btn-sm btn-secondary" data-mode="range" onclick="setMode('range',this)">Range ID</button>
+        </div>
+      </div>
+      <div class="field" style="min-width:300px">
+        <label>Paesi (seleziona uno o più)</label>
+        <div id="countrySelector" style="position:relative">
+          <div id="countryDisplay" onclick="toggleCountryDropdown()" style="background:#0f172a;border:1px solid #475569;color:#e2e8f0;padding:8px 12px;border-radius:6px;font-size:.85rem;cursor:pointer;min-height:36px;display:flex;flex-wrap:wrap;gap:4px;align-items:center">
+            <span style="color:#64748b">Seleziona paesi...</span>
+          </div>
+          <div id="countryDropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:#1e293b;border:1px solid #475569;border-radius:0 0 6px 6px;max-height:300px;overflow-y:auto;z-index:50">
+            <div style="padding:6px 8px;border-bottom:1px solid #334155;display:flex;gap:6px">
+              <input type="text" id="countryFilter" placeholder="Filtra..." oninput="filterCountries()" style="flex:1;background:#0f172a;border:1px solid #475569;color:#e2e8f0;padding:4px 8px;border-radius:4px;font-size:.8rem">
+              <button class="btn btn-sm btn-secondary" onclick="clearCountries()">Reset</button>
+            </div>
+            <div id="countryList"></div>
+          </div>
+        </div>
+      </div>
+      <div class="field" id="fieldSearch">
+        <label>Cerca</label>
+        <input type="text" id="txtSearch" placeholder="Nome azienda o ID">
+      </div>
+      <div class="field" id="fieldSearchBy">
+        <label>Cerca per</label>
+        <select id="selSearchBy">
+          <option value="">Paese</option>
+          <option value="company_name">Nome azienda</option>
+          <option value="id_number">ID WCA</option>
+        </select>
+      </div>
+      <div class="field hidden" id="fieldRangeFrom">
+        <label>ID Da</label>
+        <input type="number" id="txtRangeFrom" value="1" min="1">
+      </div>
+      <div class="field hidden" id="fieldRangeTo">
+        <label>ID A</label>
+        <input type="number" id="txtRangeTo" value="500" min="1">
+      </div>
+      <!-- Delay gestito automaticamente con pattern variabile -->
+    </div>
+    <!-- Networks -->
+    <details style="margin-top:12px">
+      <summary style="cursor:pointer;color:#94a3b8;font-size:.85rem">Seleziona Network</summary>
+      <div class="networks-grid" style="margin-top:8px" id="networksGrid"></div>
+    </details>
+  </div>
+
+  <!-- SCRAPED TABS -->
+  <div class="tabs-section" id="tabsSection" style="display:none">
+    <div class="card" style="padding:10px 16px">
+      <div class="flex-between" style="margin-bottom:6px">
+        <h3 style="font-size:.85rem;color:#94a3b8">Profili Scrappati (<span id="scrapedCount">0</span>)</h3>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-sm btn-secondary" onclick="exportJSON()">Export JSON</button>
+          <button class="btn btn-sm btn-secondary" onclick="exportCSV()">Export CSV</button>
+        </div>
+      </div>
+      <div class="scraped-tabs-bar" id="scrapedTabsBar"></div>
+      <div class="profile-preview" id="profilePreview"></div>
+    </div>
+  </div>
+
+  <!-- RESULTS TABLE -->
+  <div class="card" id="resultsCard" style="display:none">
+    <div class="flex-between">
+      <h2>Risultati Discover (<span id="discoverCount">0</span>)</h2>
+    </div>
+    <div class="results-table-wrap">
+      <table>
+        <thead><tr><th>ID</th><th>Azienda</th><th>Stato</th></tr></thead>
+        <tbody id="resultsBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- LOG -->
+  <div class="card">
+    <h2>Log</h2>
+    <div class="log-area" id="logArea"></div>
+  </div>
+</div>
+
+<script>
+const API = window.location.origin;
+const NETWORKS = {
+  "WCA First":1,"WCA Advanced Professionals":2,"WCA China Global":3,"WCA Inter Global":4,
+  "Lognet Global":61,"Global Affinity Alliance":98,"Elite Global Logistics Network":108,
+  "InFinite Connection (IFC8)":118,"WCA Projects":5,"WCA Dangerous Goods":22,
+  "WCA Perishables":13,"WCA Time Critical":18,"WCA Relocations":15,"WCA Pharma":16,
+  "WCA Vendors":38,"WCA eCommerce Solutions":107,"WCA Live Events and Expo":124
+};
+
+let sessionCookies = null;
+let wcaToken = null;
+let scraping = false;
+let scrapedProfiles = [];
+let activeTabIdx = -1;
+let currentMode = "discover";
+let discoveredMembers = [];
+let totalScraped = 0;
+let selectedCountries = [];
+let currentScrapingCountry = "";
+
+// Pattern di delay variabile (in secondi) — simula un umano al PC
+const DELAY_PATTERN = [3,3,2,3,8,3,5,3,12,3,4,3,6,3,9,3,3,3,10];
+const COUNTRY_PAUSE = 15; // 15 secondi di pausa tra un paese e l'altro
+let delayIndex = 0;
+function getNextDelay(){
+  const d = DELAY_PATTERN[delayIndex % DELAY_PATTERN.length];
+  delayIndex++;
+  // Reset ciclo dopo 10 profili (ogni 10 profili = pausa lunga di 15s)
+  if(delayIndex % DELAY_PATTERN.length === 0){
+    return 15000; // pausa lunga fine ciclo
+  }
+  return d * 1000;
+}
+
+// Tutti i paesi disponibili
+const ALL_COUNTRIES = [
+  {g:"Principali",items:[["IT","Italia"],["US","Stati Uniti"],["GB","Regno Unito"],["DE","Germania"],["FR","Francia"],["ES","Spagna"],["CN","Cina"],["IN","India"],["BR","Brasile"],["AE","Emirati Arabi"],["TR","Turchia"],["NL","Paesi Bassi"],["AU","Australia"],["JP","Giappone"],["KR","Corea del Sud"],["SG","Singapore"],["HK","Hong Kong"],["TH","Thailandia"],["MX","Messico"],["CA","Canada"]]},
+  {g:"Europa",items:[["AL","Albania"],["AD","Andorra"],["AT","Austria"],["BY","Bielorussia"],["BE","Belgio"],["BA","Bosnia"],["BG","Bulgaria"],["HR","Croazia"],["CY","Cipro"],["CZ","Rep. Ceca"],["DK","Danimarca"],["EE","Estonia"],["FI","Finlandia"],["GR","Grecia"],["HU","Ungheria"],["IS","Islanda"],["IE","Irlanda"],["LV","Lettonia"],["LT","Lituania"],["LU","Lussemburgo"],["MT","Malta"],["MD","Moldavia"],["ME","Montenegro"],["MK","Macedonia Nord"],["NO","Norvegia"],["PL","Polonia"],["PT","Portogallo"],["RO","Romania"],["RS","Serbia"],["SK","Slovacchia"],["SI","Slovenia"],["SE","Svezia"],["CH","Svizzera"],["UA","Ucraina"]]},
+  {g:"Asia-Pacifico",items:[["AF","Afghanistan"],["BD","Bangladesh"],["KH","Cambogia"],["ID","Indonesia"],["IQ","Iraq"],["IR","Iran"],["IL","Israele"],["JO","Giordania"],["KW","Kuwait"],["LB","Libano"],["MY","Malesia"],["MM","Myanmar"],["NP","Nepal"],["NZ","Nuova Zelanda"],["OM","Oman"],["PK","Pakistan"],["PH","Filippine"],["QA","Qatar"],["SA","Arabia Saudita"],["LK","Sri Lanka"],["TW","Taiwan"],["VN","Vietnam"]]},
+  {g:"Africa",items:[["DZ","Algeria"],["AO","Angola"],["CM","Camerun"],["CI","Costa d'Avorio"],["CD","RD Congo"],["EG","Egitto"],["ET","Etiopia"],["GH","Ghana"],["KE","Kenya"],["LY","Libia"],["MA","Marocco"],["MZ","Mozambico"],["NG","Nigeria"],["SN","Senegal"],["ZA","Sudafrica"],["TZ","Tanzania"],["TN","Tunisia"],["UG","Uganda"]]},
+  {g:"Americhe",items:[["AR","Argentina"],["BO","Bolivia"],["CL","Cile"],["CO","Colombia"],["CR","Costa Rica"],["CU","Cuba"],["DO","Rep. Dominicana"],["EC","Ecuador"],["SV","El Salvador"],["GT","Guatemala"],["HN","Honduras"],["JM","Giamaica"],["NI","Nicaragua"],["PA","Panama"],["PY","Paraguay"],["PE","Perù"],["PR","Porto Rico"],["TT","Trinidad e Tobago"],["UY","Uruguay"],["VE","Venezuela"]]},
+  {g:"Altro",items:[["RU","Russia"],["GE","Georgia"],["AM","Armenia"],["AZ","Azerbaigian"],["KZ","Kazakistan"],["UZ","Uzbekistan"],["FJ","Fiji"],["PG","Papua Nuova Guinea"]]}
+];
+
+// Bandiera emoji da codice paese ISO
+function countryFlag(code){
+  if(!code || code.length !== 2) return "";
+  return String.fromCodePoint(...[...code.toUpperCase()].map(c => 0x1F1E6 + c.charCodeAt(0) - 65));
+}
+
+// Conteggio partner per paese (caricato da Supabase)
+let countryPartnerCounts = {};
+async function loadCountryCounts(){
+  try {
+    const resp = await fetch(API+"/api/partners?action=country_counts");
+    const data = await resp.json();
+    if(data.success && data.counts) countryPartnerCounts = data.counts;
+  } catch(e){}
+}
+
+// Country selector
+async function initCountrySelector(){
+  await loadCountryCounts();
+  const list = document.getElementById("countryList");
+  let html = "";
+  for(const group of ALL_COUNTRIES){
+    html += `<div style="padding:4px 8px;font-size:.7rem;color:#64748b;font-weight:700;text-transform:uppercase;background:#0f172a">${group.g}</div>`;
+    for(const [code, name] of group.items){
+      const flag = countryFlag(code);
+      const cnt = countryPartnerCounts[code] || 0;
+      const cntBadge = cnt > 0 ? `<span style="margin-left:auto;background:#059669;color:#fff;font-size:.65rem;padding:1px 6px;border-radius:8px;min-width:20px;text-align:center">${cnt}</span>` : `<span style="margin-left:auto;color:#475569;font-size:.65rem">0</span>`;
+      html += `<label style="display:flex;align-items:center;gap:6px;padding:4px 8px;font-size:.8rem;cursor:pointer;border-bottom:1px solid #1e293b" data-code="${code}" data-name="${name.toLowerCase()}">
+        <input type="checkbox" value="${code}" onchange="toggleCountry('${code}','${name}')" style="accent-color:#2563eb"> ${flag} ${name} (${code}) ${cntBadge}
+      </label>`;
+    }
+  }
+  list.innerHTML = html;
+}
+function toggleCountryDropdown(){
+  const dd = document.getElementById("countryDropdown");
+  dd.style.display = dd.style.display === "none" ? "block" : "none";
+}
+function filterCountries(){
+  const q = document.getElementById("countryFilter").value.toLowerCase();
+  document.querySelectorAll("#countryList label").forEach(l => {
+    l.style.display = (l.dataset.name.includes(q) || l.dataset.code.toLowerCase().includes(q)) ? "flex" : "none";
+  });
+}
+function toggleCountry(code, name){
+  const idx = selectedCountries.findIndex(c => c.code === code);
+  if(idx >= 0) selectedCountries.splice(idx, 1);
+  else selectedCountries.push({code, name});
+  updateCountryDisplay();
+  refreshHeaderFlags();
+}
+function clearCountries(){
+  selectedCountries = [];
+  document.querySelectorAll("#countryList input[type=checkbox]").forEach(cb => cb.checked = false);
+  updateCountryDisplay();
+}
+function updateCountryDisplay(){
+  const disp = document.getElementById("countryDisplay");
+  if(selectedCountries.length === 0){
+    disp.innerHTML = '<span style="color:#64748b">Seleziona paesi...</span>';
+  } else {
+    disp.innerHTML = selectedCountries.map(c =>
+      `<span style="background:#2563eb;color:#fff;padding:2px 8px;border-radius:4px;font-size:.75rem;display:inline-flex;align-items:center;gap:4px">${countryFlag(c.code)} ${c.name} <span onclick="event.stopPropagation();removeCountry('${c.code}')" style="cursor:pointer;opacity:.7">×</span></span>`
+    ).join("");
+  }
+}
+function removeCountry(code){
+  selectedCountries = selectedCountries.filter(c => c.code !== code);
+  const cb = document.querySelector(`#countryList input[value="${code}"]`);
+  if(cb) cb.checked = false;
+  updateCountryDisplay();
+  refreshHeaderFlags();
+}
+function refreshHeaderFlags(){
+  const flagsDiv = document.getElementById("headerFlags");
+  if(!flagsDiv.children.length) return;
+  const nameMap = {};
+  ALL_COUNTRIES.forEach(g => g.items.forEach(([code, name]) => { nameMap[code] = name; }));
+  const sorted = Object.entries(countryPartnerCounts).filter(([,v]) => v > 0).sort((a,b) => b[1] - a[1]);
+  flagsDiv.innerHTML = sorted.map(([code, cnt]) => {
+    const isSelected = selectedCountries.some(c => c.code === code);
+    return `<span onclick="selectFlagCountry('${code}','${nameMap[code]||code}')" title="${nameMap[code]||code}: ${cnt} partner" style="cursor:pointer;font-size:1.1rem;padding:1px 2px;border-radius:3px;position:relative;${isSelected?'background:#2563eb33;outline:1px solid #3b82f6':''}">${countryFlag(code)}<span style="position:absolute;bottom:-4px;right:-2px;background:#059669;color:#fff;font-size:.5rem;padding:0 3px;border-radius:4px;line-height:1.2">${cnt}</span></span>`;
+  }).join("");
+}
+// Click fuori chiude dropdown
+document.addEventListener("click", e => {
+  if(!e.target.closest("#countrySelector")) document.getElementById("countryDropdown").style.display = "none";
+});
+
+initCountrySelector();
+
+// Init networks — evidenzia quelli non disponibili dai test
+(function(){
+  const g = document.getElementById("networksGrid");
+  let networkGroups = {};
+  let networkResults = {};
+  try { networkGroups = JSON.parse(localStorage.getItem("wca_network_groups")||"{}"); } catch(e){}
+  try { networkResults = JSON.parse(localStorage.getItem("wca_network_results")||"{}"); } catch(e){}
+  const available = new Set(networkGroups.available || []);
+  const hasTested = Object.keys(networkResults).length > 0;
+
+  for(const [name] of Object.entries(NETWORKS)){
+    const lbl = document.createElement("label");
+    const isAvail = !hasTested || available.has(name);
+    const checked = isAvail ? "checked" : "";
+    const disabled = !isAvail ? "disabled" : "";
+    let badge = "";
+    if(hasTested){
+      if(isAvail){
+        badge = `<span style="font-size:.6rem;background:#059669;color:#fff;padding:1px 5px;border-radius:4px;margin-left:4px">OK</span>`;
+      } else {
+        badge = `<span style="font-size:.6rem;background:#dc2626;color:#fff;padding:1px 5px;border-radius:4px;margin-left:4px">NO ACCESSO</span>`;
+      }
+    }
+    lbl.style.opacity = isAvail ? "1" : "0.4";
+    lbl.innerHTML = `<input type="checkbox" ${checked} ${disabled} value="${name}"> ${name}${badge}`;
+    g.appendChild(lbl);
+  }
+  if(!hasTested){
+    const note = document.createElement("div");
+    note.style.cssText = "grid-column:1/-1;font-size:.75rem;color:#d97706;padding:4px 0";
+    note.textContent = "Vai su Impostazioni → Test Network per verificare quali network sono accessibili";
+    g.appendChild(note);
+  }
+})();
+
+function log(msg, cls=""){
+  const d = document.getElementById("logArea");
+  const line = document.createElement("div");
+  if(cls) line.className = cls;
+  const t = new Date().toLocaleTimeString();
+  line.textContent = `[${t}] ${msg}`;
+  d.prepend(line);
+  if(d.children.length > 200) d.removeChild(d.lastChild);
+}
+
+function setMode(mode, btn){
+  currentMode = mode;
+  document.querySelectorAll(".mode-selector .btn").forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active");
+  const isRange = mode === "range";
+  document.getElementById("fieldRangeFrom").classList.toggle("hidden",!isRange);
+  document.getElementById("fieldRangeTo").classList.toggle("hidden",!isRange);
+  document.getElementById("fieldSearch").classList.toggle("hidden",isRange);
+  document.getElementById("fieldSearchBy").classList.toggle("hidden",isRange);
+}
+
+function setStatus(text, online=false){
+  document.getElementById("statusText").textContent = text;
+  document.getElementById("statusDot").className = "status-dot " + (online?"on":"off");
+}
+
+function setProgress(current, total){
+  const pct = total > 0 ? (current/total*100) : 0;
+  document.getElementById("progressFill").style.width = pct+"%";
+  document.getElementById("progressText").textContent = `${current}/${total}`;
+}
+
+// === ACTIVITY BAR — mostra cosa sta succedendo in tempo reale ===
+let activityTimerInterval = null;
+function showActivity(icon, text){
+  const bar = document.getElementById("activityBar");
+  bar.style.display = "block";
+  document.getElementById("activityIcon").textContent = icon;
+  document.getElementById("activityText").textContent = text;
+  document.getElementById("activityTimer").textContent = "";
+  if(activityTimerInterval){ clearInterval(activityTimerInterval); activityTimerInterval = null; }
+}
+function hideActivity(){
+  document.getElementById("activityBar").style.display = "none";
+  if(activityTimerInterval){ clearInterval(activityTimerInterval); activityTimerInterval = null; }
+}
+function showCountdown(icon, text, seconds){
+  const bar = document.getElementById("activityBar");
+  bar.style.display = "block";
+  document.getElementById("activityIcon").textContent = icon;
+  document.getElementById("activityText").textContent = text;
+  const timerEl = document.getElementById("activityTimer");
+  let remaining = seconds;
+  timerEl.textContent = remaining + "s";
+  if(activityTimerInterval) clearInterval(activityTimerInterval);
+  activityTimerInterval = setInterval(() => {
+    remaining--;
+    if(remaining <= 0){ timerEl.textContent = "0s"; clearInterval(activityTimerInterval); activityTimerInterval = null; }
+    else timerEl.textContent = remaining + "s";
+  }, 1000);
+}
+// Sleep con countdown visivo
+async function sleepWithActivity(ms, icon, text){
+  const secs = Math.round(ms/1000);
+  showCountdown(icon || "⏸", text || `Pausa ${secs}s...`, secs);
+  await sleep(ms);
+}
+
+async function doLogin(){
+  const btn = document.getElementById("btnLogin");
+  btn.disabled = true; btn.textContent = "Connessione...";
+  setStatus("Login in corso...");
+  log("Avvio login WCA...");
+  try {
+    const resp = await fetch(API+"/api/login", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({})
+    });
+    const data = await resp.json();
+    if(data.success){
+      sessionCookies = data.cookies;
+      wcaToken = data.wcaToken || null;
+      document.getElementById("loginBadge").textContent = "CONNESSO";
+      document.getElementById("loginBadge").style.background = "#059669";
+      document.getElementById("btnStart").disabled = false;
+      setStatus("Connesso! Configura e avvia lo scraping.", true);
+      log("Login riuscito!" + (wcaToken ? " Token trovato." : " Nessun token."), "ok");
+    } else {
+      log("Login fallito: " + (data.error||"errore sconosciuto"), "err");
+      setStatus("Login fallito");
+      if(data.debug) log("Debug: "+JSON.stringify(data.debug).substring(0,300), "warn");
+    }
+  } catch(e){
+    log("Errore login: "+e.message, "err");
+    setStatus("Errore di connessione");
+  }
+  btn.disabled = false; btn.textContent = "Login WCA";
+}
+
+async function startScraping(){
+  if(!sessionCookies){log("Devi prima fare il login","err");return;}
+  scraping = true;
+  delayIndex = 0; // reset pattern delay
+  document.getElementById("btnStart").disabled = true;
+  document.getElementById("btnStop").disabled = false;
+  document.getElementById("tabsSection").style.display = "block";
+
+  if(currentMode === "range"){
+    await scrapeRange();
+  } else {
+    // Multi-country: se selezionati più paesi, scrape uno alla volta con pausa
+    const countries = selectedCountries.length > 0 ? [...selectedCountries] : [{code:"", name:"Tutti"}];
+    for(let ci = 0; ci < countries.length && scraping; ci++){
+      const c = countries[ci];
+      if(countries.length > 1) log(`═══ PAESE ${ci+1}/${countries.length}: ${c.name} (${c.code}) ═══`,"ok");
+      await scrapeDiscoverCountry(c.code, c.name);
+      // Pausa 15s tra paesi
+      if(ci + 1 < countries.length && scraping){
+        log(`⏸ Pausa ${COUNTRY_PAUSE}s prima del prossimo paese...`);
+        await sleepWithActivity("🌍", `Pausa tra paesi — prossimo: ${countries[ci+1].name}`, COUNTRY_PAUSE * 1000);
+      }
+    }
+  }
+
+  scraping = false;
+  document.getElementById("btnStart").disabled = false;
+  document.getElementById("btnStop").disabled = true;
+  setStatus("Scraping completato!", true);
+  log("Scraping terminato. Profili totali salvati: "+totalScraped, "ok");
+}
+
+function stopScraping(){
+  scraping = false;
+  hideActivity();
+  document.getElementById("btnStop").disabled = true;
+  document.getElementById("btnStart").disabled = false;
+  setStatus("Scraping fermato.", true);
+  log("Scraping fermato dall'utente.", "warn");
+  // Salva stato per poter riprendere
+  saveScrapingState();
+}
+
+// Salva lo stato del download interrotto in localStorage
+function saveScrapingState(){
+  if(discoveredMembers.length === 0) return;
+  const state = {
+    discoveredMembers,
+    scrapedIds: scrapedProfiles.map(p => p.wca_id),
+    countries: selectedCountries,
+    timestamp: Date.now(),
+  };
+  try {
+    localStorage.setItem("wca_scraping_state", JSON.stringify(state));
+    document.getElementById("btnResume").style.display = "inline-block";
+    log(`Stato salvato: ${discoveredMembers.length} membri. Puoi riprendere con "Continua Download".`,"ok");
+  } catch(e){}
+}
+
+// Ripristina e continua il download interrotto
+async function resumeScraping(){
+  let state;
+  try { state = JSON.parse(localStorage.getItem("wca_scraping_state")); } catch(e){}
+  if(!state || !state.discoveredMembers?.length){
+    log("Nessun download interrotto da riprendere.","warn");
+    return;
+  }
+  const ageMin = Math.round((Date.now() - state.timestamp) / 60000);
+  log(`Ripresa download interrotto (${ageMin}min fa): ${state.discoveredMembers.length} membri trovati`,"ok");
+  discoveredMembers = state.discoveredMembers;
+  if(state.countries) selectedCountries = state.countries;
+  updateResultsTable();
+  document.getElementById("resultsCard").style.display = "block";
+  document.getElementById("tabsSection").style.display = "block";
+
+  scraping = true;
+  delayIndex = 0;
+  document.getElementById("btnStart").disabled = true;
+  document.getElementById("btnResume").style.display = "none";
+  document.getElementById("btnStop").disabled = false;
+
+  // Carica ID già in Supabase
+  setStatus("Caricamento partner già scaricati...", true);
+  const existingIds = await loadExistingIds();
+  const toDownload = discoveredMembers.filter(m => !existingIds.has(String(m.id)));
+  const skipped = discoveredMembers.length - toDownload.length;
+  if(skipped > 0){
+    log(`⏭ ${skipped} già in DB — saltati. ${toDownload.length} restanti.`,"ok");
+    for(const m of discoveredMembers){
+      if(existingIds.has(String(m.id))) updateResultRow(m.id, "in_db");
+    }
+  }
+  if(toDownload.length === 0){
+    log("Tutti i partner già in Supabase! Download completo.","ok");
+    scraping = false;
+    document.getElementById("btnStart").disabled = false;
+    document.getElementById("btnStop").disabled = true;
+    return;
+  }
+
+  // Riprendi la Fase 2
+  log(`═══ RIPRESA DOWNLOAD — ${toDownload.length} profili restanti ═══`);
+  const total = toDownload.length;
+  const MAX_TABS = 50;
+  let consecutiveFailures = 0;
+  const MAX_RETRIES = 2;
+
+  for(let i=0; i<total && scraping; i++){
+    const member = toDownload[i];
+    setStatus(`Download ${i+1}/${total} — ID ${member.id}`, true);
+    setProgress(i+1, total);
+    showActivity("📥", `Download profilo ${i+1}/${total} — ID ${member.id} (${member.name||""})`);
+    let retries = 0;
+    let done = false;
+    while(retries <= MAX_RETRIES && scraping && !done){
+      try {
+        const resp = await fetch(API+"/api/scrape",{
+          method:"POST",headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({wcaIds:[member.id], members: member.href ? [{id:member.id, href:member.href}] : []})
+        });
+        const data = await resp.json();
+        if(!data.success){
+          if(data.error?.includes("SSO") && retries < MAX_RETRIES){ retries++; log(`SSO fallito, retry ${retries}...`,"warn"); await sleepWithActivity("🔄", `SSO fallito — retry ${retries}`, 15000); continue; }
+          addFailedProfile(member.id); updateResultRow(member.id, "sso_failed"); consecutiveFailures++; done = true; break;
+        }
+        const profile = data.results?.[0];
+        if(profile?.state==="ok"){
+          scrapedProfiles.unshift(profile);
+          if(scrapedProfiles.length > MAX_TABS) scrapedProfiles.pop();
+          addScrapedTab(profile, 0); trimScrapedTabs(MAX_TABS);
+          showActivity("✅", `Salvato: ${profile.company_name} — ${profile.contacts?.length||0} contatti`);
+          log(`✓ ${profile.company_name} (${profile.wca_id}) contatti:${profile.contacts?.length||0}`,"ok");
+          saveToSupabase(profile); updateResultRow(profile.wca_id, "ok"); totalScraped++; consecutiveFailures = 0; done = true;
+        } else if(profile?.state==="login_redirect"){
+          if(retries < MAX_RETRIES){ retries++; log(`Sessione scaduta, retry ${retries}...`,"warn"); await sleepWithActivity("🔑", `Sessione scaduta — retry ${retries}`, 15000); continue; }
+          addFailedProfile(member.id); updateResultRow(member.id, "login_redirect"); consecutiveFailures++; done = true;
+        } else {
+          if(profile?.state==="not_found") addFailedProfile(member.id);
+          updateResultRow(member.id, profile?.state||"error"); consecutiveFailures = 0; done = true;
+        }
+      } catch(e){ if(retries < MAX_RETRIES){ retries++; await sleepWithActivity("⚠️", "Errore rete — retry tra 10s", 10000); continue; } consecutiveFailures++; done = true; }
+    }
+    if(consecutiveFailures >= 5){ log("⛔ Troppi fallimenti — stop automatico","err"); scraping = false; break; }
+    if(i + 1 < total && scraping){ const d = getNextDelay(); const nm = toDownload[i+1]; log(`⏱ Pausa ${(d/1000).toFixed(0)}s...`); await sleepWithActivity("⏳", `Pausa ${Math.round(d/1000)}s — prossimo: ${nm?.name||"ID "+nm?.id}`, d); }
+  }
+  hideActivity();
+
+  scraping = false;
+  document.getElementById("btnStart").disabled = false;
+  document.getElementById("btnStop").disabled = true;
+  // Aggiorna stato salvato
+  saveScrapingState();
+  log(`═══ DOWNLOAD COMPLETATO: ${totalScraped} salvati ═══`,"ok");
+  setStatus("Download completato!", true);
+}
+
+// Controlla se c'è un download interrotto all'avvio
+(function checkSavedState(){
+  try {
+    const state = JSON.parse(localStorage.getItem("wca_scraping_state"));
+    if(state && state.discoveredMembers?.length > 0){
+      const ageMin = Math.round((Date.now() - state.timestamp) / 60000);
+      // Mostra bottone se meno di 24 ore
+      if(ageMin < 1440){
+        document.getElementById("btnResume").style.display = "inline-block";
+        const countryNames = state.countries?.map(c => c.name).join(", ") || "Tutti";
+        log(`Download interrotto trovato: ${state.discoveredMembers.length} membri (${countryNames}, ${ageMin}min fa). Clicca "Continua Download" per riprendere.`,"warn");
+      }
+    }
+  } catch(e){}
+})();
+
+function getSelectedNetworks(){
+  const checks = document.querySelectorAll("#networksGrid input:checked");
+  return Array.from(checks).map(c=>c.value);
+}
+
+// Carica gli ID già presenti in Supabase per evitare duplicati
+async function loadExistingIds(){
+  const existing = new Set();
+  try {
+    let page = 0;
+    const pageSize = 1000;
+    while(true){
+      const resp = await fetch(API+`/api/partners?select=wca_id&limit=${pageSize}&page=${page+1}`);
+      const data = await resp.json();
+      if(!data.success || !data.partners?.length){
+        if(!data.success) log("Attenzione: impossibile caricare ID da Supabase — "+( data.error||"errore"),"warn");
+        break;
+      }
+      for(const p of data.partners) existing.add(String(p.wca_id));
+      if(data.partners.length < pageSize) break;
+      page++;
+    }
+  } catch(e){ log("Errore caricamento ID esistenti: "+e.message,"warn"); }
+  log(`ID già in Supabase: ${existing.size}`);
+  return existing;
+}
+
+async function scrapeDiscoverCountry(country, countryName){
+  currentScrapingCountry = country;
+  // === FASE 0: CARICA ID GIÀ IN SUPABASE ===
+  setStatus("Caricamento partner già scaricati da Supabase...", true);
+  showActivity("🔍", "Caricamento partner già in Supabase...");
+  log("Caricamento ID già presenti in Supabase...");
+  const existingIds = await loadExistingIds();
+  if(existingIds.size > 0) log(`${existingIds.size} partner già in Supabase — verranno saltati`,"ok");
+
+  // === FASE 1: DISCOVER — raccogli TUTTI gli ID da tutte le pagine ===
+  setStatus(`FASE 1: Ricerca membri ${countryName}...`, true);
+  showActivity("📋", `Discover ${countryName} — ricerca pagina 1...`);
+  log(`═══ FASE 1: DISCOVER ${countryName} — raccolta ID ═══`);
+  discoveredMembers = [];
+  let page = 1;
+  const searchTerm = document.getElementById("txtSearch").value.trim();
+  const searchBy = document.getElementById("selSearchBy").value;
+  const networks = getSelectedNetworks();
+  let estimatedTotal = null;
+
+  while(scraping){
+    try {
+      setStatus(`FASE 1 ${countryName}: pagina ${page}... (${discoveredMembers.length} trovati)`, true);
+      showActivity("📋", `Discover ${countryName} — scarico pagina ${page}... (${discoveredMembers.length} trovati)`);
+      const resp = await fetch(API+"/api/discover",{
+        method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({cookies:sessionCookies, wcaToken, page, filters:{country,searchTerm,searchBy,networks}})
+      });
+      const data = await resp.json();
+      if(!data.success){
+        log("Errore discover: "+(data.error||"sconosciuto"),"err");
+        if(data.error==="login_required"){log("Sessione scaduta, rifai login","err");return;}
+        break;
+      }
+      const newMembers = data.members || [];
+      if(data.totalResults && !estimatedTotal) estimatedTotal = data.totalResults;
+      log(`Pagina ${page}: +${newMembers.length} (totale: ${discoveredMembers.length + newMembers.length}${estimatedTotal ? " / ~"+estimatedTotal : ""})`);
+      discoveredMembers.push(...newMembers);
+      updateResultsTable();
+      if(estimatedTotal) setProgress(discoveredMembers.length, estimatedTotal);
+      if(newMembers.length === 0 || !data.hasNext) break;
+      page++;
+      // Delay variabile tra pagine discover
+      const pageDelay = getNextDelay();
+      log(`⏱ Pausa ${(pageDelay/1000).toFixed(0)}s...`);
+      await sleepWithActivity("📋", `Discover ${countryName} — pausa prima di pagina ${page+1}`, pageDelay);
+    } catch(e){
+      log("Errore discover: "+e.message,"err"); break;
+    }
+  }
+  hideActivity();
+
+  document.getElementById("resultsCard").style.display = "block";
+  log(`═══ FASE 1 COMPLETATA: ${discoveredMembers.length} membri in ${page} pagine ═══`,"ok");
+  // Salva stato discover per permettere ripresa
+  saveScrapingState();
+
+  if(discoveredMembers.length === 0){
+    log("Nessun membro trovato.","warn");
+    return;
+  }
+
+  // Filtra i membri già in Supabase
+  const toDownload = discoveredMembers.filter(m => !existingIds.has(String(m.id)));
+  const skipped = discoveredMembers.length - toDownload.length;
+  if(skipped > 0){
+    log(`⏭ ${skipped} già in DB — saltati. ${toDownload.length} nuovi.`,"ok");
+    for(const m of discoveredMembers){
+      if(existingIds.has(String(m.id))) updateResultRow(m.id, "in_db");
+    }
+  }
+  if(toDownload.length === 0){
+    log("Tutti i partner già in Supabase!","ok");
+    return;
+  }
+
+  // === FASE 2: DOWNLOAD — 1 PROFILO ALLA VOLTA con delay variabile ===
+  log(`═══ FASE 2: DOWNLOAD — ${toDownload.length} profili, UNO alla volta ═══`);
+  const total = toDownload.length;
+  const MAX_TABS = 50;
+  let consecutiveFailures = 0; // Conta fallimenti consecutivi
+  const MAX_RETRIES = 2; // Max retry per singolo profilo
+
+  for(let i=0; i<total && scraping; i++){
+    const member = toDownload[i];
+    setStatus(`FASE 2 ${countryName}: ${i+1}/${total} — ID ${member.id}`, true);
+    setProgress(i+1, total);
+    showActivity("📥", `Download profilo ${i+1}/${total} — ID ${member.id} (${member.name||""})`);
+
+    let retries = 0;
+    let success = false;
+
+    while(retries <= MAX_RETRIES && scraping && !success){
+      try {
+        const resp = await fetch(API+"/api/scrape",{
+          method:"POST",headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({wcaIds:[member.id], members: member.href ? [{id:member.id, href:member.href}] : []})
+        });
+        const data = await resp.json();
+        if(!data.success){
+          log(`Errore ${member.id}: ${data.error}`,"err");
+          if(data.error && data.error.includes("SSO") && retries < MAX_RETRIES){
+            retries++;
+            log(`SSO fallito, tentativo ${retries}/${MAX_RETRIES} tra 15s...`,"warn");
+            await sleepWithActivity("🔄", `SSO fallito — retry ${retries}/${MAX_RETRIES}`, 15000);
+            continue;
+          }
+          // Segna come fallito e vai avanti
+          addFailedProfile(member.id);
+          updateResultRow(member.id, "sso_failed");
+          consecutiveFailures++;
+          success = true; // esci dal while, non è un successo ma non riprovare
+          break;
+        }
+        const profile = data.results?.[0];
+        if(profile){
+          if(profile.state==="ok"){
+            scrapedProfiles.unshift(profile);
+            if(scrapedProfiles.length > MAX_TABS) scrapedProfiles.pop();
+            addScrapedTab(profile, 0);
+            trimScrapedTabs(MAX_TABS);
+            const limited = profile.access_limited ? " [LIMITATO]" : "";
+            log(`✓ ${profile.company_name} (${profile.wca_id}) contatti:${profile.contacts?.length||0}${limited}`,"ok");
+            saveToSupabase(profile);
+            updateResultRow(profile.wca_id, "ok");
+            totalScraped++;
+            consecutiveFailures = 0;
+            success = true;
+          } else if(profile.state==="not_found"){
+            log(`✗ Non trovato: ${member.id}`,"warn");
+            addFailedProfile(member.id);
+            updateResultRow(member.id, "not_found");
+            consecutiveFailures = 0;
+            success = true;
+          } else if(profile.state==="login_redirect"){
+            if(retries < MAX_RETRIES){
+              retries++;
+              log(`Sessione scaduta per ${member.id}, tentativo ${retries}/${MAX_RETRIES} tra 15s...`,"warn");
+              await sleepWithActivity("🔑", `Sessione scaduta — retry ${retries}/${MAX_RETRIES}`, 15000);
+              continue;
+            }
+            // Max retry raggiunto — segna come fallito e prosegui
+            log(`✗ ${member.id}: sessione scaduta dopo ${MAX_RETRIES} tentativi — saltato`,"err");
+            addFailedProfile(member.id);
+            updateResultRow(member.id, "login_redirect");
+            consecutiveFailures++;
+            success = true;
+          } else {
+            log(`${member.id}: ${profile.state}`,"warn");
+            updateResultRow(member.id, profile.state);
+            consecutiveFailures = 0;
+            success = true;
+          }
+        } else {
+          success = true; // nessun profilo restituito, vai avanti
+        }
+      } catch(e){
+        log(`Errore ${member.id}: ${e.message}`,"err");
+        if(retries < MAX_RETRIES){ retries++; await sleepWithActivity("⚠️", `Errore rete — retry tra 10s`, 10000); continue; }
+        consecutiveFailures++;
+        success = true;
+      }
+    }
+
+    // Se troppi fallimenti consecutivi (5+), forse WCA ci ha bloccato
+    if(consecutiveFailures >= 5){
+      log(`⛔ ${consecutiveFailures} fallimenti consecutivi — WCA potrebbe averci bloccato. Stop automatico.`,"err");
+      scraping = false;
+      break;
+    }
+
+    // Delay variabile — pattern umano
+    if(i + 1 < total && scraping){
+      const nextDelay = getNextDelay();
+      const nextMember = toDownload[i+1];
+      log(`⏱ Pausa ${(nextDelay/1000).toFixed(0)}s...`);
+      await sleepWithActivity("⏳", `Pausa ${Math.round(nextDelay/1000)}s — prossimo: ${nextMember?.name || "ID "+nextMember?.id}`, nextDelay);
+    }
+  }
+  hideActivity();
+  log(`═══ FASE 2 ${countryName} COMPLETATA: ${totalScraped} salvati in DB ═══`,"ok");
+  // Download completato per questa country — aggiorna stato salvato
+  saveScrapingState();
+
+  // === FASE 3: ARRICCHIMENTO — profili limitati vengono ri-scaricati dai network disponibili ===
+  const limitedProfiles = scrapedProfiles.filter(p => p.access_limited);
+  if(limitedProfiles.length === 0 || !scraping){
+    if(limitedProfiles.length === 0) log("Nessun profilo con accesso limitato — arricchimento non necessario","ok");
+    return;
+  }
+
+  // Carica risultati test network da localStorage
+  let networkGroups = {};
+  let networkTestResults = {};
+  try {
+    networkGroups = JSON.parse(localStorage.getItem("wca_network_groups")||"{}");
+    networkTestResults = JSON.parse(localStorage.getItem("wca_network_results")||"{}");
+  } catch(e){}
+
+  const availableNetworks = networkGroups.available || [];
+  if(availableNetworks.length === 0){
+    log("⚠ Nessun network disponibile per l'arricchimento. Vai su Impostazioni → Test Tutti i Network","warn");
+    return;
+  }
+
+  log(`═══ FASE 3: ARRICCHIMENTO — ${limitedProfiles.length} profili limitati, ${availableNetworks.length} network disponibili ═══`);
+  setStatus(`FASE 3: Arricchimento ${limitedProfiles.length} profili limitati...`, true);
+
+  // Mappa nomi network → domini
+  const NETWORK_DOMAIN_MAP = {
+    "WCA First":"https://www.wcaworld.com","WCA Advanced Professionals":"https://www.wcaworld.com",
+    "WCA China Global":"https://www.wcachinaglobal.com","WCA Inter Global":"https://www.wcainterglobal.com",
+    "Lognet Global":"https://www.lognetglobal.com","Global Affinity Alliance":"https://www.globalaffinityalliance.com",
+    "Elite Global Logistics Network":"https://www.elitegln.com","InFinite Connection (IFC8)":"https://www.ifc8.com",
+    "WCA Projects":"https://www.wcaprojects.com","WCA Dangerous Goods":"https://www.wcadangerousgoods.com",
+    "WCA Perishables":"https://www.wcaperishables.com","WCA Time Critical":"https://www.wcatimecritical.com",
+    "WCA Relocations":"https://www.wcarelocations.com","WCA Pharma":"https://www.wcapharma.com",
+    "WCA Vendors":"https://www.wcavendors.com","WCA eCommerce Solutions":"https://www.wcaecommerce.com",
+    "WCA Live Events and Expo":"https://www.wcaliveevents.com",
+  };
+
+  let enriched = 0;
+  let enrichFailed = 0;
+  for(let li = 0; li < limitedProfiles.length && scraping; li++){
+    const lp = limitedProfiles[li];
+    setStatus(`FASE 3: Arricchimento ${li+1}/${limitedProfiles.length} — ${lp.company_name}`, true);
+    setProgress(li, limitedProfiles.length);
+
+    // Trova i network del profilo che sono disponibili
+    const profileNetworks = lp.networks || [];
+    let targetNetworks = [];
+    for(const netName of availableNetworks){
+      // Se il profilo elenca i suoi network, prova quelli; altrimenti prova tutti
+      if(profileNetworks.length > 0){
+        if(profileNetworks.some(pn => pn.toLowerCase().includes(netName.toLowerCase().split(" ")[0]))) {
+          targetNetworks.push(netName);
+        }
+      } else {
+        targetNetworks.push(netName);
+      }
+    }
+    // Escludi wcaworld.com (già provato nella Fase 2)
+    targetNetworks = targetNetworks.filter(n => NETWORK_DOMAIN_MAP[n] !== "https://www.wcaworld.com");
+
+    if(targetNetworks.length === 0){
+      log(`${lp.company_name}: nessun network alternativo disponibile`,"warn");
+      enrichFailed++;
+      continue;
+    }
+
+    let success = false;
+    for(const netName of targetNetworks){
+      if(!scraping) break;
+      const domain = NETWORK_DOMAIN_MAP[netName];
+      if(!domain) continue;
+
+      log(`Arricchimento ${lp.company_name} via ${netName} (${domain})...`);
+      try {
+        const resp = await fetch(API+"/api/enrich",{
+          method:"POST",headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({
+            companyName: lp.company_name,
+            originalWcaId: lp.wca_id,
+            networkName: netName,
+            networkDomain: domain,
+          })
+        });
+        const data = await resp.json();
+        if(data.success && data.enriched && data.profile){
+          // Merge: aggiorna il profilo nell'array con i dati completi
+          const idx = scrapedProfiles.findIndex(p => p.wca_id === lp.wca_id);
+          if(idx >= 0){
+            const merged = data.profile;
+            merged.access_limited = false;
+            merged.enriched_from = netName;
+            merged.enriched_domain = domain;
+            // Mantieni dati originali che il nuovo profilo potrebbe non avere
+            if(!merged.logo_url && lp.logo_url) merged.logo_url = lp.logo_url;
+            if(!merged.enrolled_offices?.length && lp.enrolled_offices?.length) merged.enrolled_offices = lp.enrolled_offices;
+            if(!merged.networks?.length && lp.networks?.length) merged.networks = lp.networks;
+            scrapedProfiles[idx] = merged;
+            // Aggiorna tab
+            refreshScrapedTab(idx, merged);
+            log(`✓ ARRICCHITO: ${merged.company_name} via ${netName} — ${merged.contacts?.length||0} contatti, email=${!!merged.email}`,"ok");
+            saveToSupabase(merged);
+            enriched++;
+            success = true;
+          }
+          break; // Arricchito con successo, passa al prossimo profilo
+        } else {
+          log(`${netName}: ${data.error || "non arricchito"}`,"warn");
+        }
+      } catch(e){
+        log(`Errore enrich ${netName}: ${e.message}`,"err");
+      }
+
+      // Delay tra tentativi su network diversi — 5s perché ogni enrich fa SSO+search+fetch
+      await sleepWithActivity("🔗", `Pausa 5s — prossimo network per ${lp.company_name}`, 5000);
+    }
+    if(!success) enrichFailed++;
+
+    // Delay tra profili — 5s minimo per non stressare WCA
+    if(li + 1 < limitedProfiles.length && scraping) await sleepWithActivity("🔗", `Pausa 5s — prossimo profilo da arricchire`, 5000);
+  }
+
+  setProgress(limitedProfiles.length, limitedProfiles.length);
+  log(`═══ FASE 3 COMPLETATA: ${enriched} arricchiti, ${enrichFailed} ancora limitati ═══`,"ok");
+}
+
+async function scrapeRange(){
+  const from = parseInt(document.getElementById("txtRangeFrom").value)||1;
+  const to = parseInt(document.getElementById("txtRangeTo").value)||500;
+  const total = to - from + 1;
+  log(`Scraping range ${from}-${to} (${total} IDs)`);
+
+  for(let id=from; id<=to && scraping; id++){
+    setStatus(`Scraping ID ${id} (${id-from+1}/${total})`, true);
+    setProgress(id-from+1, total);
+    await scrapeOne(id);
+    if(id < to && scraping){
+      const d = getNextDelay();
+      log(`⏱ Pausa ${(d/1000).toFixed(0)}s...`);
+      await sleep(d);
+    }
+  }
+}
+
+async function scrapeOne(wcaId, memberInfo){
+  try{
+    const body = {cookies:sessionCookies, wcaIds:[wcaId]};
+    if(memberInfo && memberInfo.href) body.members = [{id:wcaId, href:memberInfo.href}];
+    const resp = await fetch(API+"/api/scrape",{
+      method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify(body)
+    });
+    const data = await resp.json();
+    if(!data.success){log(`Errore scrape ${wcaId}: ${data.error}`,"err");return;}
+    for(const profile of (data.results||[])){
+      if(profile.state==="ok"){
+        scrapedProfiles.unshift(profile);
+        addScrapedTab(profile, 0);
+        const dbg = profile._debug ? ` [loginLinks=${profile._debug.loginLinks} membersOnly=${profile._debug.membersOnly} contacts=${profile._debug.contactSection} cookieLen=${profile._debug.cookieLen} keys=${profile._debug.cookieKeys}]` : "";
+        log(`OK: ${profile.company_name} (${wcaId}) contatti:${profile.contacts?.length||0}${dbg}`,"ok");
+        saveToSupabase(profile);
+        updateResultRow(wcaId, "ok");
+      } else if(profile.state==="not_found"){
+        log(`Non trovato: ${wcaId} → aggiunto alla lista verifica`,"warn");
+        addFailedProfile(wcaId);
+        updateResultRow(wcaId, "not_found");
+      } else if(profile.state==="login_redirect"){
+        log(`Sessione scaduta per ${wcaId}, rifai login`,"err");
+        scraping = false;
+        updateResultRow(wcaId, "login_redirect");
+      } else {
+        log(`Stato ${profile.state} per ${wcaId}: ${profile.error||""}`,"warn");
+        updateResultRow(wcaId, profile.state);
+      }
+    }
+  } catch(e){
+    log(`Eccezione scrape ${wcaId}: ${e.message}`,"err");
+  }
+}
+
+async function saveToSupabase(profile){
+  try{
+    if(currentScrapingCountry && !profile.country_code) profile.country_code = currentScrapingCountry;
+    await fetch(API+"/api/save",{
+      method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({profile})
+    });
+  } catch(e){log(`Errore save ${profile.wca_id}: ${e.message}`,"err");}
+}
+
+function trimScrapedTabs(maxTabs){
+  const bar = document.getElementById("scrapedTabsBar");
+  const tabs = bar.querySelectorAll(".scraped-tab");
+  if(tabs.length > maxTabs){
+    for(let t = tabs.length - 1; t >= maxTabs; t--) tabs[t].remove();
+  }
+}
+
+function addScrapedTab(profile, idx){
+  const bar = document.getElementById("scrapedTabsBar");
+  const tab = document.createElement("div");
+  tab.className = "scraped-tab" + (idx===0?" active":"") + (profile.access_limited?" limited":"");
+  tab.dataset.idx = idx;
+  const logoHtml = profile.logo_url ? `<img src="${profile.logo_url}" onerror="this.style.display='none'">` : "";
+  const limitBadge = profile.access_limited ? `<span class="access-badge limited" title="Dati contatto protetti">🔒</span>` : "";
+  tab.innerHTML = `${logoHtml}<span class="tab-name">${profile.company_name||"ID "+profile.wca_id}</span>${limitBadge}`;
+  tab.onclick = () => selectScrapedTab(parseInt(tab.dataset.idx));
+  // Shift existing tabs indices
+  bar.querySelectorAll(".scraped-tab").forEach(t=>{
+    t.dataset.idx = parseInt(t.dataset.idx)+1;
+    t.classList.remove("active");
+  });
+  bar.prepend(tab);
+  document.getElementById("scrapedCount").textContent = scrapedProfiles.length;
+  if(idx===0) selectScrapedTab(0);
+}
+
+function refreshScrapedTab(idx, profile){
+  const bar = document.getElementById("scrapedTabsBar");
+  const tab = bar.querySelector(`.scraped-tab[data-idx="${idx}"]`);
+  if(!tab) return;
+  tab.classList.remove("limited");
+  const logoHtml = profile.logo_url ? `<img src="${profile.logo_url}" onerror="this.style.display='none'">` : "";
+  const enrichBadge = profile.enriched_from ? `<span class="access-badge full" title="Arricchito da ${profile.enriched_from}">✓</span>` : "";
+  tab.innerHTML = `${logoHtml}<span class="tab-name">${profile.company_name||"ID "+profile.wca_id}</span>${enrichBadge}`;
+  tab.onclick = () => selectScrapedTab(idx);
+  if(activeTabIdx === idx) showScrapedProfile(profile);
+}
+
+function selectScrapedTab(idx){
+  activeTabIdx = idx;
+  document.querySelectorAll(".scraped-tab").forEach(t=>{
+    t.classList.toggle("active", parseInt(t.dataset.idx)===idx);
+  });
+  showScrapedProfile(scrapedProfiles[idx]);
+}
+
+function showScrapedProfile(p){
+  if(!p) return;
+  const el = document.getElementById("profilePreview");
+  el.classList.add("visible");
+  const logoImg = p.logo_url ? `<img class="logo" src="${p.logo_url}" onerror="this.style.display='none'">` : "";
+  const gmBadge = p.gm_coverage === true ? '<span class="gm-badge covered">GM Covered</span>' :
+                  p.gm_coverage === false ? '<span class="gm-badge not-covered">GM Not Covered</span>' : "";
+
+  const accessBadge = p.access_limited ? `<span class="access-badge limited">🔒 ACCESSO LIMITATO</span>` :
+                      (p.email || (p.contacts && p.contacts.some(c=>c.email))) ? `<span class="access-badge full">✓ DATI COMPLETI</span>` : "";
+  const enrichedBadge = p.enriched_from ? `<span class="access-badge full" style="font-size:.6rem">arricchito da ${esc(p.enriched_from)}</span>` : "";
+  let html = `<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">`;
+  html += `<h3 style="flex:1">${logoImg} ${esc(p.company_name)} ${gmBadge} ${accessBadge} ${enrichedBadge}</h3>`;
+  html += `<button class="btn btn-sm btn-warning" onclick="refreshSingleProfile(${p.wca_id})" title="Riscarica questo profilo da WCA">↻ Aggiorna</button>`;
+  html += `</div>`;
+  if(p.access_limited) html += `<div style="background:#92400e;color:#fbbf24;padding:8px 12px;border-radius:6px;font-size:.8rem;margin-bottom:10px">⚠️ Questo partner appartiene a un network che richiede credenziali dedicate. I dati di contatto (nomi, email, telefoni) non sono accessibili con le credenziali attuali. I dati base del profilo sono comunque disponibili.</div>`;
+  html += `<div class="info-grid">`;
+  html += infoRow("WCA ID", p.wca_id);
+  html += infoRow("Branch", p.branch);
+  html += infoRow("Indirizzo", p.address);
+  html += infoRow("Mailing", p.mailing);
+  html += infoRow("Telefono", p.phone);
+  html += infoRow("Fax", p.fax);
+  html += infoRow("Emergenza", p.emergency_call);
+  html += infoRow("Email", p.email ? `<a href="mailto:${esc(p.email)}" style="color:#38bdf8">${esc(p.email)}</a>` : "");
+  html += infoRow("Sito Web", p.website ? `<a href="${esc(p.website)}" target="_blank" style="color:#38bdf8">${esc(p.website)}</a>` : "");
+  html += infoRow("Membro dal", p.enrolled_since);
+  html += infoRow("Scadenza", p.expires);
+  html += `</div>`;
+
+  if(p.gm_status_text) html += `<div style="font-size:.8rem;color:#94a3b8;margin:6px 0;padding:6px;background:#334155;border-radius:6px">${esc(p.gm_status_text)}</div>`;
+  if(p.profile_text) html += `<div style="font-size:.82rem;color:#cbd5e1;margin:8px 0;white-space:pre-line">${esc(p.profile_text)}</div>`;
+
+  if(p.networks && p.networks.length){
+    html += `<div class="section-title">Network</div><div class="tags">`;
+    for(const n of p.networks) html += `<span class="tag">${esc(n)}</span>`;
+    html += `</div>`;
+  }
+
+  if(p.enrolled_offices && p.enrolled_offices.length){
+    html += `<div class="section-title">Uffici (${p.enrolled_offices.length})</div><div class="tags">`;
+    for(const o of p.enrolled_offices){
+      const cls = o.covered ? "covered" : "not-covered";
+      html += `<span class="tag"><span class="gm-badge ${cls}" style="font-size:.65rem">${o.covered?"✓":"✗"}</span> ${esc(o.location)}</span>`;
+    }
+    html += `</div>`;
+  }
+
+  if(p.contacts && p.contacts.length){
+    html += `<div class="section-title">Contatti (${p.contacts.length})</div>`;
+    for(const c of p.contacts){
+      html += `<div class="contact-card">`;
+      if(c.name) html += `<strong>${esc(c.name)}</strong>`;
+      if(c.title && c.title !== c.name) html += ` - ${esc(c.title)}`;
+      html += `<br>`;
+      if(c.email) html += `Email: <a href="mailto:${esc(c.email)}" style="color:#38bdf8">${esc(c.email)}</a><br>`;
+      if(c.direct_line) html += `Tel: ${esc(c.direct_line)}<br>`;
+      if(c.mobile) html += `Mobile: ${esc(c.mobile)}<br>`;
+      if(c.fax) html += `Fax: ${esc(c.fax)}<br>`;
+      html += `</div>`;
+    }
+  }
+
+  if(p.services && p.services.length){
+    html += `<div class="section-title">Servizi</div><div class="tags">`;
+    for(const s of p.services) html += `<span class="tag">${esc(s)}</span>`;
+    html += `</div>`;
+  }
+
+  if(p.certifications && p.certifications.length){
+    html += `<div class="section-title">Certificazioni</div><div class="tags">`;
+    for(const c of p.certifications) html += `<span class="tag">${esc(c)}</span>`;
+    html += `</div>`;
+  }
+
+  if(p.branch_cities && p.branch_cities.length){
+    html += `<div class="section-title">Città Filiali</div><div class="tags">`;
+    for(const c of p.branch_cities) html += `<span class="tag">${esc(c)}</span>`;
+    html += `</div>`;
+  }
+
+  el.innerHTML = html;
+}
+
+function infoRow(label, val){
+  if(!val && val!==0) return "";
+  return `<span class="lbl">${label}</span><span class="val">${typeof val==="string" && val.includes("<")? val : esc(String(val))}</span>`;
+}
+
+function esc(s){return s?String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"):"";}
+
+function updateResultsTable(){
+  const body = document.getElementById("resultsBody");
+  body.innerHTML = "";
+  document.getElementById("discoverCount").textContent = discoveredMembers.length;
+  for(const m of discoveredMembers){
+    const tr = document.createElement("tr");
+    tr.id = "result-"+m.id;
+    tr.innerHTML = `<td>${m.id}</td><td>${esc(m.name)}</td><td style="color:#64748b">in attesa</td>`;
+    body.appendChild(tr);
+  }
+}
+
+function updateResultRow(id, state){
+  const tr = document.getElementById("result-"+id);
+  if(!tr) return;
+  const td = tr.querySelector("td:last-child");
+  if(state==="ok"){td.style.color="#22c55e";td.textContent="✓ scrappato";}
+  else if(state==="in_db"){td.style.color="#38bdf8";td.textContent="⏭ già in DB";}
+  else if(state==="not_found"){td.style.color="#eab308";td.textContent="non trovato";}
+  else if(state==="login_redirect"){td.style.color="#ef4444";td.textContent="sessione scaduta";}
+  else{td.style.color="#ef4444";td.textContent=state;}
+}
+
+function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+
+// AGGIORNA SINGOLO PROFILO — riscarica da WCA e aggiorna in DB
+async function refreshSingleProfile(wcaId){
+  log(`Aggiornamento profilo ${wcaId}...`);
+  const btn = event?.target;
+  if(btn){ btn.disabled = true; btn.textContent = "⏳..."; }
+  try {
+    const resp = await fetch(API+"/api/scrape",{
+      method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({wcaIds:[wcaId]})
+    });
+    const data = await resp.json();
+    if(!data.success){
+      log(`Errore aggiornamento ${wcaId}: ${data.error}`,"err");
+      if(btn){ btn.disabled = false; btn.textContent = "↻ Aggiorna"; }
+      return;
+    }
+    const profile = data.results?.[0];
+    if(profile && profile.state === "ok"){
+      // Aggiorna nell'array locale
+      const idx = scrapedProfiles.findIndex(p => p.wca_id === wcaId);
+      if(idx >= 0){
+        scrapedProfiles[idx] = profile;
+        refreshScrapedTab(idx, profile);
+      } else {
+        scrapedProfiles.unshift(profile);
+        addScrapedTab(profile, 0);
+      }
+      // Salva in Supabase
+      await saveToSupabase(profile);
+      log(`✓ Profilo ${profile.company_name} (${wcaId}) aggiornato — contatti:${profile.contacts?.length||0}`,"ok");
+      showScrapedProfile(profile);
+    } else {
+      log(`Profilo ${wcaId}: stato ${profile?.state || "errore"}`,"warn");
+    }
+  } catch(e){
+    log(`Errore aggiornamento: ${e.message}`,"err");
+  }
+  if(btn){ btn.disabled = false; btn.textContent = "↻ Aggiorna"; }
+}
+
+// EXPORTS
+function exportJSON(){
+  if(!scrapedProfiles.length){log("Nessun profilo da esportare","warn");return;}
+  const blob = new Blob([JSON.stringify(scrapedProfiles,null,2)],{type:"application/json"});
+  downloadBlob(blob, "wca_partners_"+dateStr()+".json");
+  log("Esportati "+scrapedProfiles.length+" profili in JSON","ok");
+}
+
+function exportCSV(){
+  if(!scrapedProfiles.length){log("Nessun profilo da esportare","warn");return;}
+  const headers = ["wca_id","company_name","branch","address","mailing","phone","fax","emergency_call","email","website",
+    "enrolled_since","expires","gm_coverage","gm_status_text","networks","services","certifications","branch_cities",
+    "contacts_names","contacts_emails","contacts_phones","profile_text","logo_url"];
+  let csv = headers.join(",")+"\n";
+  for(const p of scrapedProfiles){
+    const row = [
+      p.wca_id, q(p.company_name), q(p.branch), q(p.address), q(p.mailing), q(p.phone), q(p.fax), q(p.emergency_call),
+      q(p.email), q(p.website), q(p.enrolled_since), q(p.expires), p.gm_coverage, q(p.gm_status_text),
+      q((p.networks||[]).join("; ")), q((p.services||[]).join("; ")), q((p.certifications||[]).join("; ")),
+      q((p.branch_cities||[]).join("; ")),
+      q((p.contacts||[]).map(c=>c.name||"").join("; ")),
+      q((p.contacts||[]).map(c=>c.email||"").join("; ")),
+      q((p.contacts||[]).map(c=>c.direct_line||c.mobile||"").join("; ")),
+      q(p.profile_text), q(p.logo_url)
+    ];
+    csv += row.join(",")+"\n";
+  }
+  const blob = new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8"});
+  downloadBlob(blob, "wca_partners_"+dateStr()+".csv");
+  log("Esportati "+scrapedProfiles.length+" profili in CSV","ok");
+}
+
+function q(s){if(!s)return '""';s=String(s);return '"'+s.replace(/"/g,'""')+'"';}
+function dateStr(){return new Date().toISOString().slice(0,10).replace(/-/g,"");}
+function downloadBlob(blob,name){const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;a.click();}
+
+let failedProfilesList = [];
+
+function addFailedProfile(wcaId) {
+  if (failedProfilesList.find(f => f.id === wcaId)) return;
+  // Cerca il nome dal discover
+  const memberName = discoveredMembers.find(m => m.id === wcaId)?.name || "";
+  failedProfilesList.push({ id: wcaId, name: memberName });
+  document.getElementById("failedCountHeader").textContent = failedProfilesList.length;
+  try { localStorage.setItem("wca_failed_profiles", JSON.stringify(failedProfilesList)); } catch(e) {}
+}
+
+function openVerifica() {
+  // Salva cookies e token per la pagina verifica
+  try {
+    localStorage.setItem("wca_failed_profiles", JSON.stringify(failedProfilesList));
+    if (sessionCookies) localStorage.setItem("wca_cookies", sessionCookies);
+    if (wcaToken) localStorage.setItem("wca_token", wcaToken);
+  } catch(e) {}
+  window.open('verifica.html', '_blank');
+}
+
+function openAgenda(){
+  if(scrapedProfiles.length){
+    try{ localStorage.setItem("wca_partners_scraped", JSON.stringify(scrapedProfiles)); }catch(e){}
+  }
+  window.open('agenda.html','_blank');
+}
+
+// === BACKGROUND JOB ===
+let bgJobId = null;
+let bgPollInterval = null;
+
+async function startBackgroundJob(){
+  const countries = selectedCountries.length > 0 ? [...selectedCountries] : [];
+  if(countries.length === 0){ log("Seleziona almeno un paese","err"); return; }
+  const networks = getSelectedNetworks();
+  const searchTerm = document.getElementById("txtSearch").value.trim();
+  const searchBy = document.getElementById("selSearchBy").value;
+
+  log("Avvio job in background...","ok");
+  document.getElementById("btnStartBg").disabled = true;
+
+  try {
+    const resp = await fetch(API+"/api/job-start",{
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({ countries, networks, searchTerm, searchBy })
+    });
+    const data = await resp.json();
+    if(data.success){
+      bgJobId = data.jobId;
+      log(`Job #${bgJobId} avviato in background! Puoi chiudere il browser.`,"ok");
+      showBgPanel();
+      startBgPolling();
+    } else {
+      log("Errore avvio job: "+(data.error||"sconosciuto"),"err");
+    }
+  } catch(e){
+    log("Errore: "+e.message,"err");
+  }
+  document.getElementById("btnStartBg").disabled = false;
+}
+
+function showBgPanel(){
+  document.getElementById("bgJobPanel").style.display = "block";
+}
+function hideBgPanel(){
+  document.getElementById("bgJobPanel").style.display = "none";
+  if(bgPollInterval){ clearInterval(bgPollInterval); bgPollInterval = null; }
+}
+
+function startBgPolling(){
+  if(bgPollInterval) clearInterval(bgPollInterval);
+  pollBgStatus(); // subito
+  bgPollInterval = setInterval(pollBgStatus, 3000); // ogni 3s
+}
+
+async function pollBgStatus(){
+  try {
+    const url = bgJobId ? API+`/api/job-status?jobId=${bgJobId}` : API+"/api/job-status";
+    const resp = await fetch(url);
+    const data = await resp.json();
+    if(!data.success || !data.job) return;
+    const j = data.job;
+    bgJobId = j.id;
+
+    // Aggiorna UI
+    const statusEl = document.getElementById("bgJobStatus");
+    const statusMap = {
+      pending:"🔄 Preparazione", discovering:"📋 Discover", downloading:"📥 Download",
+      enriching:"🔗 Arricchimento", completed:"✅ Completato", paused:"⏸ In pausa",
+      cancelled:"✗ Annullato", error:"❌ Errore"
+    };
+    statusEl.textContent = statusMap[j.status] || j.status;
+    statusEl.style.background = j.status==="downloading"?"#059669":j.status==="completed"?"#065f46":j.status==="paused"?"#d97706":j.status==="error"?"#dc2626":"#4f46e5";
+
+    document.getElementById("bgJobActivity").textContent = j.lastActivity || "—";
+    document.getElementById("bgJobCountry").textContent = j.currentCountry || "—";
+    document.getElementById("bgJobProgress").textContent = `${j.currentMemberIdx}/${j.totalMembers}`;
+    document.getElementById("bgJobScraped").textContent = j.totalScraped;
+    document.getElementById("bgJobSkipped").textContent = j.totalSkipped;
+    const pct = j.totalMembers > 0 ? (j.currentMemberIdx / j.totalMembers * 100) : 0;
+    document.getElementById("bgProgressFill").style.width = pct + "%";
+
+    // Mostra/nascondi bottoni pausa/riprendi
+    const isActive = ["pending","discovering","downloading","enriching"].includes(j.status);
+    document.getElementById("bgPauseBtn").style.display = isActive ? "inline-block" : "none";
+    document.getElementById("bgResumeBtn").style.display = j.status === "paused" ? "inline-block" : "none";
+
+    // Se completato o annullato, ferma polling
+    if(j.status === "completed" || j.status === "cancelled"){
+      if(bgPollInterval){ clearInterval(bgPollInterval); bgPollInterval = null; }
+      if(j.status === "completed") log(`Job #${j.id} completato! ${j.totalScraped} profili salvati.`,"ok");
+    }
+  } catch(e){}
+}
+
+async function pauseBackgroundJob(){
+  if(!bgJobId) return;
+  await fetch(API+"/api/job-start",{
+    method:"POST", headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({ action:"pause", jobId:bgJobId })
+  });
+  log("Job messo in pausa","warn");
+}
+
+async function resumeBackgroundJob(){
+  if(!bgJobId) return;
+  await fetch(API+"/api/job-start",{
+    method:"POST", headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({ action:"resume", jobId:bgJobId })
+  });
+  log("Job ripreso","ok");
+  startBgPolling();
+}
+
+async function cancelBackgroundJob(){
+  if(!bgJobId) return;
+  await fetch(API+"/api/job-start",{
+    method:"POST", headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({ action:"cancel", jobId:bgJobId })
+  });
+  log("Job annullato","warn");
+  hideBgPanel();
+}
+
+// All'avvio, controlla se c'è un job attivo
+(async function checkActiveJob(){
+  try {
+    const resp = await fetch(API+"/api/job-status");
+    const data = await resp.json();
+    if(data.success && data.job && ["pending","discovering","downloading","enriching","paused"].includes(data.job.status)){
+      bgJobId = data.job.id;
+      showBgPanel();
+      startBgPolling();
+      log(`Job #${bgJobId} in corso in background (${data.job.status})`, "ok");
+    }
+  } catch(e){}
+})();
+
+// Contatori header + flags bar
+async function loadHeaderCounts(){
+  try {
+    const [respAll, respCounts] = await Promise.all([
+      fetch(API+"/api/partners?select=wca_id,access_limited&limit=10000"),
+      fetch(API+"/api/partners?action=country_counts")
+    ]);
+    const data = await respAll.json();
+    if(data.success && data.partners){
+      document.getElementById("headerTotalPartners").textContent = data.partners.length;
+      const limited = data.partners.filter(p => p.access_limited).length;
+      document.getElementById("headerLimitedPartners").textContent = limited;
+    }
+    const cData = await respCounts.json();
+    if(cData.success && cData.counts){
+      countryPartnerCounts = cData.counts;
+      // Popola flags bar
+      const flagsDiv = document.getElementById("headerFlags");
+      // Trova nome paese da ALL_COUNTRIES
+      const nameMap = {};
+      ALL_COUNTRIES.forEach(g => g.items.forEach(([code, name]) => { nameMap[code] = name; }));
+      // Ordina per conteggio desc
+      const sorted = Object.entries(cData.counts).filter(([,v]) => v > 0).sort((a,b) => b[1] - a[1]);
+      flagsDiv.innerHTML = sorted.map(([code, cnt]) => {
+        const isSelected = selectedCountries.some(c => c.code === code);
+        return `<span onclick="selectFlagCountry('${code}','${nameMap[code]||code}')" title="${nameMap[code]||code}: ${cnt} partner" style="cursor:pointer;font-size:1.1rem;padding:1px 2px;border-radius:3px;position:relative;${isSelected?'background:#2563eb33;outline:1px solid #3b82f6':''}">${countryFlag(code)}<span style="position:absolute;bottom:-4px;right:-2px;background:#059669;color:#fff;font-size:.5rem;padding:0 3px;border-radius:4px;line-height:1.2">${cnt}</span></span>`;
+      }).join("");
+    }
+  } catch(e){}
+}
+
+// Click su bandiera header: seleziona il paese e offre di completare il download
+function selectFlagCountry(code, name){
+  // Se non è già selezionato, aggiungilo
+  if(!selectedCountries.some(c => c.code === code)){
+    selectedCountries.push({code, name});
+    const cb = document.querySelector(`#countryList input[value="${code}"]`);
+    if(cb) cb.checked = true;
+    updateCountryDisplay();
+  }
+  // Scroll al pannello download
+  document.querySelector(".container").scrollIntoView({behavior:"smooth"});
+  // Aggiorna evidenziazione flags
+  loadHeaderCounts();
+}
+
+loadHeaderCounts();
+// Aggiorna ogni 30s durante lo scraping
+setInterval(()=>{ if(scraping || bgJobId) loadHeaderCounts(); }, 30000);
+
+</script>
+</body>
+</html>

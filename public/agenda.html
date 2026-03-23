@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WCA Partner Agenda</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#f5f0e8;color:#333;min-height:100vh;display:flex;flex-direction:column}
+
+/* TOPBAR */
+.topbar{background:#1e293b;border-bottom:2px solid #334155;padding:10px 20px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:200;color:#e2e8f0}
+.topbar h1{font-size:16px;font-weight:700;white-space:nowrap}
+.topbar h1 span{color:#3b82f6}
+.topbar select,.topbar input{padding:6px 10px;border-radius:6px;border:1px solid #475569;background:#0f172a;color:#e2e8f0;font-size:12px}
+.topbar .stats{margin-left:auto;font-size:12px;color:#94a3b8;display:flex;gap:12px}
+.topbar .stats strong{color:#e2e8f0}
+.topbar .btn{padding:6px 14px;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;color:#fff;text-decoration:none}
+.topbar .btn-back{background:#475569}
+
+/* AGENDA LAYOUT */
+.agenda-wrap{display:flex;flex:1;overflow:hidden}
+
+/* COUNTRY SIDEBAR — lista paesi come "copertina" */
+.country-sidebar{width:220px;background:#1a365d;color:#fff;overflow-y:auto;flex-shrink:0;border-right:3px solid #2b6cb0}
+.country-sidebar h3{padding:12px 14px 8px;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#90cdf4;border-bottom:1px solid #2b6cb044}
+.country-item{display:flex;align-items:center;gap:8px;padding:8px 14px;cursor:pointer;font-size:13px;border-bottom:1px solid #2b6cb022;transition:background .15s}
+.country-item:hover{background:#2b6cb044}
+.country-item.active{background:#2b6cb0;font-weight:700}
+.country-item.empty{opacity:.35;cursor:default}
+.country-flag{font-size:18px}
+.country-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.country-count{background:#ffffff22;font-size:10px;padding:2px 7px;border-radius:8px;min-width:22px;text-align:center}
+.country-count.has{background:#48bb78;color:#fff}
+
+/* AGENDA PAGE — simula pagina di agenda scolastica */
+.agenda-page{flex:1;display:flex;flex-direction:column;overflow:hidden;background:#fefcf6;position:relative}
+.page-header{background:linear-gradient(135deg,#f7f3eb,#ede8dc);padding:14px 24px;border-bottom:2px solid #d4c9b0;display:flex;align-items:center;gap:12px}
+.page-header .page-flag{font-size:36px}
+.page-header .page-title{font-size:20px;font-weight:700;color:#1a365d}
+.page-header .page-subtitle{font-size:12px;color:#718096}
+.page-header .page-nav{margin-left:auto;display:flex;gap:6px}
+.page-nav button{padding:4px 12px;border:1px solid #cbd5e0;background:#fff;border-radius:4px;cursor:pointer;font-size:13px}
+.page-nav button:hover{background:#edf2f7}
+.page-nav button:disabled{opacity:.3;cursor:default}
+
+/* RULED LINES — righe agenda */
+.agenda-lines{flex:1;overflow-y:auto;padding:0}
+.agenda-line{display:flex;align-items:center;gap:12px;padding:10px 24px 10px 20px;border-bottom:1px solid #e8dfd0;cursor:pointer;transition:background .1s;min-height:44px;position:relative}
+.agenda-line:hover{background:#f0ead8}
+.agenda-line:nth-child(even){background:#fdfbf5}
+.agenda-line:nth-child(even):hover{background:#f0ead8}
+.agenda-line .line-num{width:28px;font-size:10px;color:#b8a88a;text-align:right;flex-shrink:0;font-family:serif;font-style:italic}
+.agenda-line .line-logo{width:28px;height:28px;border-radius:4px;object-fit:contain;background:#fff;border:1px solid #e2e8f0;flex-shrink:0}
+.agenda-line .line-main{flex:1;overflow:hidden;min-width:0}
+.agenda-line .line-company{font-size:13px;font-weight:600;color:#1a365d;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.agenda-line .line-detail{font-size:10px;color:#718096;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px}
+.agenda-line .line-detail .city{color:#4a5568}
+.agenda-line .line-right{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.agenda-line .line-emails{font-size:10px;background:#ebf8ff;color:#2b6cb0;padding:2px 6px;border-radius:4px;white-space:nowrap}
+.agenda-line .line-phones{font-size:10px;background:#f0fff4;color:#276749;padding:2px 6px;border-radius:4px;white-space:nowrap}
+.agenda-line .line-limited{font-size:10px;background:#fef3c7;color:#92400e;padding:2px 6px;border-radius:4px}
+.agenda-line .line-gm{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.agenda-line .line-gm.covered{background:#48bb78}
+.agenda-line .line-gm.not-covered{background:#fc8181}
+
+/* LETTER INDEX — barra laterale destra */
+.letter-index{width:30px;background:#1a365d;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:4px 0;overflow-y:auto;flex-shrink:0}
+.letter-index a{color:#90cdf4;font-size:10px;font-weight:700;padding:2px 0;text-decoration:none;display:block;width:100%;text-align:center;line-height:1.4}
+.letter-index a:hover{color:#fff;background:#2b6cb044}
+.letter-index a.has-entries{color:#fff;font-size:11px}
+
+/* POPUP / MODAL — scheda cliente */
+.modal-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);z-index:300;justify-content:center;align-items:flex-start;padding:30px 20px;overflow-y:auto}
+.modal-overlay.open{display:flex}
+.modal{background:#fff;border-radius:12px;max-width:900px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.4);position:relative}
+.modal-close{position:absolute;top:12px;right:16px;background:none;border:none;color:#fff;font-size:22px;cursor:pointer;z-index:10;opacity:.8}
+.modal-close:hover{opacity:1}
+
+/* Profile inside modal */
+.profile-header{background:linear-gradient(135deg,#1a365d,#2b6cb0);padding:24px;display:flex;gap:20px;align-items:center;border-radius:12px 12px 0 0}
+.profile-header .logo-box{width:70px;height:70px;background:#fff;border-radius:8px;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0}
+.profile-header .logo-box img{max-width:66px;max-height:66px;object-fit:contain}
+.profile-header .header-info{color:#fff;flex:1}
+.profile-header .header-info h2{font-size:20px;margin-bottom:2px}
+.profile-header .header-info .branch{font-size:13px;color:#bee3f8}
+.profile-header .header-info .wca-id{font-size:11px;color:#90cdf4;margin-top:2px}
+.profile-body{padding:20px}
+.section-title{font-size:12px;font-weight:700;color:#1a365d;border-bottom:2px solid #e2e8f0;padding-bottom:4px;margin:16px 0 8px;text-transform:uppercase;letter-spacing:.5px}
+.section-title:first-child{margin-top:0}
+.info-row{display:flex;padding:4px 0;border-bottom:1px solid #f7fafc;font-size:13px}
+.info-label{width:130px;min-width:130px;color:#718096;font-weight:600;font-size:11px;text-transform:uppercase}
+.info-val{flex:1;color:#2d3748;word-break:break-word}
+.info-val a{color:#3182ce;text-decoration:none}
+.net-badge{display:inline-block;background:#ebf8ff;color:#2b6cb0;border:1px solid #bee3f8;border-radius:4px;padding:3px 8px;font-size:11px;margin:2px 3px 2px 0}
+.contact-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}
+.contact-card{background:#f7fafc;border:1px solid #e2e8f0;border-radius:6px;padding:10px}
+.contact-card .c-name{font-weight:700;color:#1a365d;font-size:13px}
+.contact-card .c-title{color:#718096;font-size:11px;font-style:italic;margin-bottom:4px}
+.contact-card .c-row{font-size:12px;color:#2d3748;padding:1px 0}
+.contact-card .c-row a{color:#3182ce;text-decoration:none}
+.office-list{display:flex;flex-wrap:wrap;gap:6px}
+.office-tag{padding:3px 8px;border-radius:4px;font-size:11px;border:1px solid}
+.office-tag.covered{background:#f0fff4;color:#276749;border-color:#c6f6d5}
+.office-tag.not-covered{background:#fff5f5;color:#9b2c2c;border-color:#fed7d7}
+.tag-list{display:flex;flex-wrap:wrap;gap:4px}
+.svc-tag{background:#edf2f7;color:#4a5568;padding:2px 6px;border-radius:4px;font-size:10px}
+.cert-tag{background:#f0fff4;color:#276749;border:1px solid #c6f6d5;padding:2px 6px;border-radius:4px;font-size:10px}
+.coverage-bar{padding:8px 20px;font-size:12px;font-weight:600}
+.coverage-bar.covered{background:#f0fff4;color:#276749;border-bottom:2px solid #48bb78}
+.coverage-bar.not-covered{background:#fff5f5;color:#9b2c2c;border-bottom:2px solid #fc8181}
+
+.empty-page{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;color:#b8a88a;font-size:14px;gap:8px}
+
+@media(max-width:768px){
+  .country-sidebar{width:60px}
+  .country-name,.country-count{display:none}
+  .agenda-line .line-email,.agenda-line .line-phone{display:none}
+  .contact-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a href="/" class="btn btn-back">&larr; Scraper</a>
+  <h1><span>WCA</span> Partner Agenda</h1>
+  <input type="text" id="searchInput" placeholder="Cerca partner..." oninput="onSearch()">
+  <label class="btn" style="background:#3b82f6;cursor:pointer">Importa JSON <input type="file" accept=".json" onchange="importJSON(event)" style="display:none"></label>
+  <div class="stats">
+    <span>Totale: <strong id="statTotal">0</strong></span>
+    <span>Limitati: <strong id="statLimited">0</strong></span>
+    <span>GM: <strong id="statGM">0</strong></span>
+  </div>
+</div>
+
+<div class="agenda-wrap">
+  <!-- SIDEBAR PAESI -->
+  <div class="country-sidebar" id="countrySidebar">
+    <h3>Paesi</h3>
+  </div>
+
+  <!-- PAGINA AGENDA -->
+  <div class="agenda-page" id="agendaPage">
+    <div class="page-header" id="pageHeader">
+      <span class="page-flag" id="pageFlag">🌍</span>
+      <div>
+        <div class="page-title" id="pageTitle">Seleziona un paese</div>
+        <div class="page-subtitle" id="pageSubtitle">Clicca un paese dalla lista a sinistra</div>
+      </div>
+      <div class="page-nav">
+        <button onclick="prevPage()" id="btnPrev" disabled>&laquo; Prec</button>
+        <span id="pageNum" style="font-size:12px;color:#718096;padding:4px 8px">—</span>
+        <button onclick="nextPage()" id="btnNext" disabled>Succ &raquo;</button>
+      </div>
+    </div>
+    <div class="agenda-lines" id="agendaLines">
+      <div class="empty-page">
+        <div style="font-size:48px">📖</div>
+        <div>Seleziona un paese per sfogliare l'agenda</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- INDICE LETTERE -->
+  <div class="letter-index" id="letterIndex"></div>
+</div>
+
+<!-- MODAL SCHEDA CLIENTE -->
+<div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal" id="modalContent">
+    <button class="modal-close" onclick="closeModal()">&times;</button>
+  </div>
+</div>
+
+<script>
+const API = window.location.origin;
+let allPartners = [];
+let countriesMap = {}; // { code: {name, flag, partners:[]} }
+let currentCountry = null;
+let currentPage = 0;
+const PER_PAGE = 30;
+
+function countryFlag(code){
+  if(!code||code.length!==2) return "🌍";
+  return String.fromCodePoint(...[...code.toUpperCase()].map(c=>0x1F1E6+c.charCodeAt(0)-65));
+}
+function esc(s){const d=document.createElement("div");d.textContent=s||"";return d.innerHTML;}
+
+const COUNTRY_NAMES={IT:"Italia",US:"Stati Uniti",GB:"Regno Unito",DE:"Germania",FR:"Francia",ES:"Spagna",CN:"Cina",IN:"India",BR:"Brasile",AE:"Emirati Arabi",TR:"Turchia",NL:"Paesi Bassi",AU:"Australia",JP:"Giappone",KR:"Corea del Sud",SG:"Singapore",HK:"Hong Kong",TH:"Thailandia",MX:"Messico",CA:"Canada",RU:"Russia",PL:"Polonia",SE:"Svezia",NO:"Norvegia",DK:"Danimarca",FI:"Finlandia",CH:"Svizzera",AT:"Austria",BE:"Belgio",PT:"Portogallo",GR:"Grecia",CZ:"Rep. Ceca",RO:"Romania",HU:"Ungheria",IE:"Irlanda",IL:"Israele",SA:"Arabia Saudita",EG:"Egitto",ZA:"Sudafrica",NG:"Nigeria",KE:"Kenya",AR:"Argentina",CO:"Colombia",CL:"Cile",PE:"Perù",VE:"Venezuela",EC:"Ecuador",PK:"Pakistan",BD:"Bangladesh",ID:"Indonesia",MY:"Malesia",PH:"Filippine",VN:"Vietnam",TW:"Taiwan",NZ:"Nuova Zelanda",UA:"Ucraina",HR:"Croazia",RS:"Serbia",BG:"Bulgaria",SK:"Slovacchia",SI:"Slovenia",LT:"Lituania",LV:"Lettonia",EE:"Estonia",MT:"Malta",CY:"Cipro",LU:"Lussemburgo",IS:"Islanda",GE:"Georgia",AM:"Armenia",AZ:"Azerbaigian",KZ:"Kazakistan",UZ:"Uzbekistan",QA:"Qatar",KW:"Kuwait",OM:"Oman",JO:"Giordania",LB:"Libano",IQ:"Iraq",IR:"Iran",MA:"Marocco",TN:"Tunisia",DZ:"Algeria",GH:"Ghana",TZ:"Tanzania",UG:"Uganda",ET:"Etiopia",CM:"Camerun",SN:"Senegal",CI:"Costa d'Avorio",MZ:"Mozambico",AO:"Angola",CD:"RD Congo",LY:"Libia",CR:"Costa Rica",PA:"Panama",GT:"Guatemala",DO:"Rep. Dominicana",JM:"Giamaica",TT:"Trinidad e Tobago",LK:"Sri Lanka",NP:"Nepal",MM:"Myanmar",KH:"Cambogia",AF:"Afghanistan"};
+
+// LOAD DATA
+async function loadData(){
+  try {
+    const resp = await fetch(API+"/api/partners?limit=10000");
+    const data = await resp.json();
+    if(data.success && data.partners?.length) allPartners = data.partners.filter(p=>p.company_name);
+  } catch(e){}
+  // Merge localStorage
+  try {
+    const saved = JSON.parse(localStorage.getItem("wca_partners_scraped")||"[]");
+    const ids = new Set(allPartners.map(p=>p.wca_id));
+    for(const p of saved) if(p.company_name && !ids.has(p.wca_id)){allPartners.push(p);ids.add(p.wca_id);}
+  } catch(e){}
+
+  allPartners.sort((a,b)=>(a.company_name||"").localeCompare(b.company_name||""));
+  buildCountriesMap();
+  renderSidebar();
+  updateStats();
+  buildLetterIndex();
+
+  // Se c'è almeno un paese con dati, seleziona il primo
+  const firstWithData = Object.keys(countriesMap).find(c=>countriesMap[c].partners.length>0);
+  if(firstWithData) selectCountry(firstWithData);
+}
+
+function buildCountriesMap(){
+  countriesMap = {};
+  for(const p of allPartners){
+    const cc = (p.country_code||"").toUpperCase().trim();
+    if(!cc) continue;
+    if(!countriesMap[cc]) countriesMap[cc]={name:COUNTRY_NAMES[cc]||cc,flag:countryFlag(cc),partners:[]};
+    countriesMap[cc].partners.push(p);
+  }
+  // Aggiungi paesi senza dati per completezza
+  for(const [code,name] of Object.entries(COUNTRY_NAMES)){
+    if(!countriesMap[code]) countriesMap[code]={name,flag:countryFlag(code),partners:[]};
+  }
+}
+
+function renderSidebar(){
+  const sb = document.getElementById("countrySidebar");
+  // Ordina: prima quelli con dati (per count desc), poi vuoti (alfabetico)
+  const codes = Object.keys(countriesMap).sort((a,b)=>{
+    const ca=countriesMap[a].partners.length, cb=countriesMap[b].partners.length;
+    if(ca>0 && cb===0) return -1;
+    if(ca===0 && cb>0) return 1;
+    if(ca>0 && cb>0) return cb-ca;
+    return countriesMap[a].name.localeCompare(countriesMap[b].name);
+  });
+  let html = '<h3>Paesi</h3>';
+  for(const code of codes){
+    const c = countriesMap[code];
+    const n = c.partners.length;
+    const cls = n===0 ? "country-item empty" : "country-item";
+    const cntCls = n>0 ? "country-count has" : "country-count";
+    const onclick = n>0 ? `onclick="selectCountry('${code}')"` : "";
+    html += `<div class="${cls}" ${onclick} data-code="${code}" id="cs-${code}">
+      <span class="country-flag">${c.flag}</span>
+      <span class="country-name">${esc(c.name)}</span>
+      <span class="${cntCls}">${n}</span>
+    </div>`;
+  }
+  sb.innerHTML = html;
+}
+
+function updateStats(){
+  document.getElementById("statTotal").textContent = allPartners.length;
+  document.getElementById("statLimited").textContent = allPartners.filter(p=>p.access_limited).length;
+  document.getElementById("statGM").textContent = allPartners.filter(p=>p.gm_coverage).length;
+}
+
+function selectCountry(code){
+  currentCountry = code;
+  currentPage = 0;
+  // Highlight sidebar
+  document.querySelectorAll(".country-item").forEach(el=>{
+    el.classList.toggle("active",el.dataset.code===code);
+  });
+  renderPage();
+}
+
+function renderPage(){
+  if(!currentCountry||!countriesMap[currentCountry]) return;
+  const c = countriesMap[currentCountry];
+  let partners = [...c.partners];
+
+  // Filtro ricerca
+  const q = (document.getElementById("searchInput").value||"").toLowerCase();
+  if(q) partners = partners.filter(p=>(p.company_name||"").toLowerCase().includes(q)||(p.email||"").toLowerCase().includes(q));
+
+  partners.sort((a,b)=>(a.company_name||"").localeCompare(b.company_name||""));
+
+  const totalPages = Math.max(1,Math.ceil(partners.length/PER_PAGE));
+  if(currentPage >= totalPages) currentPage = totalPages-1;
+  if(currentPage < 0) currentPage = 0;
+
+  // Header
+  document.getElementById("pageFlag").textContent = c.flag;
+  document.getElementById("pageTitle").textContent = c.name;
+  document.getElementById("pageSubtitle").textContent = `${partners.length} partner${q?" (filtrati)":""}`;
+  document.getElementById("pageNum").textContent = `Pag. ${currentPage+1}/${totalPages}`;
+  document.getElementById("btnPrev").disabled = currentPage===0;
+  document.getElementById("btnNext").disabled = currentPage>=totalPages-1;
+
+  // Righe
+  const start = currentPage * PER_PAGE;
+  const pagePartners = partners.slice(start, start+PER_PAGE);
+  const lines = document.getElementById("agendaLines");
+
+  if(pagePartners.length===0){
+    lines.innerHTML = '<div class="empty-page"><div style="font-size:48px">📭</div><div>Nessun partner'+(q?' per "'+esc(q)+'"':'')+'</div></div>';
+    return;
+  }
+
+  let html = "";
+  for(let i=0;i<pagePartners.length;i++){
+    const p = pagePartners[i];
+    const num = start+i+1;
+    const logo = p.logo_url ? `<img class="line-logo" src="${esc(p.logo_url)}" onerror="this.style.display='none'">` : `<div class="line-logo" style="display:flex;align-items:center;justify-content:center;font-size:10px;color:#b8a88a">—</div>`;
+    const gm = p.gm_coverage===true ? `<span class="line-gm covered" title="GM Covered"></span>` : p.gm_coverage===false ? `<span class="line-gm not-covered" title="No GM"></span>` : "";
+    const limited = p.access_limited ? `<span class="line-limited">🔒</span>` : "";
+
+    // Estrai città dall'indirizzo
+    const addrParts = (p.address||"").split(",").map(s=>s.trim()).filter(Boolean);
+    const city = addrParts.length>=2 ? addrParts[addrParts.length-2] : (addrParts[0]||"");
+
+    // Conta email personali e cellulari dai contatti
+    let emailCount = 0, phoneCount = 0;
+    if(p.contacts?.length){
+      for(const c of p.contacts){
+        if(c.email) emailCount++;
+        if(c.mobile || c.direct_line) phoneCount++;
+      }
+    }
+    if(p.email && emailCount===0) emailCount = 1;
+
+    const emailBadge = emailCount>0 ? `<span class="line-emails">📧 ${emailCount}</span>` : "";
+    const phoneBadge = phoneCount>0 ? `<span class="line-phones">📱 ${phoneCount}</span>` : "";
+    const contactsBadge = (p.contacts?.length||0)>0 ? `<span style="font-size:10px;background:#edf2f7;color:#4a5568;padding:2px 6px;border-radius:4px">${p.contacts.length} pers.</span>` : "";
+
+    const detailParts = [];
+    if(city) detailParts.push(`<span class="city">${esc(city)}</span>`);
+    if(p.phone) detailParts.push(esc(p.phone));
+    if(p.email) detailParts.push(`<span style="color:#3182ce">${esc(p.email)}</span>`);
+    const detail = detailParts.length ? detailParts.join(" · ") : "";
+
+    html += `<div class="agenda-line" onclick="openProfile(${p.wca_id})">
+      <span class="line-num">${num}</span>
+      ${logo}
+      ${gm}
+      <div class="line-main">
+        <div class="line-company">${esc(p.company_name)}</div>
+        ${detail?`<div class="line-detail">${detail}</div>`:""}
+      </div>
+      <div class="line-right">
+        ${emailBadge}${phoneBadge}${contactsBadge}${limited}
+      </div>
+    </div>`;
+  }
+  lines.innerHTML = html;
+  lines.scrollTop = 0;
+
+  // Aggiorna indice lettere
+  buildLetterIndexForPage(partners);
+}
+
+function buildLetterIndex(){
+  const idx = document.getElementById("letterIndex");
+  const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ#".split("");
+  idx.innerHTML = letters.map(l=>`<a href="#" onclick="event.preventDefault();scrollToLetter('${l}')">${l}</a>`).join("");
+}
+
+function buildLetterIndexForPage(partners){
+  const idx = document.getElementById("letterIndex");
+  const usedLetters = new Set();
+  for(const p of partners){
+    const first = (p.company_name||"")[0]?.toUpperCase()||"#";
+    usedLetters.add(/[A-Z]/.test(first)?first:"#");
+  }
+  const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ#".split("");
+  idx.innerHTML = letters.map(l=>{
+    const cls = usedLetters.has(l)?"has-entries":"";
+    return `<a href="#" class="${cls}" onclick="event.preventDefault();scrollToLetter('${l}')">${l}</a>`;
+  }).join("");
+}
+
+function scrollToLetter(letter){
+  if(!currentCountry) return;
+  const c = countriesMap[currentCountry];
+  const partners = [...c.partners].sort((a,b)=>(a.company_name||"").localeCompare(b.company_name||""));
+  const idx = partners.findIndex(p=>{
+    const first = (p.company_name||"")[0]?.toUpperCase()||"#";
+    const fl = /[A-Z]/.test(first)?first:"#";
+    return fl===letter;
+  });
+  if(idx<0) return;
+  currentPage = Math.floor(idx/PER_PAGE);
+  renderPage();
+  // Scroll alla riga
+  setTimeout(()=>{
+    const lineIdx = idx % PER_PAGE;
+    const lines = document.querySelectorAll(".agenda-line");
+    if(lines[lineIdx]) lines[lineIdx].scrollIntoView({behavior:"smooth",block:"center"});
+  },50);
+}
+
+function prevPage(){if(currentPage>0){currentPage--;renderPage();}}
+function nextPage(){currentPage++;renderPage();}
+
+function onSearch(){
+  if(currentCountry) renderPage();
+  else{
+    // Cerca in tutti i paesi — seleziona il primo con risultati
+    const q = document.getElementById("searchInput").value.toLowerCase();
+    if(!q) return;
+    for(const code of Object.keys(countriesMap)){
+      if(countriesMap[code].partners.some(p=>(p.company_name||"").toLowerCase().includes(q))){
+        selectCountry(code);
+        return;
+      }
+    }
+  }
+}
+
+// MODAL — scheda cliente con navigazione
+let modalPartnersList = []; // lista corrente per navigare
+let modalCurrentIdx = -1;
+
+function getCountryPartnersSorted(){
+  if(!currentCountry||!countriesMap[currentCountry]) return allPartners;
+  const q = (document.getElementById("searchInput").value||"").toLowerCase();
+  let list = [...countriesMap[currentCountry].partners];
+  if(q) list = list.filter(p=>(p.company_name||"").toLowerCase().includes(q)||(p.email||"").toLowerCase().includes(q));
+  return list.sort((a,b)=>(a.company_name||"").localeCompare(b.company_name||""));
+}
+
+function openProfile(wcaId){
+  modalPartnersList = getCountryPartnersSorted();
+  modalCurrentIdx = modalPartnersList.findIndex(x=>x.wca_id===wcaId);
+  if(modalCurrentIdx<0){ modalPartnersList = allPartners; modalCurrentIdx = allPartners.findIndex(x=>x.wca_id===wcaId); }
+  renderModal();
+}
+
+function modalPrev(){ if(modalCurrentIdx>0){ modalCurrentIdx--; renderModal(); } }
+function modalNext(){ if(modalCurrentIdx<modalPartnersList.length-1){ modalCurrentIdx++; renderModal(); } }
+
+function renderModal(){
+  const p = modalPartnersList[modalCurrentIdx];
+  if(!p) return;
+  const modal = document.getElementById("modalContent");
+  const hasPrev = modalCurrentIdx>0;
+  const hasNext = modalCurrentIdx<modalPartnersList.length-1;
+  const prevName = hasPrev ? esc(modalPartnersList[modalCurrentIdx-1].company_name) : "";
+  const nextName = hasNext ? esc(modalPartnersList[modalCurrentIdx+1].company_name) : "";
+
+  let html = '<button class="modal-close" onclick="closeModal()">&times;</button>';
+
+  // NAV BAR in cima
+  html += `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 16px;background:#0f172a;font-size:12px">
+    <button onclick="modalPrev()" ${hasPrev?"":'disabled'} style="padding:4px 12px;border:1px solid #475569;background:${hasPrev?'#334155':'#1e293b'};color:${hasPrev?'#e2e8f0':'#475569'};border-radius:4px;cursor:${hasPrev?'pointer':'default'};font-size:11px">${hasPrev?'◀ '+prevName:'◀'}</button>
+    <span style="color:#94a3b8">${modalCurrentIdx+1} / ${modalPartnersList.length}</span>
+    <button onclick="modalNext()" ${hasNext?"":'disabled'} style="padding:4px 12px;border:1px solid #475569;background:${hasNext?'#334155':'#1e293b'};color:${hasNext?'#e2e8f0':'#475569'};border-radius:4px;cursor:${hasNext?'pointer':'default'};font-size:11px">${hasNext?nextName+' ▶':'▶'}</button>
+  </div>`;
+
+  html += `<div class="profile-header">
+    <div class="logo-box">${p.logo_url?'<img src="'+esc(p.logo_url)+'" onerror="this.parentElement.innerHTML=\'No Logo\'">':'No Logo'}</div>
+    <div class="header-info" style="flex:1">
+      <h2>${esc(p.company_name)}</h2>
+      ${p.branch?'<div class="branch">'+esc(p.branch)+'</div>':''}
+      <div class="wca-id">WCA ID: ${p.wca_id}${p.access_limited?' — 🔒 Accesso Limitato':''}</div>
+    </div>
+    <button onclick="refreshPartner(${p.wca_id},this)" style="padding:6px 14px;border:none;border-radius:6px;background:#d97706;color:#fff;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">↻ Aggiorna</button>
+  </div>`;
+
+  if(p.gm_coverage!==null&&p.gm_coverage!==undefined){
+    const cls=p.gm_coverage?"covered":"not-covered";
+    const txt=p.gm_coverage?"GOLD MEDALLION — COPERTURA ATTIVA":"GOLD MEDALLION — NESSUNA COPERTURA";
+    html+=`<div class="coverage-bar ${cls}">${txt}</div>`;
+  }
+
+  html+='<div class="profile-body">';
+  if(p.expires||p.enrolled_since){
+    html+='<div class="section-title">Membership</div>';
+    if(p.enrolled_since) html+=`<div class="info-row"><div class="info-label">Iscritto dal</div><div class="info-val">${esc(p.enrolled_since)}</div></div>`;
+    if(p.expires) html+=`<div class="info-row"><div class="info-label">Scadenza</div><div class="info-val"><strong>${esc(p.expires)}</strong></div></div>`;
+  }
+  if(p.networks?.length){
+    html+='<div class="section-title">Networks</div><div>';
+    for(const n of p.networks) html+=`<span class="net-badge">${esc(typeof n==="string"?n:n.name||"")}</span>`;
+    html+='</div>';
+  }
+  if(p.enrolled_offices?.length){
+    html+='<div class="section-title">Uffici</div><div class="office-list">';
+    for(const o of p.enrolled_offices) html+=`<span class="office-tag ${o.covered?'covered':'not-covered'}">${esc(o.location)} ${o.covered?'✓':'✗'}</span>`;
+    html+='</div>';
+  }
+  html+='<div class="section-title">Contatto</div>';
+  const fields=[["Indirizzo",p.address],["Mailing",p.mailing],["Telefono",p.phone],["Fax",p.fax],["Emergenza",p.emergency_call],
+    ["Email",p.email?'<a href="mailto:'+esc(p.email)+'">'+esc(p.email)+'</a>':null],
+    ["Website",p.website?'<a href="'+esc(p.website)+'" target="_blank">'+esc(p.website)+'</a>':null]];
+  for(const[l,v]of fields){if(!v)continue;html+=`<div class="info-row"><div class="info-label">${l}</div><div class="info-val">${v}</div></div>`;}
+  if(p.profile_text) html+=`<div class="section-title">Profilo</div><div style="font-size:13px;color:#4a5568;line-height:1.6;white-space:pre-line">${esc(p.profile_text)}</div>`;
+  if(p.contacts?.length){
+    html+=`<div class="section-title">Contatti (${p.contacts.length})</div><div class="contact-grid">`;
+    for(const c of p.contacts){
+      html+='<div class="contact-card">';
+      html+=`<div class="c-name">${esc(c.name||"N/A")}</div>`;
+      if(c.title&&c.title!==c.name) html+=`<div class="c-title">${esc(c.title)}</div>`;
+      if(c.email) html+=`<div class="c-row">📧 <a href="mailto:${esc(c.email)}">${esc(c.email)}</a></div>`;
+      if(c.direct_line) html+=`<div class="c-row">📞 ${esc(c.direct_line)}</div>`;
+      if(c.mobile) html+=`<div class="c-row">📱 ${esc(c.mobile)}</div>`;
+      html+='</div>';
+    }
+    html+='</div>';
+  }
+  if(p.services?.length){html+='<div class="section-title">Servizi</div><div class="tag-list">';for(const s of p.services) html+=`<span class="svc-tag">${esc(s)}</span>`;html+='</div>';}
+  if(p.certifications?.length){html+='<div class="section-title">Certificazioni</div><div class="tag-list">';for(const c of p.certifications) html+=`<span class="cert-tag">${esc(c)}</span>`;html+='</div>';}
+  if(p.branch_cities?.length){html+='<div class="section-title">Sedi</div><div class="tag-list">';for(const b of p.branch_cities) html+=`<span class="svc-tag">${esc(b)}</span>`;html+='</div>';}
+  html+='</div>';
+
+  modal.innerHTML = html;
+  document.getElementById("modalOverlay").classList.add("open");
+  document.body.style.overflow = "hidden";
+}
+
+function closeModal(){
+  document.getElementById("modalOverlay").classList.remove("open");
+  document.body.style.overflow = "";
+}
+
+async function refreshPartner(wcaId, btn){
+  if(btn){btn.disabled=true;btn.textContent="⏳...";}
+  try{
+    const resp=await fetch(API+"/api/scrape",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({wcaIds:[wcaId]})});
+    const data=await resp.json();
+    if(data.success){
+      const profile=data.results?.[0];
+      if(profile?.state==="ok"){
+        await fetch(API+"/api/save",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({profile})});
+        const idx=allPartners.findIndex(p=>p.wca_id===wcaId);
+        if(idx>=0) allPartners[idx]=profile;
+        buildCountriesMap();
+        renderSidebar();
+        if(currentCountry) renderPage();
+        openProfile(wcaId);
+      }
+    }
+  }catch(e){}
+  if(btn){btn.disabled=false;btn.textContent="↻ Aggiorna";}
+}
+
+function importJSON(event){
+  const file=event.target.files[0];
+  if(!file) return;
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      const data=JSON.parse(e.target.result);
+      const imported=Array.isArray(data)?data:(data.results||data.data||[]);
+      const ids=new Set(allPartners.map(p=>p.wca_id));
+      for(const p of imported) if(p.company_name&&!ids.has(p.wca_id)){allPartners.push(p);ids.add(p.wca_id);}
+      allPartners.sort((a,b)=>(a.company_name||"").localeCompare(b.company_name||""));
+      buildCountriesMap();renderSidebar();updateStats();buildLetterIndex();
+      const first=Object.keys(countriesMap).find(c=>countriesMap[c].partners.length>0);
+      if(first) selectCountry(first);
+    }catch(err){alert("Errore JSON: "+err.message);}
+  };
+  reader.readAsText(file);
+}
+
+// Keyboard nav nel modal
+document.addEventListener("keydown",e=>{
+  if(e.key==="Escape") closeModal();
+  if(document.getElementById("modalOverlay").classList.contains("open")){
+    if(e.key==="ArrowLeft") modalPrev();
+    if(e.key==="ArrowRight") modalNext();
+  }
+});
+
+// INIT
+loadData();
+</script>
+</body>
+</html>
