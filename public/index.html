@@ -584,16 +584,18 @@ async function resumeScraping(){
   document.getElementById("btnResume").style.display = "none";
   document.getElementById("btnStop").disabled = false;
 
-  // Carica ID già in Supabase (filtra per paese corrente)
-  setStatus("Caricamento partner già scaricati...", true);
-  log(`🔍 Verifica partner già scaricati per ${currentScrapingCountry || "tutti"}...`);
-  const existingIds = await loadExistingIds();
-  const toDownload = discoveredMembers.filter(m => !existingIds.has(String(m.id)));
+  // Confronto SERVER-SIDE con Supabase
+  setStatus("Confronto con database...", true);
+  log(`🔍 Confronto ID con Supabase...`);
+  const allIds = discoveredMembers.map(m => m.id);
+  const checkResult = await checkMissingIds(allIds);
+  const missingSet = new Set(checkResult.missing.map(String));
+  const toDownload = discoveredMembers.filter(m => missingSet.has(String(m.id)));
   const skipped = discoveredMembers.length - toDownload.length;
   if(skipped > 0){
     log(`⏭ ${skipped} già in DB — saltati. ${toDownload.length} restanti.`,"ok");
     for(const m of discoveredMembers){
-      if(existingIds.has(String(m.id))) updateResultRow(m.id, "in_db");
+      if(!missingSet.has(String(m.id))) updateResultRow(m.id, "in_db");
     }
   }
   if(toDownload.length === 0){
@@ -687,37 +689,27 @@ function getSelectedNetworks(){
   return Array.from(checks).map(c=>c.value);
 }
 
-// Carica gli ID già presenti in Supabase per evitare duplicati
-// Set persistente di TUTTI gli ID già tentati (salvato in localStorage)
-let attemptedIds = new Set();
-try { const saved = JSON.parse(localStorage.getItem("wca_attempted_ids")); if(Array.isArray(saved)) attemptedIds = new Set(saved); } catch(e){}
-function markAttempted(id){ attemptedIds.add(String(id)); try{ localStorage.setItem("wca_attempted_ids", JSON.stringify([...attemptedIds])); }catch(e){} }
-
-async function loadExistingIds(){
-  const existing = new Set();
-  // 1. Carica TUTTI gli ID da Supabase (senza filtro paese)
+// Confronto SERVER-SIDE: manda TUTTI gli ID discover al server, il server confronta con Supabase
+// e restituisce SOLO quelli mancanti. Zero dipendenza da localStorage.
+async function checkMissingIds(discoverIds){
   try {
-    let page = 0;
-    const pageSize = 1000;
-    while(true){
-      const resp = await fetch(API+`/api/partners?select=wca_id&limit=${pageSize}&page=${page+1}`);
-      const data = await resp.json();
-      if(!data.success || !data.partners?.length){
-        if(!data.success) log("⚠️ Supabase errore: "+(data.error||"sconosciuto"),"warn");
-        break;
-      }
-      for(const p of data.partners) existing.add(String(p.wca_id));
-      if(data.partners.length < pageSize) break;
-      page++;
+    log(`📡 Confronto ${discoverIds.length} ID con Supabase (server-side)...`);
+    const resp = await fetch(API+"/api/check-ids", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({ids: discoverIds})
+    });
+    const data = await resp.json();
+    if(!data.success){
+      log("⚠️ check-ids errore: "+(data.error||"sconosciuto"),"warn");
+      return {missing: discoverIds, total_in_db: 0}; // fallback: scarica tutti
     }
-  } catch(e){ log("❌ Errore caricamento ID esistenti: "+e.message,"err"); }
-  const dbCount = existing.size;
-  // 2. Aggiungi i profili falliti da localStorage
-  for(const f of failedProfilesList) existing.add(String(f.id));
-  // 3. Aggiungi TUTTI gli ID già tentati in sessioni precedenti
-  for(const id of attemptedIds) existing.add(id);
-  log(`🗂 Già noti: ${existing.size} (${dbCount} in Supabase, ${attemptedIds.size} tentati, ${failedProfilesList.length} falliti)`);
-  return existing;
+    log(`🗂 DB ha ${data.total_in_db} partner | Controllati: ${data.checked} | Già in DB: ${data.found} | Mancanti: ${data.missing.length}`);
+    return data;
+  } catch(e){
+    log("❌ Errore check-ids: "+e.message,"err");
+    return {missing: discoverIds, total_in_db: 0};
+  }
 }
 
 // Cache discover per paese — evita di rifare discover se già fatto
@@ -725,13 +717,6 @@ const discoverCache = {};
 
 async function scrapeDiscoverCountry(country, countryName){
   currentScrapingCountry = country;
-
-  // === FASE 0: CARICA ID GIÀ IN SUPABASE ===
-  setStatus("Caricamento partner già scaricati da Supabase...", true);
-  showActivity("🔍", "Verifica partner già in Supabase...");
-  log("Caricamento ID già presenti in Supabase...");
-  const existingIds = await loadExistingIds();
-  if(existingIds.size > 0) log(`🗂 ${existingIds.size} partner già in Supabase per ${countryName}`,"ok");
 
   // === FASE 1: DISCOVER ===
   // Controlla cache discover (valida 10 min)
@@ -799,15 +784,22 @@ async function scrapeDiscoverCountry(country, countryName){
     return;
   }
 
-  // === FILTRO: confronta discover vs Supabase ===
-  const toDownload = discoveredMembers.filter(m => !existingIds.has(String(m.id)));
+  // === FILTRO SERVER-SIDE: manda gli ID al server, lui confronta con Supabase ===
+  setStatus("Confronto con database...", true);
+  showActivity("🔍", `Confronto ${discoveredMembers.length} ID con Supabase...`);
+  const allDiscoverIds = discoveredMembers.map(m => m.id);
+  const checkResult = await checkMissingIds(allDiscoverIds);
+  const missingSet = new Set(checkResult.missing.map(String));
+  hideActivity();
+
+  const toDownload = discoveredMembers.filter(m => missingSet.has(String(m.id)));
   const skipped = discoveredMembers.length - toDownload.length;
 
   log(`📊 Riepilogo ${countryName}: ${discoveredMembers.length} trovati, ${skipped} già in DB, ${toDownload.length} da scaricare`,"ok");
 
   if(skipped > 0){
     for(const m of discoveredMembers){
-      if(existingIds.has(String(m.id))) updateResultRow(m.id, "in_db");
+      if(!missingSet.has(String(m.id))) updateResultRow(m.id, "in_db");
     }
   }
   if(toDownload.length === 0){
