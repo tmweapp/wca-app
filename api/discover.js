@@ -1,5 +1,10 @@
+/**
+ * api/discover.js — Discover membri su wcaworld.com (sito generale)
+ * REFACTORED: usa utils/extract.js per extractMembersFromHtml condiviso
+ */
 const fetch = require("node-fetch");
 const cheerio = require("cheerio");
+const { extractMembersFromHtml } = require("./utils/extract");
 
 const BASE = "https://www.wcaworld.com";
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
@@ -62,47 +67,7 @@ function buildQueryString(page, filters) {
   return params.toString();
 }
 
-function extractMembersFromHtml(html) {
-  const members = [];
-  const seenIds = new Set();
-  const $ = cheerio.load(html);
-
-  $("li.directoyname a[href], li.directoryname a[href]").each((_, el) => {
-    const href = $(el).attr("href") || "";
-    const match = href.match(/\/directory\/members\/(\d+)/i);
-    if (match) {
-      const id = parseInt(match[1]);
-      if (!seenIds.has(id)) {
-        seenIds.add(id);
-        members.push({ id, name: $(el).text().trim(), href: href });
-      }
-    }
-  });
-
-  if (members.length === 0) {
-    $("a[href]").each((_, el) => {
-      const href = $(el).attr("href") || "";
-      const match = href.match(/\/directory\/members\/(\d+)/i);
-      if (match) {
-        const id = parseInt(match[1]);
-        if (!seenIds.has(id) && id > 0) {
-          seenIds.add(id);
-          members.push({ id, name: $(el).text().trim(), href: href });
-        }
-      }
-    });
-  }
-
-  let totalResults = null;
-  const totalMatch = html.match(/(\d[\d,]*)\s*(results?|members?|companies|records?|found|total)/i);
-  if (totalMatch) totalResults = parseInt(totalMatch[1].replace(/,/g, ""));
-  if (!totalResults) {
-    const compMatch = html.match(/(\d[\d,]*)\s*compan/i);
-    if (compMatch) totalResults = parseInt(compMatch[1].replace(/,/g, ""));
-  }
-
-  return { members, totalResults };
-}
+// extractMembersFromHtml → importato da utils/extract.js
 
 module.exports = async (req, res) => {
   res.setHeader("Access-Control-Allow-Origin", "*");

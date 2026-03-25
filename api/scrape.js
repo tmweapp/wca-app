@@ -1,414 +1,20 @@
+/**
+ * api/scrape.js — Endpoint scraping profilo singolo
+ *
+ * REFACTORED: usa utils/extract.js per estrazione profilo (era 404 righe inline).
+ * Flusso:
+ * 1. Ricevi wcaId + opzionale networkDomain
+ * 2. SSO sul dominio target (network specifico o wcaworld.com)
+ * 3. Fetch + parse profilo con extractProfile()
+ * 4. Se wcaworld.com dà contatti vuoti → auto-retry sui network del membro
+ */
 const fetch = require("node-fetch");
 const cheerio = require("cheerio");
-const { BASE, UA, SUPABASE_URL, SUPABASE_KEY, getCachedCookies, saveCookiesToCache, testCookies, ssoLogin, cookieJar } = require("./utils/auth");
+const { BASE, UA, getCachedCookies, saveCookiesToCache, testCookies, ssoLogin } = require("./utils/auth");
+const { extractProfile, NETWORK_DOMAINS, getNetworkBase, networkNameToDomains } = require("./utils/extract");
 
-
-function extractProfile($, wcaId) {
-  const result = {
-    wca_id: wcaId, state: "ok", company_name: "", logo_url: null, branch: "",
-    gm_coverage: null, gm_status_text: "", enrolled_offices: [], enrolled_since: "",
-    expires: "", networks: [], profile_text: "", address: "", mailing: "", phone: "",
-    fax: "", emergency_call: "", website: "", email: "", contacts: [], services: [],
-    certifications: [], branch_cities: [], access_limited: false, members_only_count: 0,
-  };
-
-  const h1 = $("h1.company, h1").first().text().trim();
-  result.company_name = h1;
-  if (!h1 || /not\s*found|error|404/i.test(h1)) return { wca_id: wcaId, state: "not_found" };
-
-  const isWcaSiteLogo = (src) => {
-    if (!src) return true;
-    const lower = src.toLowerCase();
-    return lower.includes("/images/wca") || lower.includes("/images/logo") ||
-           lower.includes("wca_logo") || lower.includes("wcaworld") ||
-           lower.includes("/images/network") || lower.includes("/images/badge") ||
-           lower.includes("/images/icon") || lower.includes("/images/flag") ||
-           lower.includes("/images/gold") || lower.includes("/images/header") ||
-           lower.includes("/images/footer") || lower.includes("/images/nav") ||
-           lower.includes("/images/site") || lower.includes("/images/bg") ||
-           lower.includes("sprite") || lower.includes("spacer") ||
-           lower.includes("placeholder") || lower.includes("noimage") ||
-           lower.includes("no-image") || lower.includes("default_logo");
-  };
-  const resolveUrl = (src) => {
-    if (!src || src.length < 5) return null;
-    if (src.startsWith("//")) return "https:" + src;
-    if (src.startsWith("/")) return BASE + src;
-    if (!src.startsWith("http")) return BASE + "/" + src;
-    return src;
-  };
-
-  $("img[src]").each((_, el) => {
-    if (result.logo_url) return;
-    const src = $(el).attr("src") || "";
-    const lower = src.toLowerCase();
-    if ((lower.includes("companylogo") || lower.includes("company_logo") || lower.includes("/companylogos/")) && !isWcaSiteLogo(src)) {
-      result.logo_url = resolveUrl(src);
-    }
-  });
-
-  if (!result.logo_url) {
-    const logoSelectors = ["img.company_logo", "img.companylogo", ".company_logo img", ".companylogo img", ".profile_logo img", ".member-logo img", ".member_logo img", ".logo-container img"];
-    for (const sel of logoSelectors) {
-      const logoEl = $(sel).first();
-      if (logoEl.length) {
-        const src = logoEl.attr("src") || "";
-        if (!isWcaSiteLogo(src)) { result.logo_url = resolveUrl(src); if (result.logo_url) break; }
-      }
-    }
-  }
-
-  if (!result.logo_url) {
-    $("img[src*='logo'], img[src*='Logo']").each((_, el) => {
-      if (result.logo_url) return;
-      const src = $(el).attr("src") || "";
-      if (!isWcaSiteLogo(src)) result.logo_url = resolveUrl(src);
-    });
-  }
-
-  if (!result.logo_url) {
-    $("img[src]").each((_, el) => {
-      if (result.logo_url) return;
-      const src = $(el).attr("src") || "";
-      const w = parseInt($(el).attr("width") || "0");
-      const h = parseInt($(el).attr("height") || "0");
-      if ((w >= 50 || h >= 50) && !isWcaSiteLogo(src)) result.logo_url = resolveUrl(src);
-    });
-  }
-
-  result.branch = $(".branchname").first().text().trim();
-  const compid = $(".compid span, .compid").first().text().trim();
-  const idMatch = compid.match(/\d+/);
-  if (idMatch) result.wca_id = parseInt(idMatch[0]);
-
-  const officeRow = $(".office_row").first();
-  if (officeRow.length) {
-    const alertText = officeRow.text().trim();
-    result.gm_status_text = alertText;
-    result.gm_coverage = !/no\s*coverage|not\s*covered/i.test(alertText);
-  }
-
-  $(".enrolledoffice_mainbox .office_country_wrapper, .enrolledoffice_mainbox tr").each((_, el) => {
-    const text = $(el).text().trim();
-    const goldNote = $(el).find(".gold_note").text().trim();
-    const covered = !/not\s*covered/i.test(goldNote) && !/not\s*covered/i.test(text);
-    const countryCity = text.replace(goldNote, "").trim();
-    if (countryCity) result.enrolled_offices.push({ location: countryCity, covered });
-  });
-
-  $(".announce-display").each((_, el) => {
-    const t = $(el).text().trim();
-    const m = t.match(/since:?\s*(.+)/i);
-    if (m) result.enrolled_since = m[1].trim();
-  });
-
-  $(".memberprofile_memberof, .memberof_expire").each((_, el) => {
-    const t = $(el).text().trim();
-    const m = t.match(/expires?:?\s*(.+)/i);
-    if (m && !result.expires) result.expires = m[1].trim().split("\n")[0].trim();
-  });
-
-  $(".memberprofile_memberof img[alt], .memberof_img img[alt]").each((_, el) => {
-    const name = $(el).attr("alt") || "";
-    if (name && name.length > 2) result.networks.push(name.trim());
-  });
-  $(".memberprofile_memberof").each((_, el) => {
-    const t = $(el).text().trim();
-    if (t && !result.networks.includes(t) && t.length > 3 && t.length < 80) {
-      const nm = t.split(/expires/i)[0].trim();
-      if (nm && nm.length > 3 && !result.networks.includes(nm)) result.networks.push(nm);
-    }
-  });
-
-  $(".profile_table td, .profile_headline + .profile_table td").each((_, el) => {
-    const t = $(el).text().trim();
-    if (t.length > 30 && !result.profile_text) result.profile_text = t;
-  });
-  if (!result.profile_text) {
-    $(".profile_headline").each((_, el) => {
-      if (/profile/i.test($(el).text())) {
-        const next = $(el).next();
-        const t = next.text().trim();
-        if (t.length > 30) result.profile_text = t;
-      }
-    });
-  }
-
-  $(".profile_headline").each((_, el) => {
-    if (/address/i.test($(el).text())) {
-      const next = $(el).next("span, div, p");
-      if (next.length) result.address = next.html().replace(/<br\s*\/?>/gi, ", ").replace(/<[^>]+>/g, "").trim();
-    }
-  });
-
-  $(".profile_headline").each((_, el) => {
-    if (/mailing/i.test($(el).text())) {
-      const next = $(el).next("span, div, p");
-      if (next.length) result.mailing = next.text().trim();
-    }
-  });
-
-  $(".profile_row").each((_, row) => {
-    if ($(row).closest(".contactperson_row, .contactperson_info").length) return;
-    const label = $(row).find(".profile_label").text().trim().replace(/:?\s*$/, "").toLowerCase();
-    const valEl = $(row).find(".profile_val");
-    let val = valEl.text().trim();
-    if (/members\s*only|please.*login/i.test(val)) val = "";
-    if (/^phone|^telephone/.test(label)) result.phone = val;
-    else if (/^fax/.test(label)) result.fax = val;
-    else if (/^emergency/.test(label)) result.emergency_call = val;
-    else if (/^website|^web\s*site|^url/.test(label)) { result.website = valEl.find("a[href]").attr("href") || val; }
-    else if (/^email|^e-mail/.test(label)) {
-      const mailto = valEl.find("a[href^='mailto:']").attr("href");
-      if (mailto) result.email = mailto.replace("mailto:", "").trim();
-      else if (val.includes("@")) result.email = val;
-    }
-  });
-
-  $(".profile_label").each((_, el) => {
-    if ($(el).closest(".contactperson_row, .contactperson_info").length) return;
-    const label = $(el).text().trim().replace(/:?\s*$/, "").toLowerCase();
-    const valEl = $(el).nextAll(".profile_val").first();
-    if (!valEl.length) return;
-    let val = valEl.text().trim();
-    if (/members\s*only|please.*login/i.test(val) || val.toLowerCase() === "login") val = "";
-    if (!val) return;
-    if (/^phone|^telephone/.test(label) && !result.phone) result.phone = val;
-    else if (/^fax/.test(label) && !result.fax) result.fax = val;
-    else if (/^emergency/.test(label) && !result.emergency_call) result.emergency_call = val;
-    else if (/^(website|web\s*site|url)/.test(label) && !result.website) { result.website = valEl.find("a[href]").attr("href") || val; }
-    else if (/^(email|e-mail)/.test(label) && !result.email) {
-      const mailto = valEl.find("a[href^='mailto:']").attr("href");
-      if (mailto) result.email = mailto.replace("mailto:", "").trim();
-      else if (val.includes("@")) result.email = val;
-    }
-  });
-
-  // === CONTACT EXTRACTION ===
-  // WCA uses sequential generic elements: label element ("Name:") followed by value element ("Mr. Luca Arcana")
-  // No specific CSS classes on label/value pairs - just sibling elements in sequence
-
-  // Primary strategy: Walk through ALL children of contact containers looking for label→value pattern
-  const CONTACT_LABELS = {
-    "name": "name", "nome": "name",
-    "title": "title", "titolo": "title", "position": "title", "role": "title",
-    "email": "email", "e-mail": "email",
-    "direct line": "direct_line", "direct": "direct_line", "phone": "direct_line", "telephone": "direct_line", "tel": "direct_line",
-    "fax": "fax",
-    "mobile": "mobile", "cell": "mobile", "cellulare": "mobile",
-    "skype": "skype",
-  };
-
-  function extractContactsFromContainer($container) {
-    const contacts = [];
-    // Get all leaf-level elements (elements with minimal/no children that contain text)
-    const allEls = $container.find("*").toArray();
-    let currentContact = {};
-    let lastLabel = null;
-
-    for (const el of allEls) {
-      const $el = $(el);
-      // Skip elements that are containers of other elements with text
-      if ($el.children().length > 2) continue;
-
-      let text = "";
-      // Get direct text content (not nested)
-      const directText = $el.clone().children().remove().end().text().trim();
-      text = directText || $el.text().trim();
-      if (!text || text.length > 200) continue;
-
-      // Check if this is a label (e.g., "Name:", "Title:", "Email:")
-      const cleanLabel = text.replace(/:\s*$/, "").trim().toLowerCase();
-      const mappedField = CONTACT_LABELS[cleanLabel];
-
-      if (mappedField) {
-        // This is a label - if it's "name" and we already have data, save previous contact
-        if (mappedField === "name" && (currentContact.name || currentContact.email || currentContact.title)) {
-          contacts.push({...currentContact});
-          currentContact = {};
-        }
-        lastLabel = mappedField;
-      } else if (lastLabel && text && !/members\s*only|please.*login/i.test(text) && text.toLowerCase() !== "login") {
-        // This is a value for the previous label
-        if (lastLabel === "email") {
-          // Check for mailto link
-          const mailto = $el.find("a[href^='mailto:']").attr("href") || $el.closest("a[href^='mailto:']").attr("href");
-          if (mailto) {
-            currentContact.email = mailto.replace("mailto:", "").trim();
-          } else if (text.includes("@")) {
-            currentContact.email = text;
-          } else {
-            // Might be a link text like the email itself
-            const linkHref = $el.is("a") ? ($el.attr("href") || "") : "";
-            if (linkHref.startsWith("mailto:")) {
-              currentContact.email = linkHref.replace("mailto:", "").trim();
-            }
-          }
-        } else {
-          currentContact[lastLabel] = text;
-        }
-        lastLabel = null; // consumed
-      }
-    }
-    // Push last contact
-    if (currentContact.name || currentContact.email || currentContact.title) {
-      contacts.push(currentContact);
-    }
-    return contacts;
-  }
-
-  // Try different container selectors
-  const contactSelectors = [
-    ".contactperson_row",
-    "[class*='contactperson']",
-    "[class*='office_contact']",
-    "[class*='officecontact']",
-  ];
-
-  // First: try extracting from each individual contact row
-  for (const sel of contactSelectors) {
-    const rows = $(sel);
-    if (rows.length === 0) continue;
-    rows.each((_, row) => {
-      const rowContacts = extractContactsFromContainer($(row));
-      for (const c of rowContacts) {
-        if (c.name || c.email || c.title) {
-          if (!c.name && c.title) c.name = c.title;
-          result.contacts.push(c);
-        }
-      }
-    });
-    if (result.contacts.length > 0) break;
-  }
-
-  // Second: try extracting from the full "Office Contacts" section as one block
-  if (result.contacts.length === 0) {
-    // Find the section header and get everything after it
-    const bodyHtml = $.html();
-    const contactSectionMatch = bodyHtml.match(/Office\s*Contacts([\s\S]*?)(?=<\/body>|$)/i);
-    if (contactSectionMatch) {
-      const $section = cheerio.load(contactSectionMatch[0]);
-      const sectionContacts = extractContactsFromContainer($section.root());
-      for (const c of sectionContacts) {
-        if (c.name || c.email || c.title) {
-          if (!c.name && c.title) c.name = c.title;
-          result.contacts.push(c);
-        }
-      }
-    }
-  }
-
-  // Third: text-based regex on full page as last resort
-  if (result.contacts.length === 0) {
-    const fullText = $.text();
-    // Split by "Name:" pattern to get individual contacts
-    const nameBlocks = fullText.split(/(?=Name\s*:)/i);
-    for (const block of nameBlocks) {
-      if (!/Name\s*:/i.test(block)) continue;
-      const contact = {};
-      const nameM = block.match(/Name\s*:\s*(.+?)(?=Title|Email|Direct|Phone|Fax|Mobile|Skype|Name|$)/is);
-      const titleM = block.match(/Title\s*:\s*(.+?)(?=Name|Email|Direct|Phone|Fax|Mobile|Skype|$)/is);
-      const emailM = block.match(/Email\s*:\s*(\S+@\S+)/i);
-      const directM = block.match(/Direct\s*(?:Line)?\s*:\s*(.+?)(?=Name|Title|Email|Fax|Mobile|Skype|$)/is);
-      const faxM = block.match(/Fax\s*:\s*(.+?)(?=Name|Title|Email|Direct|Phone|Mobile|Skype|$)/is);
-      const mobileM = block.match(/Mobile\s*:\s*(.+?)(?=Name|Title|Email|Direct|Phone|Fax|Skype|$)/is);
-      const skypeM = block.match(/Skype\s*:\s*(.+?)(?=Name|Title|Email|Direct|Phone|Fax|Mobile|$)/is);
-      if (nameM) contact.name = nameM[1].trim();
-      if (titleM) contact.title = titleM[1].trim();
-      if (emailM) contact.email = emailM[1].trim();
-      if (directM) contact.direct_line = directM[1].trim();
-      if (faxM) contact.fax = faxM[1].trim();
-      if (mobileM) contact.mobile = mobileM[1].trim();
-      if (skypeM) contact.skype = skypeM[1].trim();
-      if (contact.name || contact.email) result.contacts.push(contact);
-    }
-  }
-
-  // Final fallback: at least extract mailto links
-  if (result.contacts.length === 0) {
-    $("a[href^='mailto:']").each((_, el) => {
-      const email = ($(el).attr("href") || "").replace("mailto:", "").trim();
-      if (email && !result.contacts.find(c => c.email === email)) {
-        result.contacts.push({ email, name: $(el).text().trim() || email });
-      }
-    });
-  }
-
-  // Debug: dump struttura HTML per diagnostica
-  result._htmlDebug = {
-    profileLabels: $(".profile_label").length,
-    profileVals: $(".profile_val").length,
-    profileRows: $(".profile_row").length,
-    profileHeadlines: $(".profile_headline").length,
-    contactPersonRows: $(".contactperson_row").length,
-    contactPersonInfo: $("[class*='contactperson']").length,
-    officeContacts: $("[class*='office_contact']").length,
-    mailtoLinks: $("a[href^='mailto:']").length,
-    hasOfficeContactsText: $.html().includes("Office Contacts"),
-    hasMembersOnlyText: $.html().includes("Members Only"),
-    // Campione dei primi 5 label trovati
-    sampleLabels: [],
-    // Tutte le classi CSS rilevanti nel documento
-    allContactClasses: [],
-    // Snippet HTML dell'area contatti (primi 2000 caratteri)
-    contactAreaSnippet: "",
-  };
-  $(".profile_label").each((i, el) => {
-    if(i < 8) result._htmlDebug.sampleLabels.push({ label: $(el).text().trim(), val: $(el).nextAll(".profile_val").first().text().trim().substring(0,80) });
-  });
-  // Trova classi rilevanti
-  const classSet = new Set();
-  $("[class]").each((_, el) => {
-    const cls = $(el).attr("class") || "";
-    cls.split(/\s+/).forEach(c => { if(/contact|person|office|profile|member|detail/i.test(c)) classSet.add(c); });
-  });
-  result._htmlDebug.allContactClasses = [...classSet];
-  // Snippet area contatti
-  const officeMatch = $.html().match(/Office\s*Contacts([\s\S]{0,3000})/i);
-  if(officeMatch) result._htmlDebug.contactAreaSnippet = officeMatch[0].substring(0, 2000);
-
-  console.log(`[contacts] Extracted ${result.contacts.length} contacts: ${JSON.stringify(result.contacts.map(c => ({n:c.name,e:c.email,t:c.title})))}`);
-
-  $("[class*='service'] span, [class*='service'] li, [class*='service'] a").each((_, el) => {
-    const svc = $(el).text().trim();
-    if (svc && svc.length > 2 && svc.length < 100 && !result.services.includes(svc)) result.services.push(svc);
-  });
-
-  $("[class*='certif'] span, [class*='certif'] img, [class*='license'] span").each((_, el) => {
-    const cert = ($(el).attr("alt") || $(el).attr("title") || $(el).text() || "").trim();
-    if (cert && cert.length > 1 && cert.length < 60 && !result.certifications.includes(cert)) result.certifications.push(cert);
-  });
-
-  $("[class*='branch'] li, [class*='branch'] a").each((_, el) => {
-    const bc = $(el).text().trim();
-    if (bc && bc.length > 1 && bc.length < 80 && !result.branch_cities.includes(bc)) result.branch_cities.push(bc);
-  });
-
-  // Detect "Members only" / restricted access — solo nell'area contatti, NON nel menu/nav
-  // Cerca "Members Only" SOLO nei campi profilo (label, valori contatto), non nell'intero HTML
-  let membersOnlyInProfile = 0;
-  $(".profile_label, .profile_detail, .profile_value, .contact_detail, .contact_info, [class*='profile'] td, [class*='contact'] td").each((_, el) => {
-    const text = $(el).text().trim();
-    if (/Members\s*Only/i.test(text)) membersOnlyInProfile++;
-  });
-  result.members_only_count = membersOnlyInProfile;
-
-  const hasContactEmails = result.contacts.some(c => c.email);
-  const hasCompanyEmail = !!result.email;
-  const hasContacts = result.contacts.length > 0;
-  const hasPhone = !!result.phone;
-
-  // Accesso limitato SOLO se: "Members Only" nei campi profilo E nessun dato di contatto
-  if (membersOnlyInProfile > 2 && !hasContactEmails && !hasCompanyEmail && !hasContacts && !hasPhone) {
-    result.access_limited = true;
-  }
-  console.log(`[scrape] Profile ${wcaId}: membersOnlyInProfile=${membersOnlyInProfile} contacts=${result.contacts.length} emails=${hasContactEmails||hasCompanyEmail} phone=${hasPhone} access_limited=${result.access_limited}`);
-
-  return result;
-}
-
+// ═══ FETCH URL con gestione redirect manuale ═══
 async function tryFetchUrl(url, cookies, refererBase) {
-  // Gestione redirect manuale per preservare i cookies di autenticazione
   const baseForReferer = refererBase || BASE;
   let currentUrl = url;
   let redirectCount = 0;
@@ -417,17 +23,14 @@ async function tryFetchUrl(url, cookies, refererBase) {
   while (redirectCount < 5) {
     resp = await fetch(currentUrl, {
       headers: {
-        "User-Agent": UA,
-        "Cookie": cookies,
+        "User-Agent": UA, "Cookie": cookies,
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
         "Accept-Language": "en-US,en;q=0.9,it;q=0.8",
         "Referer": baseForReferer + "/Directory",
       },
-      redirect: "manual",
-      timeout: 15000,
+      redirect: "manual", timeout: 15000,
     });
 
-    // Raccogliere nuovi cookies dal redirect
     const newCookies = (resp.headers.raw?.()?.["set-cookie"] || []).map(c => c.split(";")[0]);
     if (newCookies.length) {
       const cookieMap = {};
@@ -440,7 +43,6 @@ async function tryFetchUrl(url, cookies, refererBase) {
       const loc = resp.headers.get("location") || "";
       if (!loc) break;
       currentUrl = loc.startsWith("http") ? loc : new URL(loc, currentUrl).href;
-      // Se redirect al login → sessione scaduta
       if (currentUrl.toLowerCase().includes("/login") || currentUrl.toLowerCase().includes("/signin")) {
         return { loginRedirect: true, status: resp.status, finalUrl: currentUrl };
       }
@@ -452,7 +54,7 @@ async function tryFetchUrl(url, cookies, refererBase) {
 
   if (resp.status === 404) return null;
   const html = await resp.text();
-  console.log(`[scrape] Fetched ${currentUrl.substring(0,60)} status=${resp.status} len=${html.length} hasLogin=${html.includes('type="password"')}`);
+  console.log(`[scrape] Fetched ${currentUrl.substring(0, 60)} status=${resp.status} len=${html.length}`);
 
   if (html.includes('type="password"') || currentUrl.toLowerCase().includes("/login")) {
     return { loginRedirect: true, status: resp.status, finalUrl: currentUrl };
@@ -461,34 +63,12 @@ async function tryFetchUrl(url, cookies, refererBase) {
   const h1 = $("h1").first().text().trim();
   if (/member\s*not\s*found|not\s*found.*try\s*again|page\s*not\s*found/i.test(h1)) return null;
 
-  // Debug: check if page shows "Login" in contact fields (means not authenticated)
-  const memberOnly = $("*:contains('Members Only')").length;
-  const loginText = html.match(/Login<\/a>/gi)?.length || 0;
-  console.log(`[scrape] Auth check: "Members Only" count=${memberOnly}, "Login</a>" count=${loginText}, cookie len=${cookies.length}`);
-
   return { $, html, resp, h1 };
 }
 
-// NETWORK_DOMAINS — mappa dominio → base URL
-const NETWORK_DOMAINS = {
-  "wcaworld.com":              "https://www.wcaworld.com",
-  "lognetglobal.com":          "https://www.lognetglobal.com",
-  "globalaffinityalliance.com":"https://www.globalaffinityalliance.com",
-  "elitegln.com":              "https://www.elitegln.com",
-  "ifc8.network":              "https://ifc8.network",
-  "wcaprojects.com":           "https://www.wcaprojects.com",
-  "wcadangerousgoods.com":     "https://www.wcadangerousgoods.com",
-  "wcaperishables.com":        "https://www.wcaperishables.com",
-  "wcatimecritical.com":       "https://www.wcatimecritical.com",
-  "wcapharma.com":             "https://www.wcapharma.com",
-  "wcarelocations.com":        "https://www.wcarelocations.com",
-  "wcaecommercesolutions.com": "https://www.wcaecommercesolutions.com",
-  "wcaexpo.com":               "https://www.wcaexpo.com",
-};
-
+// ═══ FETCH + PARSE un singolo profilo ═══
 async function fetchProfile(wcaId, cookies, profileHref, networkDomain) {
-  // Determina il base URL: network specifico o wcaworld.com
-  const networkBase = networkDomain ? (NETWORK_DOMAINS[networkDomain] || BASE) : BASE;
+  const networkBase = getNetworkBase(networkDomain);
 
   const primaryUrls = [];
   if (profileHref) {
@@ -496,14 +76,14 @@ async function fetchProfile(wcaId, cookies, profileHref, networkDomain) {
     primaryUrls.push(fullHref);
   }
   primaryUrls.push(`${networkBase}/directory/members/${wcaId}`);
-  // Fallback su wcaworld.com se stiamo cercando su un network specifico
+  // Fallback su wcaworld.com se network specifico
   if (networkDomain && networkDomain !== "wcaworld.com") {
     primaryUrls.push(`${BASE}/directory/members/${wcaId}`);
   }
 
   for (const url of primaryUrls) {
     try {
-      console.log(`[scrape] Try ${wcaId} ${url.substring(0,80)}`);
+      console.log(`[scrape] Try ${wcaId} ${url.substring(0, 80)}`);
       const result = await tryFetchUrl(url, cookies, networkBase);
       if (!result) continue;
       if (result.loginRedirect) {
@@ -511,151 +91,99 @@ async function fetchProfile(wcaId, cookies, profileHref, networkDomain) {
       }
       const { $, html } = result;
       console.log(`[scrape] OK ${wcaId} labels=${$(".profile_label").length} len=${html.length}`);
-      const loginLinks = html.match(/>Login<\/a>/gi)?.length || 0;
-      const membersOnly = html.match(/Members\s*Only/gi)?.length || 0;
-      const contactSection = html.match(/Office\s*Contacts/i) ? "found" : "not_found";
-      const profile = extractProfile($, wcaId);
-      profile._debug = { loginLinks, membersOnly, contactSection, cookieLen: cookies.length, htmlLen: html.length, cookieKeys: cookies.split("; ").map(c => c.split("=")[0]).join(",") };
+      const profile = extractProfile($, wcaId, networkBase);
       profile.source_network = networkDomain || "wcaworld.com";
       if (profile.state === "ok") { profile.source_url = url; return profile; }
-    } catch (err) { console.log(`[scrape] Err ${url.substring(0,50)}: ${err.message}`); }
+    } catch (err) { console.log(`[scrape] Err ${url.substring(0, 50)}: ${err.message}`); }
   }
 
   const state = networkDomain ? "not_in_network" : "not_found";
-  console.log(`[scrape] ${wcaId} ${state} on ${networkDomain || "wcaworld.com"}`);
   return { wca_id: wcaId, state, source_network: networkDomain || "wcaworld.com" };
 }
 
+// ═══ AUTH: ottieni cookies validi per un dominio ═══
+async function getAuthCookies(domain) {
+  const networkBase = getNetworkBase(domain);
+  let cookies = await getCachedCookies(domain);
+  if (cookies) {
+    const valid = await testCookies(cookies, networkBase);
+    if (!valid) cookies = null;
+  }
+  if (!cookies) {
+    console.log(`[scrape] SSO login su ${networkBase}...`);
+    const loginResult = await ssoLogin(null, null, networkBase);
+    if (!loginResult.success) return { error: loginResult.error };
+    cookies = loginResult.cookies;
+    await saveCookiesToCache(cookies, domain);
+  }
+  return { cookies };
+}
+
+// ═══ HANDLER PRINCIPALE ═══
 module.exports = async (req, res) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
+
   try {
-    const { wcaIds, members, networkDomain, debug } = req.body || {};
+    const { wcaIds, members, networkDomain } = req.body || {};
     if (!wcaIds || !Array.isArray(wcaIds) || wcaIds.length === 0) return res.status(400).json({ error: "wcaIds richiesto" });
 
-    // Determina il dominio target per l'autenticazione
     const isNetworkMode = networkDomain && networkDomain !== "wcaworld.com";
     const targetDomain = isNetworkMode ? networkDomain : "wcaworld.com";
-    const networkBase = isNetworkMode ? (NETWORK_DOMAINS[networkDomain] || BASE) : BASE;
-
     console.log(`[scrape] Mode: ${isNetworkMode ? "NETWORK " + networkDomain : "wcaworld.com"}`);
 
-    // 1. Prova cookies cached per il dominio target
-    let cookies = await getCachedCookies(targetDomain);
-    let fromCache = !!cookies;
-    if (cookies) {
-      const valid = await testCookies(cookies, networkBase);
-      if (!valid) {
-        console.log(`[scrape] Cookies cached non validi per ${targetDomain}, SSO login...`);
-        cookies = null;
-        fromCache = false;
-      }
-    }
-    // 2. Se no cache valida, SSO login sul dominio TARGET e salva in cache
-    if (!cookies) {
-      console.log(`[scrape] SSO login su ${networkBase}...`);
-      const loginResult = await ssoLogin(null, null, networkBase);
-      if (!loginResult.success) return res.status(500).json({ success: false, error: loginResult.error || `SSO login fallito su ${targetDomain}` });
-      cookies = loginResult.cookies;
-      await saveCookiesToCache(cookies, targetDomain);
-    }
+    // Auth sul dominio target
+    const auth = await getAuthCookies(targetDomain);
+    if (auth.error) return res.status(500).json({ success: false, error: auth.error });
+    const cookies = auth.cookies;
 
-    const batch = wcaIds.slice(0, 1); // 1 SOLO profilo per request — MAI più di uno
+    const batch = wcaIds.slice(0, 1); // 1 solo profilo per request
     const memberMap = {};
     if (members && Array.isArray(members)) {
       for (const m of members) { if (m.id && m.href) memberMap[m.id] = m.href; }
     }
+
     const results = [];
     for (const wcaId of batch) {
       let profile = await fetchProfile(wcaId, cookies, memberMap[wcaId], networkDomain);
 
-      // === AUTO-RETRY su network specifico se wcaworld.com dà contatti vuoti ===
+      // ═══ AUTO-RETRY su network se wcaworld.com dà contatti vuoti ═══
       const noContacts = !profile.contacts || profile.contacts.length === 0;
       const noEmail = !profile.email;
       const isLimited = profile.access_limited || (noContacts && noEmail && profile.state === "ok");
-      const wasGeneric = !isNetworkMode; // veniva da wcaworld.com
+      const wasGeneric = !isNetworkMode;
 
       if (isLimited && wasGeneric && profile.networks && profile.networks.length > 0) {
-        console.log(`[scrape] Auto-retry: ${wcaId} ha contatti vuoti su wcaworld.com, networks del membro: ${profile.networks.join(", ")}`);
-
-        // Mappa nome network → dominio
-        const NAME_TO_DOMAIN = {
-          "wca projects": "wcaprojects.com",
-          "wca dangerous goods": "wcadangerousgoods.com",
-          "wca perishables": "wcaperishables.com",
-          "wca time critical": "wcatimecritical.com",
-          "wca pharma": "wcapharma.com",
-          "wca relocations": "wcarelocations.com",
-          "wca ecommerce": "wcaecommercesolutions.com",
-          "wca expo": "wcaexpo.com",
-          "wca live events": "wcaexpo.com",
-          "lognet global": "lognetglobal.com",
-          "lognet": "lognetglobal.com",
-          "global affinity": "globalaffinityalliance.com",
-          "gaa": "globalaffinityalliance.com",
-          "elite global": "elitegln.com",
-          "egln": "elitegln.com",
-          "ifc8": "ifc8.network",
-          "infinite connection": "ifc8.network",
-        };
-
-        // Trova i domini da provare
-        const domainsToTry = [];
-        for (const netName of profile.networks) {
-          const lower = netName.toLowerCase();
-          for (const [key, domain] of Object.entries(NAME_TO_DOMAIN)) {
-            if (lower.includes(key) && !domainsToTry.includes(domain)) {
-              domainsToTry.push(domain);
-            }
-          }
-        }
-
-        console.log(`[scrape] Auto-retry: domini da provare: ${domainsToTry.join(", ") || "nessuno"}`);
+        console.log(`[scrape] Auto-retry: ${wcaId} contatti vuoti su wcaworld.com, networks: ${profile.networks.join(", ")}`);
+        const domainsToTry = networkNameToDomains(profile.networks);
+        console.log(`[scrape] Auto-retry domini: ${domainsToTry.join(", ") || "nessuno"}`);
 
         for (const retryDomain of domainsToTry) {
-          const retryBase = NETWORK_DOMAINS[retryDomain];
-          if (!retryBase) continue;
-
           try {
-            // SSO login sul network specifico
-            let netCookies = await getCachedCookies(retryDomain);
-            if (netCookies) {
-              const valid = await testCookies(netCookies, retryBase);
-              if (!valid) netCookies = null;
-            }
-            if (!netCookies) {
-              console.log(`[scrape] Auto-retry SSO login su ${retryBase}...`);
-              const lr = await ssoLogin(null, null, retryBase);
-              if (!lr.success) { console.log(`[scrape] Auto-retry SSO failed on ${retryDomain}`); continue; }
-              netCookies = lr.cookies;
-              await saveCookiesToCache(netCookies, retryDomain);
-            }
+            const retryAuth = await getAuthCookies(retryDomain);
+            if (retryAuth.error) { console.log(`[scrape] Auto-retry SSO failed on ${retryDomain}`); continue; }
 
-            const retryProfile = await fetchProfile(wcaId, netCookies, null, retryDomain);
+            const retryProfile = await fetchProfile(wcaId, retryAuth.cookies, null, retryDomain);
             const retryHasContacts = retryProfile.contacts && retryProfile.contacts.length > 0;
             const retryHasEmail = !!retryProfile.email;
-
-            console.log(`[scrape] Auto-retry ${retryDomain}: contacts=${retryProfile.contacts?.length||0} email=${retryHasEmail} state=${retryProfile.state}`);
+            console.log(`[scrape] Auto-retry ${retryDomain}: contacts=${retryProfile.contacts?.length || 0} email=${retryHasEmail}`);
 
             if (retryHasContacts || retryHasEmail) {
-              // Merge: prendi i dati migliori da entrambe le fonti
               retryProfile.source_network = retryDomain;
               retryProfile.auto_retried = true;
-              // Mantieni dati dal profilo originale che potrebbero mancare
+              // Merge dati mancanti dal profilo originale
               if (!retryProfile.logo_url && profile.logo_url) retryProfile.logo_url = profile.logo_url;
               if (!retryProfile.enrolled_offices?.length && profile.enrolled_offices?.length) retryProfile.enrolled_offices = profile.enrolled_offices;
               if (!retryProfile.networks?.length && profile.networks?.length) retryProfile.networks = profile.networks;
               if (!retryProfile.address && profile.address) retryProfile.address = profile.address;
               profile = retryProfile;
-              console.log(`[scrape] Auto-retry SUCCESS via ${retryDomain}: ${profile.contacts?.length||0} contacts`);
+              console.log(`[scrape] Auto-retry OK via ${retryDomain}: ${profile.contacts?.length || 0} contacts`);
               break;
             }
-          } catch (e) {
-            console.log(`[scrape] Auto-retry error ${retryDomain}: ${e.message}`);
-          }
+          } catch (e) { console.log(`[scrape] Auto-retry error ${retryDomain}: ${e.message}`); }
         }
       }
 

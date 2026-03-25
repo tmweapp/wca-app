@@ -1138,7 +1138,7 @@ initCountrySelector();
   }
   const testBtn = document.createElement("div");
   testBtn.style.cssText = "grid-column:1/-1;padding:6px 0;display:flex;gap:8px;align-items:center";
-  testBtn.innerHTML = `<button class="btn btn-sm btn-secondary" onclick="testAllNetworks()" id="btnTestNets">🔍 Testa Accesso Network</button><span id="netTestStatus" style="font-size:.75rem;color:var(--text-secondary)"></span>`;
+  testBtn.innerHTML = `<button class="btn btn-sm btn-secondary" onclick="testAllNetworks()" id="btnTestNets">🔍 Testa Accesso Network</button><button class="btn btn-sm btn-secondary" onclick="testDownloadProfile()" id="btnTestDL" style="margin-left:4px">🧪 Test Download</button><span id="netTestStatus" style="font-size:.75rem;color:var(--text-secondary)"></span>`;
   g.appendChild(testBtn);
 })();
 
@@ -1183,6 +1183,62 @@ async function testAllNetworks(){
   }
   btn.disabled = false;
   status.textContent = "Test completato!";
+}
+
+// ═══ TEST DOWNLOAD PROFILO — verifica SSO + estrazione contatti su un network ═══
+async function testDownloadProfile(){
+  const wcaId = prompt("WCA ID da testare (es. 12345):");
+  if(!wcaId) return;
+  const networkDomain = prompt("Dominio network (es. wcaecommercesolutions.com)\nLascia vuoto per wcaworld.com:") || "";
+
+  const status = document.getElementById("netTestStatus");
+  const btn = document.getElementById("btnTestDL");
+  btn.disabled = true;
+  status.textContent = "Test in corso...";
+  log(`🧪 TEST DOWNLOAD: wcaId=${wcaId} network=${networkDomain||"wcaworld.com"}`);
+
+  try {
+    const resp = await fetch(API+"/api/test-download",{
+      method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({ wcaId: parseInt(wcaId), networkDomain: networkDomain || undefined })
+    });
+    const data = await resp.json();
+
+    if(data.success){
+      const p = data.profile;
+      log(`✅ TEST OK: ${p.company_name} (${p.wca_id})`,"ok");
+      log(`   📞 Telefono: ${p.phone||"(vuoto)"}`);
+      log(`   📧 Email: ${p.email||"(vuoto)"}`);
+      log(`   🌐 Networks: ${p.networks?.join(", ")||"(nessuno)"}`);
+      log(`   👤 Contatti: ${p.contacts?.length||0}`);
+      if(p.contacts?.length > 0){
+        for(const c of p.contacts){
+          log(`      → ${c.name||"?"} | ${c.email||""} | ${c.title||""} | ${c.direct_line||""}`);
+        }
+      }
+      log(`   🔑 Auth: ${data.authMethod} | ⏱ ${data.elapsed}ms`);
+      log(`   Access limited: ${p.access_limited}`);
+      status.textContent = `✅ ${p.company_name}: ${p.contacts?.length||0} contatti, ${data.elapsed}ms`;
+
+      // Log diagnostica
+      if(data.diagnostics){
+        const d = data.diagnostics;
+        log(`   📊 Diagnostica: labels=${d.profileLabels} vals=${d.profileVals} rows=${d.profileRows} contactRows=${d.contactPersonRows} mailto=${d.mailtoLinks}`);
+        log(`   📊 hasLogout=${d.hasLogout} hasMembersOnly=${d.hasMembersOnly} hasOfficeContacts=${d.hasOfficeContacts}`);
+        if(d.contactClasses?.length > 0) log(`   📊 Classi contatto: ${d.contactClasses.join(", ")}`);
+      }
+    } else {
+      log(`❌ TEST FALLITO: ${data.error} — ${data.detail||""}`,"err");
+      status.textContent = `❌ ${data.error}`;
+      if(data.log){
+        for(const l of data.log) log(`   📋 ${l}`);
+      }
+    }
+  } catch(e){
+    log(`❌ Errore test: ${e.message}`,"err");
+    status.textContent = `❌ ${e.message}`;
+  }
+  btn.disabled = false;
 }
 
 function log(msg, cls=""){
