@@ -257,6 +257,7 @@ let discoveredMembers = [];
 let totalScraped = 0;
 let selectedCountries = [];
 let currentScrapingCountry = "";
+let currentNetworkMap = {}; // mappa globale wcaId → {name, networks:[domain1,...]}
 
 // === DIRECTORY LOCALE PER PAESE ===
 // Ogni paese ha una directory in localStorage: wca_dir_XX = { ids: {id: "pending"|"done"|"failed"}, ts, total }
@@ -312,7 +313,7 @@ function markCountryCompleted(code, count){
 function getSuspendedJobs(){
   try { return JSON.parse(localStorage.getItem("wca_suspended_jobs")||"[]"); } catch(e){ return []; }
 }
-function saveSuspendedJob(countryCode, countryName, pendingIds, allMembers){
+function saveSuspendedJob(countryCode, countryName, pendingIds, allMembers, networkMap){
   const jobs = getSuspendedJobs().filter(j => j.code !== countryCode); // rimuovi vecchio job stesso paese
   jobs.unshift({
     code: countryCode,
@@ -322,6 +323,7 @@ function saveSuspendedJob(countryCode, countryName, pendingIds, allMembers){
     done: allMembers.length - pendingIds.length,
     ts: Date.now(),
     members: allMembers, // salva i membri per ripresa
+    networkMap: networkMap || {}, // mappa wcaId → {networks:[...]}
   });
   try { localStorage.setItem("wca_suspended_jobs", JSON.stringify(jobs)); } catch(e){}
 }
@@ -686,7 +688,7 @@ function saveScrapingState(){
     const pending = getPendingIds(currentScrapingCountry);
     const cName = selectedCountries.find(c => c.code === currentScrapingCountry)?.name || currentScrapingCountry;
     if(pending.length > 0){
-      saveSuspendedJob(currentScrapingCountry, cName, pending, discoveredMembers);
+      saveSuspendedJob(currentScrapingCountry, cName, pending, discoveredMembers, currentNetworkMap);
       log(`💾 Job sospeso: ${cName} — ${pending.length} profili rimanenti`,"ok");
     }
   }
@@ -705,7 +707,7 @@ function saveScrapingState(){
 
 // Ripristina e continua il download interrotto
 async function resumeScraping(jobCode){
-  let members, countryCode, countryName;
+  let members, countryCode, countryName, networkMap = {};
 
   if(jobCode){
     const jobs = getSuspendedJobs();
@@ -714,6 +716,7 @@ async function resumeScraping(jobCode){
     members = job.members;
     countryCode = job.code;
     countryName = job.name;
+    networkMap = job.networkMap || {};
   } else {
     // Fallback: primo job sospeso o stato vecchio
     const jobs = getSuspendedJobs();
@@ -721,6 +724,7 @@ async function resumeScraping(jobCode){
       members = jobs[0].members;
       countryCode = jobs[0].code;
       countryName = jobs[0].name;
+      networkMap = jobs[0].networkMap || {};
     } else {
       let state;
       try { state = JSON.parse(localStorage.getItem("wca_scraping_state")); } catch(e){}
@@ -733,6 +737,7 @@ async function resumeScraping(jobCode){
       countryName = state.countries?.[0]?.name || "Sconosciuto";
     }
   }
+  currentNetworkMap = networkMap;
 
   // === USA DIRECTORY LOCALE — ZERO QUERY SERVER ===
   const pendingIds = getPendingIds(countryCode);
@@ -777,16 +782,20 @@ async function resumeScraping(jobCode){
   for(let i=0; i<total && scraping; i++){
     const member = toDownload[i];
     
-    setStatus(`Download ${i+1}/${total} — ID ${member.id}`, true);
+    const memberNets = networkMap[member.id]?.networks || [];
+    const bestNetwork = memberNets.find(d => d !== "wcaworld.com") || memberNets[0] || null;
+    const netLabel = bestNetwork ? bestNetwork.replace("www.","") : "wcaworld.com";
+
+    setStatus(`Download ${i+1}/${total} — ID ${member.id} [${netLabel}]`, true);
     setProgress(i+1, total);
-    showActivity("📥", `Download profilo ${i+1}/${total} — ID ${member.id} (${member.name||""})`);
+    showActivity("📥", `Download ${i+1}/${total} — ${member.name||member.id} da ${netLabel}`);
     let retries = 0;
     let done = false;
     while(retries <= MAX_RETRIES && scraping && !done){
       try {
         const resp = await fetch(API+"/api/scrape",{
           method:"POST",headers:{"Content-Type":"application/json"},
-          body:JSON.stringify({wcaIds:[member.id], members: member.href ? [{id:member.id, href:member.href}] : []})
+          body:JSON.stringify({wcaIds:[member.id], members: member.href ? [{id:member.id, href:member.href}] : [], networkDomain: bestNetwork})
         });
         const data = await resp.json();
         if(!data.success){
@@ -879,6 +888,7 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
 
   // memberNetworkMap: wcaId → { name, networks: [domain1, domain2, ...] }
   let memberNetworkMap = {};
+  currentNetworkMap = {}; // reset globale
 
   if(cached && cacheAge < 10){
     log(`📋 ${countryName}: ${cached.members.length} membri in cache (${Math.round(cacheAge)}min fa) — salto discover`,"ok");
@@ -886,6 +896,7 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
     showActivity("📋", `${countryName}: ${cached.members.length} membri dalla cache`);
     discoveredMembers = cached.members;
     memberNetworkMap = cached.memberNetworkMap || {};
+    currentNetworkMap = memberNetworkMap;
     updateResultsTable();
     document.getElementById("resultsCard").style.display = "block";
     setTimeout(hideActivity, 2000);
@@ -1020,6 +1031,8 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
     log(`📋 Discover COMPLETO: ${discoveredMembers.length} partner unici per ${countryName} (${ALL_NETWORKS.length} network + wcaworld.com)`,"ok");
     setStatus(`${countryName}: ${discoveredMembers.length} partner trovati — confronto con DB...`, true);
 
+    // Salva mappa nella variabile globale
+    currentNetworkMap = memberNetworkMap;
     // Salva in cache (con memberNetworkMap)
     discoverCache[cacheKey] = { members: [...discoveredMembers], memberNetworkMap: {...memberNetworkMap}, ts: Date.now() };
     saveScrapingState();
