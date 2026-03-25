@@ -19,18 +19,21 @@ const { extractProfile, NETWORK_DOMAINS, getNetworkBase } = require("./utils/ext
 
 module.exports = async (req, res) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
   if (req.method === "OPTIONS") return res.status(200).end();
-  if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
+  if (req.method !== "POST" && req.method !== "GET") return res.status(405).json({ error: "GET or POST" });
 
   const startTime = Date.now();
   const log = [];
   const addLog = (msg) => { log.push(`[${Date.now() - startTime}ms] ${msg}`); console.log(`[test-download] ${msg}`); };
 
   try {
-    const { wcaId, networkDomain } = req.body || {};
-    if (!wcaId) return res.status(400).json({ error: "wcaId richiesto" });
+    // Supporta GET con query params O POST con body
+    const params = req.method === "GET" ? (req.query || {}) : (req.body || {});
+    const wcaId = params.wcaId ? parseInt(params.wcaId) : null;
+    const networkDomain = params.networkDomain || null;
+    if (!wcaId) return res.status(400).json({ error: "wcaId richiesto (es. ?wcaId=12345&networkDomain=wcaprojects.com)" });
 
     const domain = networkDomain || "wcaworld.com";
     const networkBase = getNetworkBase(domain);
