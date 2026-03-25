@@ -4,133 +4,782 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>WCA Partner Scraper</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh}
-.header{background:linear-gradient(135deg,#1e293b,#334155);padding:16px 24px;display:flex;align-items:center;gap:16px;border-bottom:1px solid #475569}
-.header h1{font-size:1.4rem;color:#38bdf8}
-.header .badge{background:#059669;color:#fff;font-size:.7rem;padding:2px 8px;border-radius:10px}
-.container{max-width:1400px;margin:0 auto;padding:16px}
-.card{background:#1e293b;border-radius:12px;border:1px solid #334155;padding:16px;margin-bottom:16px}
-.card h2{font-size:1rem;color:#94a3b8;margin-bottom:12px}
-.row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
-.field{display:flex;flex-direction:column;gap:4px}
-.field label{font-size:.75rem;color:#64748b;text-transform:uppercase;letter-spacing:.5px}
-.field select,.field input{background:#0f172a;border:1px solid #475569;color:#e2e8f0;padding:8px 12px;border-radius:6px;font-size:.85rem}
-.field select{min-width:180px}
-.btn{padding:8px 20px;border:none;border-radius:6px;font-size:.85rem;font-weight:600;cursor:pointer;transition:all .2s}
-.btn-primary{background:#2563eb;color:#fff}.btn-primary:hover{background:#1d4ed8}
-.btn-success{background:#059669;color:#fff}.btn-success:hover{background:#047857}
-.btn-warning{background:#d97706;color:#fff}.btn-warning:hover{background:#b45309}
-.btn-danger{background:#dc2626;color:#fff}.btn-danger:hover{background:#b91c1c}
-.btn-secondary{background:#475569;color:#fff}.btn-secondary:hover{background:#64748b}
-.btn:disabled{opacity:.5;cursor:not-allowed}
-.btn-sm{padding:6px 14px;font-size:.78rem}
-.status-bar{display:flex;align-items:center;gap:12px;padding:10px 16px;background:#1e293b;border-radius:8px;margin-bottom:12px;border:1px solid #334155;font-size:.85rem}
-.status-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
-.status-dot.off{background:#dc2626}.status-dot.on{background:#22c55e;animation:pulse 2s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
-.progress-bar{flex:1;background:#334155;border-radius:4px;height:6px;overflow:hidden}
-.progress-fill{height:100%;background:linear-gradient(90deg,#2563eb,#38bdf8);transition:width .3s;width:0}
-.networks-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:6px}
-.networks-grid label{font-size:.8rem;display:flex;align-items:center;gap:6px;padding:4px 8px;border-radius:4px;cursor:pointer}
-.networks-grid label:hover{background:#334155}
-.networks-grid input[type=checkbox]{accent-color:#2563eb}
-.tabs-section{margin-bottom:12px}
-.tabs-section h3{font-size:.85rem;color:#94a3b8;margin-bottom:8px}
-.scraped-tabs-bar{display:flex;gap:6px;overflow-x:auto;padding:8px 0;scrollbar-width:thin;scrollbar-color:#475569 transparent}
-.scraped-tabs-bar::-webkit-scrollbar{height:6px}
-.scraped-tabs-bar::-webkit-scrollbar-track{background:transparent}
-.scraped-tabs-bar::-webkit-scrollbar-thumb{background:#475569;border-radius:3px}
-.scraped-tab{flex-shrink:0;display:flex;align-items:center;gap:6px;padding:6px 12px;background:#334155;border:1px solid #475569;border-radius:8px;cursor:pointer;transition:all .2s;max-width:200px}
-.scraped-tab:hover{background:#475569}
-.scraped-tab.active{background:#1e40af;border-color:#3b82f6}
-.scraped-tab img{width:24px;height:24px;border-radius:4px;object-fit:contain;background:#fff}
-.scraped-tab .tab-name{font-size:.75rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px}
-.profile-preview{background:#0f172a;border:1px solid #334155;border-radius:10px;padding:16px;max-height:70vh;overflow-y:auto;display:none}
-.profile-preview.visible{display:block}
-.profile-preview h3{color:#38bdf8;font-size:1.1rem;margin-bottom:8px;display:flex;align-items:center;gap:10px}
-.profile-preview img.logo{width:60px;height:60px;object-fit:contain;background:#fff;border-radius:8px;padding:4px}
-.profile-preview .info-grid{display:grid;grid-template-columns:140px 1fr;gap:4px 12px;font-size:.82rem;margin:10px 0}
-.profile-preview .info-grid .lbl{color:#64748b;font-weight:600}
-.profile-preview .info-grid .val{color:#cbd5e1}
-.profile-preview .section-title{color:#94a3b8;font-size:.85rem;font-weight:700;margin:12px 0 6px;border-bottom:1px solid #334155;padding-bottom:4px}
-.contact-card{background:#1e293b;border:1px solid #334155;border-radius:8px;padding:10px;margin-bottom:6px;font-size:.8rem}
-.contact-card strong{color:#38bdf8}
-.tags{display:flex;flex-wrap:wrap;gap:4px;margin:4px 0}
-.tag{background:#334155;color:#94a3b8;padding:2px 8px;border-radius:4px;font-size:.72rem}
-.results-table-wrap{max-height:300px;overflow-y:auto;margin-top:12px}
-table{width:100%;border-collapse:collapse;font-size:.8rem}
-th{background:#334155;color:#94a3b8;padding:8px;text-align:left;position:sticky;top:0}
-td{padding:6px 8px;border-bottom:1px solid #1e293b}
-tr:hover td{background:#334155}
-.log-area{background:#0f172a;border:1px solid #334155;border-radius:8px;padding:10px;max-height:150px;overflow-y:auto;font-family:'Fira Code',monospace;font-size:.75rem;color:#64748b;margin-top:8px}
-.log-area .ok{color:#22c55e}.log-area .err{color:#ef4444}.log-area .warn{color:#eab308}
-.flex-between{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
-.mode-selector{display:flex;gap:6px}
-.mode-selector .btn{font-size:.78rem}
-.mode-selector .btn.active{outline:2px solid #38bdf8}
-.gm-badge{display:inline-block;padding:1px 6px;border-radius:4px;font-size:.7rem;font-weight:700}
-.gm-badge.covered{background:#059669;color:#fff}
-.gm-badge.not-covered{background:#dc2626;color:#fff}
-.access-badge{display:inline-block;padding:2px 6px;border-radius:4px;font-size:.65rem;font-weight:700}
-.access-badge.limited{background:#92400e;color:#fbbf24}
-.access-badge.full{background:#065f46;color:#6ee7b7}
-.scraped-tab.limited{border-color:#92400e;opacity:.8}
-.hidden{display:none}
+/* ==================== THEME SYSTEM ==================== */
+:root {
+  --bg-page: #0f172a;
+  --bg-card: #1e293b;
+  --bg-input: #0f172a;
+  --bg-header: #1e293b;
+  --text-primary: #e2e8f0;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --border-color: #334155;
+  --border-subtle: #475569;
+  --accent: #3b82f6;
+  --accent-hover: #2563eb;
+  --accent-soft: #1e40af;
+  --success: #22c55e;
+  --warning: #d97706;
+  --danger: #dc2626;
+  --card-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  --card-radius: 14px;
+}
+
+/* Glassmorphism Light */
+body[data-theme="glass-light"] {
+  --bg-page: #f8fafc;
+  --bg-card: rgba(255,255,255,0.55);
+  --bg-input: rgba(248,250,252,0.8);
+  --bg-header: rgba(255,255,255,0.6);
+  --text-primary: #1e293b;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+  --border-color: rgba(255,255,255,0.7);
+  --border-subtle: rgba(226,232,240,0.5);
+  --accent: #6366f1;
+  --accent-hover: #4f46e5;
+  --accent-soft: #4338ca;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --card-shadow: 0 8px 32px rgba(31,41,55,0.1);
+  --card-backdrop: blur(16px);
+}
+
+/* Glassmorphism Dark */
+body[data-theme="glass-dark"] {
+  --bg-page: #0f172a;
+  --bg-card: rgba(30,41,59,0.7);
+  --bg-input: rgba(15,23,42,0.8);
+  --bg-header: rgba(30,41,59,0.8);
+  --text-primary: #e2e8f0;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  --border-color: rgba(71,85,105,0.5);
+  --border-subtle: rgba(71,85,105,0.3);
+  --accent: #818cf8;
+  --accent-hover: #6366f1;
+  --accent-soft: #4f46e5;
+  --success: #34d399;
+  --warning: #fbbf24;
+  --danger: #f87171;
+  --card-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  --card-backdrop: blur(16px);
+}
+
+/* Neumorphism Light */
+body[data-theme="neu-light"] {
+  --bg-page: #f0f0f3;
+  --bg-card: #f0f0f3;
+  --bg-input: #f0f0f3;
+  --bg-header: #f0f0f3;
+  --text-primary: #2d3436;
+  --text-secondary: #636e72;
+  --text-muted: #b2bec3;
+  --border-color: #e8eaed;
+  --border-subtle: #dfe6e9;
+  --accent: #6c63ff;
+  --accent-hover: #5a52c5;
+  --accent-soft: #4a3f9f;
+  --success: #00b894;
+  --warning: #fdcb6e;
+  --danger: #ff7675;
+  --card-shadow: 8px 8px 16px #d1d1d4, -8px -8px 16px #ffffff;
+  --card-radius: 14px;
+}
+
+/* Neumorphism Dark */
+body[data-theme="neu-dark"] {
+  --bg-page: #2d2d3f;
+  --bg-card: #2d2d3f;
+  --bg-input: #2d2d3f;
+  --bg-header: #2d2d3f;
+  --text-primary: #e8eef5;
+  --text-secondary: #b0bcc4;
+  --text-muted: #8a95a4;
+  --border-color: #3d3d55;
+  --border-subtle: #3a3a52;
+  --accent: #a78bfa;
+  --accent-hover: #9d7ee6;
+  --accent-soft: #8b6cd6;
+  --success: #66d9ef;
+  --warning: #f4bf75;
+  --danger: #f78c6b;
+  --card-shadow: 8px 8px 16px #1a1a2a, -8px -8px 16px #3d3d55;
+  --card-radius: 14px;
+}
+
+/* ==================== BASE STYLES ==================== */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--bg-page);
+  color: var(--text-primary);
+  min-height: 100vh;
+  transition: background 0.3s, color 0.3s;
+}
+
+/* ==================== HEADER ==================== */
+.header {
+  background: var(--bg-header);
+  backdrop-filter: var(--card-backdrop, none);
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  border-bottom: 1px solid var(--border-color);
+  flex-wrap: wrap;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.header h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.header .badge {
+  background: var(--accent);
+  color: white;
+  font-size: 0.7rem;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-weight: 600;
+}
+
+/* Theme Switcher Buttons */
+.theme-switcher {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-left: auto;
+  margin-right: 8px;
+}
+
+.theme-btn {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-card);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  color: var(--text-secondary);
+}
+
+.theme-btn:hover {
+  background: var(--accent-soft);
+  color: white;
+}
+
+.theme-btn.active {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+
+/* ==================== CONTAINER & CARDS ==================== */
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.card {
+  background: var(--bg-card);
+  backdrop-filter: var(--card-backdrop, none);
+  border-radius: var(--card-radius);
+  border: 1px solid var(--border-color);
+  padding: 20px;
+  margin-bottom: 16px;
+  box-shadow: var(--card-shadow);
+  transition: all 0.3s;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(0,0,0,0.15);
+}
+
+.card h2 {
+  font-size: 1.1rem;
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+  font-weight: 600;
+}
+
+/* ==================== FORMS & INPUTS ==================== */
+.row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+.field select,
+.field input {
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.field select:focus,
+.field input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.field select {
+  min-width: 180px;
+}
+
+/* ==================== BUTTONS ==================== */
+.btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+  transform: translateY(-1px);
+}
+
+.btn-success {
+  background: var(--success);
+  color: white;
+}
+
+.btn-success:hover:not(:disabled) {
+  background: var(--accent);
+}
+
+.btn-warning {
+  background: var(--warning);
+  color: white;
+}
+
+.btn-warning:hover:not(:disabled) {
+  background: var(--accent);
+}
+
+.btn-danger {
+  background: var(--danger);
+  color: white;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: var(--accent);
+}
+
+.btn-secondary {
+  background: var(--border-color);
+  color: var(--text-secondary);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: var(--border-subtle);
+  color: var(--text-primary);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-sm {
+  padding: 6px 14px;
+  font-size: 0.78rem;
+}
+
+/* ==================== STATUS & PROGRESS ==================== */
+.status-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--bg-card);
+  border-radius: var(--card-radius);
+  margin-bottom: 12px;
+  border: 1px solid var(--border-color);
+  font-size: 0.85rem;
+  flex-wrap: wrap;
+}
+
+.status-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.status-dot.off {
+  background: var(--danger);
+}
+
+.status-dot.on {
+  background: var(--success);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.progress-bar {
+  flex: 1;
+  background: var(--border-color);
+  border-radius: 6px;
+  height: 8px;
+  overflow: hidden;
+  min-width: 100px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--success));
+  transition: width 0.3s ease;
+  width: 0;
+}
+
+/* ==================== DETAILS/COLLAPSIBLE ==================== */
+details {
+  transition: all 0.3s;
+}
+
+details summary:hover {
+  background: var(--accent-soft);
+  color: white;
+}
+
+/* ==================== NETWORKS GRID ==================== */
+.networks-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 8px;
+}
+
+.networks-grid label {
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+}
+
+.networks-grid label:hover {
+  background: var(--accent-soft);
+  color: white;
+}
+
+.networks-grid input[type="checkbox"] {
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+/* ==================== TABS ==================== */
+.tabs-section {
+  margin-bottom: 16px;
+}
+
+.tabs-section h3 {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+  font-weight: 600;
+}
+
+.scraped-tabs-bar {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 8px 0;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-color) transparent;
+}
+
+.scraped-tabs-bar::-webkit-scrollbar {
+  height: 6px;
+}
+
+.scraped-tabs-bar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scraped-tabs-bar::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 3px;
+}
+
+.scraped-tab {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+  max-width: 200px;
+}
+
+.scraped-tab:hover {
+  background: var(--accent-soft);
+  color: white;
+}
+
+.scraped-tab.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+.scraped-tab img {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  object-fit: contain;
+  background: white;
+}
+
+.scraped-tab .tab-name {
+  font-size: 0.75rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 130px;
+}
+
+.scraped-tab.limited {
+  border-color: var(--warning);
+  opacity: 0.8;
+}
+
+/* ==================== PROFILE PREVIEW ==================== */
+.profile-preview {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--card-radius);
+  padding: 16px;
+  max-height: 70vh;
+  overflow-y: auto;
+  display: none;
+}
+
+.profile-preview.visible {
+  display: block;
+}
+
+.profile-preview h3 {
+  color: var(--accent);
+  font-size: 1.1rem;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+}
+
+.profile-preview img.logo {
+  width: 60px;
+  height: 60px;
+  object-fit: contain;
+  background: white;
+  border-radius: 8px;
+  padding: 4px;
+}
+
+.profile-preview .info-grid {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 4px 12px;
+  font-size: 0.82rem;
+  margin: 10px 0;
+}
+
+.profile-preview .info-grid .lbl {
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.profile-preview .info-grid .val {
+  color: var(--text-secondary);
+}
+
+.profile-preview .section-title {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-weight: 700;
+  margin: 12px 0 6px;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 4px;
+}
+
+.contact-card {
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 6px;
+  font-size: 0.8rem;
+}
+
+.contact-card strong {
+  color: var(--accent);
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 4px 0;
+}
+
+.tag {
+  background: var(--border-color);
+  color: var(--text-secondary);
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 0.72rem;
+}
+
+/* ==================== RESULTS TABLE ==================== */
+.results-table-wrap {
+  max-height: 300px;
+  overflow-y: auto;
+  margin-top: 12px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+th {
+  background: var(--bg-input);
+  color: var(--text-secondary);
+  padding: 10px;
+  text-align: left;
+  position: sticky;
+  top: 0;
+  font-weight: 600;
+  border-bottom: 1px solid var(--border-color);
+}
+
+td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+tr:hover td {
+  background: var(--accent-soft);
+  color: white;
+}
+
+/* ==================== LOG AREA ==================== */
+.log-area {
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 10px;
+  max-height: 150px;
+  overflow-y: auto;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 8px;
+}
+
+.log-area .ok {
+  color: var(--success);
+  font-weight: 600;
+}
+
+.log-area .err {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.log-area .warn {
+  color: var(--warning);
+  font-weight: 600;
+}
+
+/* ==================== UTILITIES ==================== */
+.flex-between {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.mode-selector {
+  display: flex;
+  gap: 6px;
+}
+
+.mode-selector .btn {
+  font-size: 0.78rem;
+}
+
+.mode-selector .btn.active {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.gm-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.gm-badge.covered {
+  background: var(--success);
+  color: white;
+}
+
+.gm-badge.not-covered {
+  background: var(--danger);
+  color: white;
+}
+
+.access-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.access-badge.limited {
+  background: var(--warning);
+  color: white;
+}
+
+.access-badge.full {
+  background: var(--success);
+  color: white;
+}
+
+.hidden {
+  display: none;
+}
 </style>
 </head>
-<body>
+<body data-theme="glass-light">
 
 <div class="header">
-  <h1>WCA Partner Scraper</h1>
+  <h1>🔍 WCA Partner Scraper</h1>
   <span class="badge" id="loginBadge">NON CONNESSO</span>
-  <span style="background:#334155;color:#94a3b8;font-size:.7rem;padding:3px 10px;border-radius:10px;display:inline-flex;align-items:center;gap:4px">📊 <span id="headerTotalPartners">0</span> partner</span>
-  <span style="background:#92400e;color:#fbbf24;font-size:.7rem;padding:3px 10px;border-radius:10px;display:inline-flex;align-items:center;gap:4px">🔒 <span id="headerLimitedPartners">0</span> limitati</span>
+  <span style="background:var(--accent-soft);color:white;font-size:.7rem;padding:4px 10px;border-radius:8px;display:inline-flex;align-items:center;gap:4px;font-weight:600">📊 <span id="headerTotalPartners">0</span> partner</span>
+  <span style="background:var(--warning);color:white;font-size:.7rem;padding:4px 10px;border-radius:8px;display:inline-flex;align-items:center;gap:4px;font-weight:600">🔒 <span id="headerLimitedPartners">0</span> limitati</span>
   <div id="headerFlags" style="display:flex;gap:2px;align-items:center;flex-wrap:wrap;margin:0 8px;max-width:400px;overflow:hidden"></div>
-  <div style="flex:1"></div>
+
+  <div class="theme-switcher">
+    <button class="theme-btn active" data-theme="glass-light" onclick="setTheme('glass-light')" title="Glassmorphism Light">🌞</button>
+    <button class="theme-btn" data-theme="glass-dark" onclick="setTheme('glass-dark')" title="Glassmorphism Dark">🌙</button>
+    <button class="theme-btn" data-theme="neu-light" onclick="setTheme('neu-light')" title="Neumorphism Light">✨</button>
+    <button class="theme-btn" data-theme="neu-dark" onclick="setTheme('neu-dark')" title="Neumorphism Dark">🌑</button>
+  </div>
+
   <button class="btn btn-secondary btn-sm" onclick="window.open('/settings.html','_blank')">⚙ Network</button>
   <button class="btn btn-secondary btn-sm" onclick="openAgenda()">Apri Agenda Partner</button>
-  <a href="/wca-extension.zip" download class="btn btn-secondary btn-sm" style="text-decoration:none;background:#7c3aed">⬇ Estensione Chrome</a>
+  <a href="/wca-extension.zip" download class="btn btn-secondary btn-sm" style="text-decoration:none">⬇ Estensione Chrome</a>
   <button class="btn btn-warning btn-sm" onclick="openVerifica()">Verifica Non Trovati (<span id="failedCountHeader">0</span>)</button>
 </div>
 
 <div class="container">
   <!-- STATUS -->
-  <div class="status-bar">
+  <div class="card">
+    <div class="status-bar">
     <div class="status-dot off" id="statusDot"></div>
     <span id="statusText">Clicca "Login WCA" per iniziare</span>
     <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
-    <span id="progressText" style="font-size:.78rem;color:#64748b">0/0</span>
+    <span id="progressText" style="font-size:.78rem;color:var(--text-muted)">0/0</span>
   </div>
   <!-- ACTIVITY TICKER -->
-  <div id="activityBar" style="display:none;padding:6px 16px;background:#0f172a;border:1px solid #334155;border-radius:8px;margin-bottom:12px;font-size:.8rem;font-family:monospace;color:#94a3b8;display:none">
+  <div id="activityBar" style="display:none;padding:8px 16px;background:var(--bg-input);border:1px solid var(--border-color);border-radius:10px;margin-bottom:12px;font-size:.8rem;font-family:monospace;color:var(--text-secondary)">
     <div style="display:flex;align-items:center;gap:8px">
       <span id="activityIcon" style="font-size:1rem">⏳</span>
       <span id="activityText">In attesa...</span>
-      <span id="activityTimer" style="margin-left:auto;color:#64748b;font-size:.75rem"></span>
+      <span id="activityTimer" style="margin-left:auto;color:var(--text-muted);font-size:.75rem"></span>
     </div>
   </div>
 
   <!-- BACKGROUND JOB PANEL -->
-  <div id="bgJobPanel" style="display:none;padding:12px 16px;background:linear-gradient(135deg,#1e1b4b,#312e81);border:1px solid #4f46e5;border-radius:8px;margin-bottom:12px">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-      <h3 style="font-size:.9rem;color:#a5b4fc;margin:0">🖥 Job in Background</h3>
+  <div id="bgJobPanel" style="display:none;padding:12px 16px;background:var(--accent-soft);border:1px solid var(--accent);border-radius:10px;margin-bottom:12px;opacity:0.9">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px">
+      <h3 style="font-size:.9rem;color:white;margin:0;font-weight:600">🖥 Job in Background</h3>
       <div style="display:flex;gap:6px">
-        <span id="bgJobStatus" style="font-size:.7rem;padding:2px 8px;border-radius:4px;background:#4f46e5;color:#fff">—</span>
-        <button class="btn btn-sm" id="bgPauseBtn" onclick="pauseBackgroundJob()" style="background:#d97706;color:#fff;font-size:.7rem;padding:2px 10px">⏸ Pausa</button>
-        <button class="btn btn-sm" id="bgResumeBtn" onclick="resumeBackgroundJob()" style="display:none;background:#059669;color:#fff;font-size:.7rem;padding:2px 10px">▶ Riprendi</button>
-        <button class="btn btn-sm" onclick="cancelBackgroundJob()" style="background:#dc2626;color:#fff;font-size:.7rem;padding:2px 10px">✗ Annulla</button>
+        <span id="bgJobStatus" style="font-size:.7rem;padding:3px 8px;border-radius:6px;background:var(--accent);color:#fff;font-weight:600">—</span>
+        <button class="btn btn-sm" id="bgPauseBtn" onclick="pauseBackgroundJob()" style="background:var(--warning);color:#fff;font-size:.7rem;padding:4px 10px">⏸ Pausa</button>
+        <button class="btn btn-sm" id="bgResumeBtn" onclick="resumeBackgroundJob()" style="display:none;background:var(--success);color:#fff;font-size:.7rem;padding:4px 10px">▶ Riprendi</button>
+        <button class="btn btn-sm" onclick="cancelBackgroundJob()" style="background:var(--danger);color:#fff;font-size:.7rem;padding:4px 10px">✗ Annulla</button>
       </div>
     </div>
-    <div style="font-size:.8rem;color:#c7d2fe" id="bgJobActivity">—</div>
-    <div style="display:flex;gap:16px;margin-top:6px;font-size:.75rem;color:#818cf8">
+    <div style="font-size:.8rem;color:white" id="bgJobActivity">—</div>
+    <div style="display:flex;gap:16px;margin-top:6px;font-size:.75rem;color:white;flex-wrap:wrap">
       <span>Paese: <strong id="bgJobCountry">—</strong></span>
       <span>Progresso: <strong id="bgJobProgress">0/0</strong></span>
       <span>Salvati: <strong id="bgJobScraped">0</strong></span>
       <span>Saltati: <strong id="bgJobSkipped">0</strong></span>
     </div>
-    <div class="progress-bar" style="margin-top:6px;height:4px"><div class="progress-fill" id="bgProgressFill" style="background:#818cf8"></div></div>
+    <div class="progress-bar" style="margin-top:8px;height:4px"><div class="progress-fill" id="bgProgressFill" style="background:white"></div></div>
   </div>
 
   <!-- LOGIN + CONFIG -->
@@ -156,12 +805,12 @@ tr:hover td{background:#334155}
       <div class="field" style="min-width:300px">
         <label>Paesi (seleziona uno o più)</label>
         <div id="countrySelector" style="position:relative">
-          <div id="countryDisplay" onclick="toggleCountryDropdown()" style="background:#0f172a;border:1px solid #475569;color:#e2e8f0;padding:8px 12px;border-radius:6px;font-size:.85rem;cursor:pointer;min-height:36px;display:flex;flex-wrap:wrap;gap:4px;align-items:center">
-            <span style="color:#64748b">Seleziona paesi...</span>
+          <div id="countryDisplay" onclick="toggleCountryDropdown()" style="background:var(--bg-input);border:1px solid var(--border-color);color:var(--text-primary);padding:10px 12px;border-radius:10px;font-size:.85rem;cursor:pointer;min-height:40px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;transition:all 0.2s">
+            <span style="color:var(--text-muted)">Seleziona paesi...</span>
           </div>
-          <div id="countryDropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:#1e293b;border:1px solid #475569;border-radius:0 0 6px 6px;max-height:300px;overflow-y:auto;z-index:50">
-            <div style="padding:6px 8px;border-bottom:1px solid #334155;display:flex;gap:6px">
-              <input type="text" id="countryFilter" placeholder="Filtra..." oninput="filterCountries()" style="flex:1;background:#0f172a;border:1px solid #475569;color:#e2e8f0;padding:4px 8px;border-radius:4px;font-size:.8rem">
+          <div id="countryDropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg-card);border:1px solid var(--border-color);border-radius:0 0 10px 10px;max-height:300px;overflow-y:auto;z-index:50;box-shadow:var(--card-shadow)">
+            <div style="padding:8px;border-bottom:1px solid var(--border-color);display:flex;gap:6px">
+              <input type="text" id="countryFilter" placeholder="Filtra..." oninput="filterCountries()" style="flex:1;background:var(--bg-input);border:1px solid var(--border-color);color:var(--text-primary);padding:8px;border-radius:8px;font-size:.8rem">
               <button class="btn btn-sm btn-secondary" onclick="clearCountries()">Reset</button>
             </div>
             <div id="countryList"></div>
@@ -200,7 +849,7 @@ tr:hover td{background:#334155}
     </div>
     <!-- Networks -->
     <details style="margin-top:12px">
-      <summary style="cursor:pointer;color:#94a3b8;font-size:.85rem">Seleziona Network</summary>
+      <summary style="cursor:pointer;color:var(--text-secondary);font-size:.85rem;font-weight:600;padding:6px;border-radius:8px;transition:all 0.2s;user-select:none">Seleziona Network</summary>
       <div class="networks-grid" style="margin-top:8px" id="networksGrid"></div>
     </details>
   </div>
@@ -1885,6 +2534,17 @@ function selectFlagCountry(code, name){
 loadHeaderCounts();
 // Aggiorna ogni 30s durante lo scraping
 setInterval(()=>{ if(scraping || bgJobId) loadHeaderCounts(); }, 30000);
+
+// === THEME SWITCHER ===
+function setTheme(theme) {
+  document.body.setAttribute('data-theme', theme);
+  try { localStorage.setItem('wca_theme', theme); } catch(e){}
+  document.querySelectorAll('.theme-btn').forEach(b => b.classList.toggle('active', b.dataset.theme === theme));
+}
+(function initTheme(){
+  const saved = localStorage.getItem('wca_theme') || 'glass-light';
+  setTheme(saved);
+})();
 
 </script>
 </body>
