@@ -59,17 +59,17 @@ module.exports = async (req, res) => {
     const networkInfo = NETWORK_DOMAINS[networkDomain];
     if (!networkInfo) return res.status(400).json({ error: `Network sconosciuto: ${networkDomain}` });
 
-    // 1. Auth
-    let cookies = await getCachedCookies();
-    if (cookies) { const valid = await testCookies(cookies); if (!valid) cookies = null; }
-    if (!cookies) {
-      const loginResult = await ssoLogin();
-      if (!loginResult.success) return res.status(500).json({ error: "SSO login fallito: " + loginResult.error });
-      cookies = loginResult.cookies;
-      await saveCookiesToCache(cookies);
-    }
-
+    // 1. Auth — SSO login sul dominio del network specifico
     const { base: baseUrl, siteId } = networkInfo;
+    let cookies = await getCachedCookies(networkDomain);
+    if (cookies) { const valid = await testCookies(cookies, baseUrl); if (!valid) cookies = null; }
+    if (!cookies) {
+      console.log(`[discover-network] SSO login su ${baseUrl}...`);
+      const loginResult = await ssoLogin(null, null, baseUrl);
+      if (!loginResult.success) return res.status(500).json({ error: `SSO login fallito su ${networkDomain}: ` + loginResult.error });
+      cookies = loginResult.cookies;
+      await saveCookiesToCache(cookies, networkDomain);
+    }
 
     // 2. Build query string per il network specifico
     const params = new URLSearchParams();

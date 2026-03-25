@@ -799,6 +799,7 @@ tr:hover td {
         <label>Modalità</label>
         <div class="mode-selector">
           <button class="btn btn-sm btn-secondary active" data-mode="discover" onclick="setMode('discover',this)">Discover</button>
+          <button class="btn btn-sm btn-secondary" data-mode="network" onclick="setMode('network',this)">Per Network</button>
           <button class="btn btn-sm btn-secondary" data-mode="range" onclick="setMode('range',this)">Range ID</button>
         </div>
       </div>
@@ -847,7 +848,15 @@ tr:hover td {
         <button class="btn btn-danger btn-sm" onclick="resetCountryAndRestart()" title="Cancella cache e directory locale del paese selezionato e riesegui da zero">🔄 Riesegui Paese da zero</button>
       </div>
     </div>
-    <!-- Networks -->
+    <!-- Network mode selector (visible solo in modalità "Per Network") -->
+    <div id="networkModePanel" style="display:none;margin-top:12px;padding:12px;border-radius:12px;background:var(--bg-card);border:1px solid var(--border-color)">
+      <label style="font-size:.85rem;font-weight:600;color:var(--text-secondary);margin-bottom:6px;display:block">Seleziona Network da scansionare</label>
+      <select id="selTargetNetwork" style="width:100%;padding:8px 12px;border-radius:8px;background:var(--bg-card);color:var(--text-primary);border:1px solid var(--border-color);font-size:.85rem">
+        <option value="">-- Scegli un network --</option>
+      </select>
+      <p style="font-size:.75rem;color:var(--text-secondary);margin-top:6px">Entra nel network selezionato → scopri e scarica i partner paese per paese, direttamente dal network.</p>
+    </div>
+    <!-- Networks (filtro per discover mode) -->
     <details style="margin-top:12px">
       <summary style="cursor:pointer;color:var(--text-secondary);font-size:.85rem;font-weight:600;padding:6px;border-radius:8px;transition:all 0.2s;user-select:none">Seleziona Network</summary>
       <div class="networks-grid" style="margin-top:8px" id="networksGrid"></div>
@@ -1166,10 +1175,154 @@ function setMode(mode, btn){
   document.querySelectorAll(".mode-selector .btn").forEach(b=>b.classList.remove("active"));
   btn.classList.add("active");
   const isRange = mode === "range";
+  const isNetwork = mode === "network";
   document.getElementById("fieldRangeFrom").classList.toggle("hidden",!isRange);
   document.getElementById("fieldRangeTo").classList.toggle("hidden",!isRange);
-  document.getElementById("fieldSearch").classList.toggle("hidden",isRange);
-  document.getElementById("fieldSearchBy").classList.toggle("hidden",isRange);
+  document.getElementById("fieldSearch").classList.toggle("hidden",isRange || isNetwork);
+  document.getElementById("fieldSearchBy").classList.toggle("hidden",isRange || isNetwork);
+  document.getElementById("networkModePanel").style.display = isNetwork ? "block" : "none";
+  if(isNetwork) initNetworkSelector();
+}
+
+function initNetworkSelector(){
+  const sel = document.getElementById("selTargetNetwork");
+  if(sel.options.length > 1) return; // già popolato
+  for(const net of ALL_NETWORKS){
+    const opt = document.createElement("option");
+    opt.value = net.domain;
+    opt.textContent = `${net.name} (${net.domain})`;
+    sel.appendChild(opt);
+  }
+}
+
+// === MODALITÀ PER NETWORK: entra in un network, discover+download paese per paese ===
+async function scrapeByNetwork(){
+  const networkDomain = document.getElementById("selTargetNetwork").value;
+  if(!networkDomain){ alert("Seleziona un network!"); return; }
+  const countries = [...selectedCountries];
+  if(countries.length === 0){ alert("Seleziona almeno un paese!"); return; }
+
+  const networkName = ALL_NETWORKS.find(n => n.domain === networkDomain)?.name || networkDomain;
+  log(`═══ MODALITÀ NETWORK: ${networkName} (${networkDomain}) ═══`);
+  log(`📋 Paesi da scansionare: ${countries.map(c=>c.name).join(", ")}`);
+
+  for(let ci = 0; ci < countries.length && scraping; ci++){
+    const c = countries[ci];
+    log(`═══ [${networkName}] PAESE ${ci+1}/${countries.length}: ${c.name} (${c.code}) ═══`,"ok");
+    setStatus(`[${networkName}] ${c.name}: discover in corso...`, true);
+
+    // FASE 1: Discover su QUESTO network per QUESTO paese
+    showActivity("🌐", `Discover ${c.name} su ${networkName}...`);
+    let members = [];
+    try {
+      const delay = ci > 0 ? getNextDelay() : 0;
+      if(delay > 0){
+        log(`⏱ Pausa ${(delay/1000).toFixed(0)}s...`);
+        await sleepWithActivity("🌐", `Pausa prima di ${c.name}`, delay);
+      }
+      if(!scraping) break;
+
+      const resp = await fetch(API+"/api/discover-network",{
+        method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({ networkDomain, country: c.code })
+      });
+      const data = await resp.json();
+      if(!data.success){
+        log(`⚠ ${c.name} su ${networkName}: ${data.error||"errore"}`,"warn");
+        continue;
+      }
+      members = data.members || [];
+      log(`📋 ${c.name}: ${members.length} membri trovati su ${networkName}`,"ok");
+    } catch(e){
+      log(`⚠ Errore discover ${c.name}: ${e.message}`,"err");
+      continue;
+    }
+
+    if(members.length === 0){
+      log(`⏭ ${c.name}: nessun membro su ${networkName} — salto`,"warn");
+      continue;
+    }
+
+    // Aggiorna discover table
+    discoveredMembers = members.map(m => ({id:m.id, name:m.name, networks:[networkDomain]}));
+    document.getElementById("resultsCard").style.display = "block";
+    updateResultsTable();
+
+    // Directory locale
+    const allIds = members.map(m => m.id);
+    let dir = getDirectory(c.code);
+    if(!dir) dir = createDirectory(c.code, allIds);
+    else {
+      let added = 0;
+      for(const id of allIds){ if(!(String(id) in dir.ids)){ dir.ids[String(id)] = "pending"; added++; } }
+      if(added > 0){ dir.total = Object.keys(dir.ids).length; saveDirectory(c.code, dir); }
+    }
+
+    // Filtra solo i pending
+    const pendingIds = allIds.filter(id => dir.ids[String(id)] === "pending");
+    const toDownload = members.filter(m => pendingIds.includes(m.id));
+    log(`📥 ${c.name}: ${allIds.length - pendingIds.length} già fatti, ${toDownload.length} da scaricare su ${networkName}`,"ok");
+
+    if(toDownload.length === 0){
+      log(`✅ ${c.name}: tutto già scaricato su ${networkName}`,"ok");
+      continue;
+    }
+
+    // FASE 2: Download dal network specifico
+    currentScrapingCountry = c.code;
+    for(let i = 0; i < toDownload.length && scraping; i++){
+      const member = toDownload[i];
+      setStatus(`[${networkName}] ${c.name}: ${i+1}/${toDownload.length} — ID ${member.id}`, true);
+      setProgress(i+1, toDownload.length);
+      showActivity("📥", `Download ${i+1}/${toDownload.length} — ${member.name||member.id} da ${networkName}`);
+
+      try {
+        const resp = await fetch(API+"/api/scrape",{
+          method:"POST",headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({wcaIds:[member.id], members: member.href ? [{id:member.id, href:member.href}] : [], networkDomain})
+        });
+        const data = await resp.json();
+        if(!data.success){
+          log(`⚠ ${member.id}: ${data.error}`,"err");
+          markIdFailed(c.code, member.id);
+          continue;
+        }
+        const profile = data.results?.[0];
+        if(profile && profile.state === "ok"){
+          scrapedProfiles.unshift(profile);
+          if(scrapedProfiles.length > 50) scrapedProfiles.pop();
+          addScrapedTab(profile, 0);
+          trimScrapedTabs(50);
+          const limited = profile.access_limited ? " [LIMITATO]" : "";
+          log(`✓ ${profile.company_name} (${profile.wca_id}) contatti:${profile.contacts?.length||0}${limited} [${networkName}]`,"ok");
+          saveToSupabase(profile);
+          markIdDone(c.code, profile.wca_id);
+          updateResultRow(profile.wca_id, "ok");
+          totalScraped++;
+        } else if(profile){
+          log(`✗ ${member.id}: ${profile.state}`,"warn");
+          markIdFailed(c.code, member.id);
+          updateResultRow(member.id, profile.state);
+        }
+      } catch(e){
+        log(`⚠ Errore ${member.id}: ${e.message}`,"err");
+      }
+
+      // Delay variabile
+      if(i + 1 < toDownload.length && scraping){
+        const delay = getNextDelay();
+        await sleepWithActivity("📥", `Pausa ${Math.round(delay/1000)}s — ${networkName}`, delay);
+      }
+    }
+
+    log(`✅ ${c.name} su ${networkName}: completato!`,"ok");
+
+    // Pausa tra paesi
+    if(ci + 1 < countries.length && scraping){
+      log(`⏸ Pausa ${COUNTRY_PAUSE}s prima del prossimo paese...`);
+      await sleepWithActivity("🌍", `Pausa tra paesi — prossimo: ${countries[ci+1].name}`, COUNTRY_PAUSE * 1000);
+    }
+  }
 }
 
 function setStatus(text, online=false){
@@ -1263,6 +1416,8 @@ async function startScraping(){
 
   if(currentMode === "range"){
     await scrapeRange();
+  } else if(currentMode === "network"){
+    await scrapeByNetwork();
   } else {
     const countries = selectedCountries.length > 0 ? [...selectedCountries] : [{code:"", name:"Tutti"}];
     let skippedAll = 0;

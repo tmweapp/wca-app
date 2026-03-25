@@ -496,27 +496,31 @@ module.exports = async (req, res) => {
     const { wcaIds, members, networkDomain } = req.body || {};
     if (!wcaIds || !Array.isArray(wcaIds) || wcaIds.length === 0) return res.status(400).json({ error: "wcaIds richiesto" });
 
-    // 1. Prova cookies cached da Supabase (evita SSO login ripetuto)
-    let cookies = await getCachedCookies();
+    // Determina il dominio target per l'autenticazione
+    const isNetworkMode = networkDomain && networkDomain !== "wcaworld.com";
+    const targetDomain = isNetworkMode ? networkDomain : "wcaworld.com";
+    const networkBase = isNetworkMode ? (NETWORK_DOMAINS[networkDomain] || BASE) : BASE;
+
+    console.log(`[scrape] Mode: ${isNetworkMode ? "NETWORK " + networkDomain : "wcaworld.com"}`);
+
+    // 1. Prova cookies cached per il dominio target
+    let cookies = await getCachedCookies(targetDomain);
     let fromCache = !!cookies;
     if (cookies) {
-      const valid = await testCookies(cookies);
+      const valid = await testCookies(cookies, networkBase);
       if (!valid) {
-        console.log("[scrape] Cookies cached non validi, SSO login...");
+        console.log(`[scrape] Cookies cached non validi per ${targetDomain}, SSO login...`);
         cookies = null;
         fromCache = false;
       }
     }
-    // 2. Se no cache valida, SSO login e salva in cache
+    // 2. Se no cache valida, SSO login sul dominio TARGET e salva in cache
     if (!cookies) {
-      const loginResult = await ssoLogin();
-      if (!loginResult.success) return res.status(500).json({ success: false, error: loginResult.error || "SSO login fallito" });
+      console.log(`[scrape] SSO login su ${networkBase}...`);
+      const loginResult = await ssoLogin(null, null, networkBase);
+      if (!loginResult.success) return res.status(500).json({ success: false, error: loginResult.error || `SSO login fallito su ${targetDomain}` });
       cookies = loginResult.cookies;
-      await saveCookiesToCache(cookies);
-    }
-
-    if (networkDomain) {
-      console.log(`[scrape] Network mode: ${networkDomain}`);
+      await saveCookiesToCache(cookies, targetDomain);
     }
 
     const batch = wcaIds.slice(0, 1); // 1 SOLO profilo per request — MAI più di uno
