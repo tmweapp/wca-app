@@ -333,6 +333,22 @@ function removeSuspendedJob(countryCode){
 // Pattern di delay variabile (in secondi) — simula un umano al PC
 const DELAY_PATTERN = [3,3,2,3,8,3,5,3,12,3,4,3,6,3,9,3,3,3,10];
 const COUNTRY_PAUSE = 15; // 15 secondi di pausa tra un paese e l'altro
+
+// Tutti i network con sito dedicato (escluso wcaworld.com che è il fallback)
+const ALL_NETWORKS = [
+  { domain: "wcaprojects.com",           siteId: 5,   name: "WCA Projects" },
+  { domain: "wcadangerousgoods.com",     siteId: 22,  name: "WCA Dangerous Goods" },
+  { domain: "wcaperishables.com",        siteId: 13,  name: "WCA Perishables" },
+  { domain: "wcatimecritical.com",       siteId: 18,  name: "WCA Time Critical" },
+  { domain: "wcapharma.com",             siteId: 16,  name: "WCA Pharma" },
+  { domain: "wcarelocations.com",        siteId: 15,  name: "WCA Relocations" },
+  { domain: "wcaecommercesolutions.com", siteId: 107, name: "WCA eCommerce" },
+  { domain: "wcaexpo.com",              siteId: 124, name: "WCA Expo" },
+  { domain: "lognetglobal.com",           siteId: 61,  name: "Lognet Global" },
+  { domain: "globalaffinityalliance.com", siteId: 98,  name: "GAA" },
+  { domain: "elitegln.com",              siteId: 108, name: "EGLN" },
+  { domain: "ifc8.network",             siteId: 118, name: "IFC8" },
+];
 let delayIndex = 0;
 function getNextDelay(){
   const d = DELAY_PATTERN[delayIndex % DELAY_PATTERN.length];
@@ -855,69 +871,157 @@ const discoverCache = {};
 async function scrapeDiscoverCountry(country, countryName, updateAddress = false){
   currentScrapingCountry = country;
 
-  // === FASE 1: DISCOVER ===
-  // Controlla cache discover (valida 10 min)
-  const cacheKey = `${country}_${getSelectedNetworks().join(",")}`;
+  // === FASE 1: DISCOVER MULTI-NETWORK ===
+  // Scopre i membri su TUTTI i 12 network dedicati, poi wcaworld.com come fallback
+  const cacheKey = `${country}_multinetwork`;
   const cached = discoverCache[cacheKey];
   const cacheAge = cached ? (Date.now() - cached.ts) / 60000 : 999;
+
+  // memberNetworkMap: wcaId → { name, networks: [domain1, domain2, ...] }
+  let memberNetworkMap = {};
 
   if(cached && cacheAge < 10){
     log(`📋 ${countryName}: ${cached.members.length} membri in cache (${Math.round(cacheAge)}min fa) — salto discover`,"ok");
     setStatus(`${countryName}: ${cached.members.length} membri trovati (cache)`, true);
     showActivity("📋", `${countryName}: ${cached.members.length} membri dalla cache`);
     discoveredMembers = cached.members;
+    memberNetworkMap = cached.memberNetworkMap || {};
     updateResultsTable();
     document.getElementById("resultsCard").style.display = "block";
     setTimeout(hideActivity, 2000);
   } else {
-    log(`📋 ${countryName}: avvio ricerca partner nel directory WCA...`,"ok");
-    setStatus(`${countryName}: ricerca partner in corso...`, true);
-    showActivity("📋", `${countryName} — ricerca pagina 1...`);
-    log(`═══ DISCOVER ${countryName} — raccolta ID ═══`);
+    log(`═══ FASE 1: DISCOVER MULTI-NETWORK ${countryName} ═══`);
+    log(`📋 ${countryName}: avvio ricerca su ${ALL_NETWORKS.length} network...`,"ok");
+    setStatus(`${countryName}: ricerca multi-network in corso...`, true);
     discoveredMembers = [];
-    let page = 1;
-    const searchTerm = document.getElementById("txtSearch").value.trim();
-    const searchBy = document.getElementById("selSearchBy").value;
-    const networks = getSelectedNetworks();
-    let estimatedTotal = null;
+    const allMemberIds = new Set();
+    memberNetworkMap = {};
 
-    while(scraping){
+    // --- FASE 1A: Discover su tutti i 12 network dedicati ---
+    for(let ni = 0; ni < ALL_NETWORKS.length && scraping; ni++){
+      const network = ALL_NETWORKS[ni];
+
+      // Delay PRIMA della chiamata (tranne la primissima)
+      if(ni > 0){
+        const delay = getNextDelay();
+        log(`⏱ Pausa ${(delay/1000).toFixed(0)}s prima di ${network.name}...`);
+        await sleepWithActivity("🌐", `Pausa ${Math.round(delay/1000)}s — prossimo: ${network.name}`, delay);
+      }
+
+      if(!scraping) break;
+
+      setStatus(`FASE 1A ${countryName}: network ${ni+1}/${ALL_NETWORKS.length} — ${network.name}`, true);
+      showActivity("🌐", `Discover ${countryName} su ${network.name}...`);
+      setProgress(ni+1, ALL_NETWORKS.length);
+
       try {
-        setStatus(`FASE 1 ${countryName}: pagina ${page}... (${discoveredMembers.length} trovati)`, true);
-        showActivity("📋", `Discover ${countryName} — scarico pagina ${page}... (${discoveredMembers.length} trovati)`);
-        const resp = await fetch(API+"/api/discover",{
+        const resp = await fetch(API+"/api/discover-network",{
           method:"POST",headers:{"Content-Type":"application/json"},
-          body:JSON.stringify({cookies:sessionCookies, wcaToken, page, filters:{country,searchTerm,searchBy,networks}})
+          body:JSON.stringify({ networkDomain: network.domain, country })
         });
         const data = await resp.json();
+
         if(!data.success){
-          log("Errore discover: "+(data.error||"sconosciuto"),"err");
-          if(data.error==="login_required"){log("Sessione scaduta, rifai login","err");return;}
-          break;
+          if(data.error === "login_required"){
+            log(`⚠ ${network.name}: login richiesto — saltato`,"warn");
+          } else {
+            log(`⚠ ${network.name}: ${data.error || "errore"}`, "warn");
+          }
+          continue;
         }
-        const newMembers = data.members || [];
-        if(data.totalResults && !estimatedTotal) estimatedTotal = data.totalResults;
-        log(`Pagina ${page}: +${newMembers.length} (totale: ${discoveredMembers.length + newMembers.length}${estimatedTotal ? " / ~"+estimatedTotal : ""})`);
-        discoveredMembers.push(...newMembers);
-        updateResultsTable();
-        if(estimatedTotal) setProgress(discoveredMembers.length, estimatedTotal);
-        if(newMembers.length === 0 || !data.hasNext) break;
-        page++;
-        const pageDelay = getNextDelay();
-        log(`⏱ Pausa ${(pageDelay/1000).toFixed(0)}s...`);
-        await sleepWithActivity("📋", `Discover ${countryName} — pausa prima di pagina ${page+1}`, pageDelay);
+
+        const members = data.members || [];
+        log(`🌐 [${ni+1}/${ALL_NETWORKS.length}] ${network.name}: ${members.length} membri trovati`,"ok");
+
+        for(const m of members){
+          allMemberIds.add(m.id);
+          if(!memberNetworkMap[m.id]){
+            memberNetworkMap[m.id] = { name: m.name, networks: [] };
+          }
+          memberNetworkMap[m.id].networks.push(network.domain);
+        }
       } catch(e){
-        log("Errore discover: "+e.message,"err"); break;
+        log(`⚠ ${network.name}: errore rete — ${e.message}`,"warn");
       }
     }
+
+    log(`📋 FASE 1A completata: ${allMemberIds.size} membri unici trovati su ${ALL_NETWORKS.length} network`,"ok");
+
+    // --- FASE 1B: Discover su wcaworld.com per trovare membri mancanti ---
+    if(scraping){
+      log(`═══ FASE 1B: DISCOVER wcaworld.com ${countryName} — membri mancanti ═══`);
+      setStatus(`${countryName}: ricerca su wcaworld.com per membri mancanti...`, true);
+      showActivity("📋", `${countryName} — discover wcaworld.com pagina 1...`);
+
+      let page = 1;
+      const searchTerm = document.getElementById("txtSearch").value.trim();
+      const searchBy = document.getElementById("selSearchBy").value;
+      const networks = getSelectedNetworks();
+      let wcaMembers = [];
+      let estimatedTotal = null;
+
+      while(scraping){
+        // Delay prima di ogni chiamata wcaworld.com
+        const delay = getNextDelay();
+        log(`⏱ Pausa ${(delay/1000).toFixed(0)}s...`);
+        await sleepWithActivity("📋", `Discover wcaworld.com ${countryName} — pausa prima di pagina ${page}`, delay);
+
+        if(!scraping) break;
+
+        try {
+          setStatus(`FASE 1B ${countryName}: wcaworld.com pagina ${page}... (${wcaMembers.length} trovati)`, true);
+          showActivity("📋", `Discover wcaworld.com ${countryName} — pagina ${page}...`);
+          const resp = await fetch(API+"/api/discover",{
+            method:"POST",headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({cookies:sessionCookies, wcaToken, page, filters:{country,searchTerm,searchBy,networks}})
+          });
+          const data = await resp.json();
+          if(!data.success){
+            log("Errore discover wcaworld: "+(data.error||"sconosciuto"),"err");
+            if(data.error==="login_required"){log("Sessione scaduta, rifai login","err");return;}
+            break;
+          }
+          const newMembers = data.members || [];
+          if(data.totalResults && !estimatedTotal) estimatedTotal = data.totalResults;
+          wcaMembers.push(...newMembers);
+
+          // Aggiungi solo quelli che NON sono già stati trovati nei network
+          let newFromWca = 0;
+          for(const m of newMembers){
+            if(!allMemberIds.has(m.id)){
+              allMemberIds.add(m.id);
+              memberNetworkMap[m.id] = { name: m.name, networks: ["wcaworld.com"] };
+              newFromWca++;
+            }
+          }
+          log(`Pagina ${page}: +${newMembers.length} (${newFromWca} nuovi non in network, totale unici: ${allMemberIds.size})`);
+
+          if(newMembers.length === 0 || !data.hasNext) break;
+          page++;
+        } catch(e){
+          log("Errore discover wcaworld: "+e.message,"err"); break;
+        }
+      }
+
+      const wcaOnlyCount = Object.values(memberNetworkMap).filter(m => m.networks.length === 1 && m.networks[0] === "wcaworld.com").length;
+      log(`📋 FASE 1B completata: ${wcaMembers.length} dalla directory generale, ${wcaOnlyCount} solo su wcaworld.com`,"ok");
+    }
+
     hideActivity();
 
+    // Costruisci discoveredMembers dalla mappa completa
+    discoveredMembers = Object.entries(memberNetworkMap).map(([id, info]) => ({
+      id: parseInt(id),
+      name: info.name,
+      networks: info.networks,
+    }));
+
     document.getElementById("resultsCard").style.display = "block";
-    log(`📋 Discover completato: ${discoveredMembers.length} partner trovati per ${countryName} (${page} pagine)`,"ok");
+    log(`📋 Discover COMPLETO: ${discoveredMembers.length} partner unici per ${countryName} (${ALL_NETWORKS.length} network + wcaworld.com)`,"ok");
     setStatus(`${countryName}: ${discoveredMembers.length} partner trovati — confronto con DB...`, true);
 
-    // Salva in cache
-    discoverCache[cacheKey] = { members: [...discoveredMembers], ts: Date.now() };
+    // Salva in cache (con memberNetworkMap)
+    discoverCache[cacheKey] = { members: [...discoveredMembers], memberNetworkMap: {...memberNetworkMap}, ts: Date.now() };
     saveScrapingState();
   }
 
@@ -981,9 +1085,13 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
   for(let i=0; i<total && scraping; i++){
     const member = toDownload[i];
     
-    setStatus(`FASE 2 ${countryName}: ${i+1}/${total} — ID ${member.id}`, true);
+    const memberNets = memberNetworkMap[member.id]?.networks || [];
+    const bestNetwork = memberNets.find(d => d !== "wcaworld.com") || memberNets[0] || null;
+    const netLabel = bestNetwork ? bestNetwork.replace("www.","") : "wcaworld.com";
+
+    setStatus(`FASE 2 ${countryName}: ${i+1}/${total} — ID ${member.id} [${netLabel}]`, true);
     setProgress(i+1, total);
-    showActivity("📥", `Download profilo ${i+1}/${total} — ID ${member.id} (${member.name||""})`);
+    showActivity("📥", `Download ${i+1}/${total} — ${member.name||member.id} da ${netLabel}`);
 
     let retries = 0;
     let success = false;
@@ -992,7 +1100,7 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
       try {
         const resp = await fetch(API+"/api/scrape",{
           method:"POST",headers:{"Content-Type":"application/json"},
-          body:JSON.stringify({wcaIds:[member.id], members: member.href ? [{id:member.id, href:member.href}] : []})
+          body:JSON.stringify({wcaIds:[member.id], members: member.href ? [{id:member.id, href:member.href}] : [], networkDomain: bestNetwork})
         });
         const data = await resp.json();
         if(!data.success){
@@ -1019,7 +1127,7 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
             addScrapedTab(profile, 0);
             trimScrapedTabs(MAX_TABS);
             const limited = profile.access_limited ? " [LIMITATO]" : "";
-            log(`✓ ${profile.company_name} (${profile.wca_id}) contatti:${profile.contacts?.length||0}${limited}`,"ok");
+            log(`✓ ${profile.company_name} (${profile.wca_id}) contatti:${profile.contacts?.length||0}${limited} [${netLabel}]`,"ok");
             saveToSupabase(profile);
             markIdDone(currentScrapingCountry, profile.wca_id);
             updateResultRow(profile.wca_id, "ok");
