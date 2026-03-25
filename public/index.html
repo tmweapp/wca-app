@@ -1139,6 +1139,11 @@ initCountrySelector();
   try { localStorage.removeItem("wca_network_results"); localStorage.removeItem("wca_network_groups"); } catch(e){}
 
   const g = document.getElementById("networksGrid");
+  // Bottoni Tutti/Nessuno
+  const btnBar = document.createElement("div");
+  btnBar.style.cssText = "grid-column:1/-1;display:flex;gap:6px;margin-bottom:4px";
+  btnBar.innerHTML = `<button class="btn btn-sm btn-secondary" onclick="document.querySelectorAll('#networksGrid input').forEach(c=>c.checked=true)" style="font-size:.7rem;padding:2px 8px">Tutti</button><button class="btn btn-sm btn-secondary" onclick="document.querySelectorAll('#networksGrid input').forEach(c=>c.checked=false)" style="font-size:.7rem;padding:2px 8px">Nessuno</button>`;
+  g.appendChild(btnBar);
   for(const [name] of Object.entries(NETWORKS)){
     const lbl = document.createElement("label");
     lbl.innerHTML = `<input type="checkbox" checked value="${name}"> ${name}`;
@@ -1863,10 +1868,26 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
   // ═══════════════════════════════════════════════════════════════
   // FLUSSO PRINCIPALE: network per network → discover → download
   // ═══════════════════════════════════════════════════════════════
-  log(`═══ ${countryName}: INIZIO SCRAPING NETWORK-PER-NETWORK (${ALL_NETWORKS.length} network) ═══`);
+  // Filtra network in base alla selezione utente
+  const selectedNetNames = getSelectedNetworks();
+  const ACTIVE_NETWORKS = ALL_NETWORKS.filter(n => {
+    // Mappa: il checkbox usa i nomi da NETWORKS{}, che possono differire dai nomi in ALL_NETWORKS
+    // Es. checkbox "WCA eCommerce Solutions" vs ALL_NETWORKS "WCA eCommerce"
+    return selectedNetNames.some(sel => {
+      const selLower = sel.toLowerCase();
+      const nLower = n.name.toLowerCase();
+      // Match esatto, parziale, o per dominio
+      return selLower === nLower || selLower.includes(nLower) || nLower.includes(selLower) ||
+        (NETWORKS[sel] && NETWORKS[sel] === n.siteId);
+    });
+  });
+  log(`═══ ${countryName}: INIZIO SCRAPING (${ACTIVE_NETWORKS.length}/${ALL_NETWORKS.length} network selezionati) ═══`);
+  if(ACTIVE_NETWORKS.length === 0){
+    log(`⚠ Nessun network selezionato! Seleziona almeno un network dalla griglia.`,"warn");
+  }
 
-  for(let ni = 0; ni < ALL_NETWORKS.length && scraping; ni++){
-    const network = ALL_NETWORKS[ni];
+  for(let ni = 0; ni < ACTIVE_NETWORKS.length && scraping; ni++){
+    const network = ACTIVE_NETWORKS[ni];
 
     // --- Delay prima del network (tranne il primo) ---
     if(ni > 0){
@@ -1877,9 +1898,9 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
     if(!scraping) break;
 
     // --- DISCOVER su questo network ---
-    setStatus(`${countryName} [${ni+1}/${ALL_NETWORKS.length}] ${network.name}: discover...`, true);
+    setStatus(`${countryName} [${ni+1}/${ACTIVE_NETWORKS.length}] ${network.name}: discover...`, true);
     showActivity("🌐", `Discover ${countryName} su ${network.name}...`);
-    setProgress(ni+1, ALL_NETWORKS.length);
+    setProgress(ni+1, ACTIVE_NETWORKS.length);
 
     let members = [];
     try {
@@ -1893,7 +1914,7 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
         continue;
       }
       members = data.members || [];
-      log(`🌐 [${ni+1}/${ALL_NETWORKS.length}] ${network.name}: ${members.length} membri trovati`,"ok");
+      log(`🌐 [${ni+1}/${ACTIVE_NETWORKS.length}] ${network.name}: ${members.length} membri trovati`,"ok");
     } catch(e){
       log(`⚠ ${network.name}: errore rete — ${e.message}`,"warn");
       continue;

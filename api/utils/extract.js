@@ -304,12 +304,14 @@ function extractProfile($, wcaId, sourceBase) {
 
   // ═══ CONTACTS ═══
   // 1. Container CSS selectors
-  const contactSelectors = [".contactperson_row", "[class*='contactperson']", "[class*='office_contact']", "[class*='officecontact']"];
+  const contactSelectors = [".contactperson_row", "[class*='contactperson']", "[class*='contact_person']", "[class*='office_contact']", "[class*='officecontact']", "[class*='ContactPerson']"];
   for (const sel of contactSelectors) {
     const rows = $(sel);
     if (rows.length === 0) continue;
+    console.log(`[extract] ${wcaId}: found ${rows.length} elements for selector "${sel}"`);
     rows.each((_, row) => {
       const rowContacts = extractContactsFromContainer($, $(row));
+      console.log(`[extract] ${wcaId}: selector "${sel}" row → ${rowContacts.length} contacts: ${JSON.stringify(rowContacts).substring(0, 200)}`);
       for (const c of rowContacts) {
         if (c.name || c.email || c.title) {
           if (!c.name && c.title) c.name = c.title;
@@ -324,9 +326,12 @@ function extractProfile($, wcaId, sourceBase) {
   if (result.contacts.length === 0) {
     const bodyHtml = $.html();
     const contactSectionMatch = bodyHtml.match(/Office\s*Contacts([\s\S]*?)(?=<\/body>|$)/i);
+    console.log(`[extract] ${wcaId}: "Office Contacts" section found: ${!!contactSectionMatch} (htmlLen=${bodyHtml.length})`);
     if (contactSectionMatch) {
+      console.log(`[extract] ${wcaId}: Office Contacts snippet: ${contactSectionMatch[0].substring(0, 300)}`);
       const $section = cheerio.load(contactSectionMatch[0]);
       const sectionContacts = extractContactsFromContainer($section, $section.root());
+      console.log(`[extract] ${wcaId}: Office Contacts extraction → ${sectionContacts.length} contacts`);
       for (const c of sectionContacts) {
         if (c.name || c.email || c.title) {
           if (!c.name && c.title) c.name = c.title;
@@ -338,6 +343,7 @@ function extractProfile($, wcaId, sourceBase) {
 
   // 3. Regex text-based fallback
   if (result.contacts.length === 0) {
+    console.log(`[extract] ${wcaId}: CSS+Office both empty, trying regex. mailto count: ${$("a[href^='mailto:']").length}`);
     const fullText = $.text();
     const nameBlocks = fullText.split(/(?=Name\s*:)/i);
     for (const block of nameBlocks) {

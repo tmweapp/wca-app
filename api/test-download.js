@@ -198,6 +198,54 @@ module.exports = async (req, res) => {
     const officeMatch = html.match(/Office\s*Contacts([\s\S]{0,2000})/i);
     if (officeMatch) diagnostics.officeContactsSnippet = officeMatch[0].substring(0, 500);
 
+    // ═══ RAW HTML DUMP per debug ═══
+    // Cerca sezioni con nomi/email/telefoni per capire la struttura
+    diagnostics.rawSnippets = {};
+
+    // 1. Tutto il HTML con "contactperson" nel class
+    const contactPersonHtml = [];
+    $("[class*='contactperson'], [class*='contact_person'], [class*='ContactPerson']").each((i, el) => {
+      if (i < 5) contactPersonHtml.push($.html(el).substring(0, 500));
+    });
+    diagnostics.rawSnippets.contactPersonElements = contactPersonHtml;
+
+    // 2. Cerco nell'HTML raw pattern email e dintorni
+    const emailPatterns = html.match(/.{0,200}[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}.{0,200}/g) || [];
+    diagnostics.rawSnippets.emailContexts = emailPatterns.slice(0, 5).map(s => s.substring(0, 300));
+
+    // 3. Tutti i mailto links
+    const mailtos = [];
+    $("a[href^='mailto:']").each((i, el) => {
+      mailtos.push({ email: $(el).attr("href"), text: $(el).text().trim(), parentClass: $(el).parent().attr("class") || "", parentHtml: $.html($(el).parent()).substring(0, 300) });
+    });
+    diagnostics.rawSnippets.mailtoLinks = mailtos;
+
+    // 4. Tutti i .profile_row con label e val
+    const profileRows = [];
+    $(".profile_row").each((i, el) => {
+      profileRows.push({ html: $.html(el).substring(0, 300), label: $(el).find(".profile_label").text().trim(), val: $(el).find(".profile_val").text().trim().substring(0, 100) });
+    });
+    diagnostics.rawSnippets.profileRows = profileRows;
+
+    // 5. Cerca "Name" text nodes vicino a dati contatto
+    const nameContexts = [];
+    const nameRegex = /Name\s*:?\s*[^<]{2,50}/gi;
+    let m;
+    while ((m = nameRegex.exec(html)) !== null && nameContexts.length < 5) {
+      const start = Math.max(0, m.index - 100);
+      nameContexts.push(html.substring(start, m.index + m[0].length + 200));
+    }
+    diagnostics.rawSnippets.nameContexts = nameContexts;
+
+    // 6. Primi 3000 chars dopo "Office Contacts" o "Contact" heading
+    const contactSectionMatch = html.match(/(Office\s*Contacts|Contact\s*Details|Contact\s*Information)([\s\S]{0,3000})/i);
+    if (contactSectionMatch) diagnostics.rawSnippets.contactSectionHtml = contactSectionMatch[0].substring(0, 2000);
+
+    // 7. HTML len totale e se sembra un profilo completo
+    diagnostics.htmlLength = html.length;
+    diagnostics.hasPasswordField = html.includes('type="password"');
+    diagnostics.bodyPreview = html.substring(0, 500);
+
     addLog(`COMPLETATO in ${Date.now() - startTime}ms`);
 
     return res.json({
