@@ -280,7 +280,7 @@ body {
 
 .btn-primary {
   background: var(--accent);
-  color: white;
+  color: #fff;
 }
 
 .btn-primary:hover:not(:disabled) {
@@ -290,7 +290,7 @@ body {
 
 .btn-success {
   background: var(--success);
-  color: white;
+  color: #fff;
 }
 
 .btn-success:hover:not(:disabled) {
@@ -299,16 +299,17 @@ body {
 
 .btn-warning {
   background: var(--warning);
-  color: white;
+  color: #1e293b;
 }
 
 .btn-warning:hover:not(:disabled) {
   background: var(--accent);
+  color: #fff;
 }
 
 .btn-danger {
   background: var(--danger);
-  color: white;
+  color: #fff;
 }
 
 .btn-danger:hover:not(:disabled) {
@@ -316,12 +317,13 @@ body {
 }
 
 .btn-secondary {
-  background: var(--border-color);
-  color: var(--text-secondary);
+  background: var(--bg-input);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
 }
 
 .btn-secondary:hover:not(:disabled) {
-  background: var(--border-subtle);
+  background: var(--border-color);
   color: var(--text-primary);
 }
 
@@ -727,7 +729,7 @@ tr:hover td {
   <h1>🔍 WCA Partner Scraper</h1>
   <span class="badge" id="loginBadge">NON CONNESSO</span>
   <span style="background:var(--accent-soft);color:white;font-size:.7rem;padding:4px 10px;border-radius:8px;display:inline-flex;align-items:center;gap:4px;font-weight:600">📊 <span id="headerTotalPartners">0</span> partner</span>
-  <span style="background:var(--warning);color:white;font-size:.7rem;padding:4px 10px;border-radius:8px;display:inline-flex;align-items:center;gap:4px;font-weight:600">🔒 <span id="headerLimitedPartners">0</span> limitati</span>
+  <span style="background:var(--warning);color:#1e293b;font-size:.7rem;padding:4px 10px;border-radius:8px;display:inline-flex;align-items:center;gap:4px;font-weight:600">🔒 <span id="headerLimitedPartners">0</span> limitati</span>
   <div id="headerFlags" style="display:flex;gap:2px;align-items:center;flex-wrap:wrap;margin:0 8px;max-width:400px;overflow:hidden"></div>
 
   <div class="theme-switcher">
@@ -767,7 +769,7 @@ tr:hover td {
       <h3 style="font-size:.9rem;color:white;margin:0;font-weight:600">🖥 Job in Background</h3>
       <div style="display:flex;gap:6px">
         <span id="bgJobStatus" style="font-size:.7rem;padding:3px 8px;border-radius:6px;background:var(--accent);color:#fff;font-weight:600">—</span>
-        <button class="btn btn-sm" id="bgPauseBtn" onclick="pauseBackgroundJob()" style="background:var(--warning);color:#fff;font-size:.7rem;padding:4px 10px">⏸ Pausa</button>
+        <button class="btn btn-sm" id="bgPauseBtn" onclick="pauseBackgroundJob()" style="background:var(--warning);color:#1e293b;font-size:.7rem;padding:4px 10px">⏸ Pausa</button>
         <button class="btn btn-sm" id="bgResumeBtn" onclick="resumeBackgroundJob()" style="display:none;background:var(--success);color:#fff;font-size:.7rem;padding:4px 10px">▶ Riprendi</button>
         <button class="btn btn-sm" onclick="cancelBackgroundJob()" style="background:var(--danger);color:#fff;font-size:.7rem;padding:4px 10px">✗ Annulla</button>
       </div>
@@ -855,6 +857,12 @@ tr:hover td {
         <option value="">-- Scegli un network --</option>
       </select>
       <p style="font-size:.75rem;color:var(--text-secondary);margin-top:6px">Entra nel network selezionato → scopri e scarica i partner paese per paese, direttamente dal network.</p>
+    </div>
+    <!-- Test Download rapido -->
+    <div style="margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap" id="testDownloadBar">
+      <button class="btn btn-sm btn-secondary" onclick="testDownloadProfile()" id="btnTestDL">🧪 Test Download Profilo</button>
+      <button class="btn btn-sm btn-secondary" onclick="testAllNetworks()" id="btnTestNets">🔍 Testa Accesso Network</button>
+      <span id="netTestStatus" style="font-size:.75rem;color:var(--text-secondary)"></span>
     </div>
     <!-- Networks (filtro per discover mode) -->
     <details style="margin-top:12px">
@@ -1136,10 +1144,7 @@ initCountrySelector();
     lbl.innerHTML = `<input type="checkbox" checked value="${name}"> ${name}`;
     g.appendChild(lbl);
   }
-  const testBtn = document.createElement("div");
-  testBtn.style.cssText = "grid-column:1/-1;padding:6px 0;display:flex;gap:8px;align-items:center";
-  testBtn.innerHTML = `<button class="btn btn-sm btn-secondary" onclick="testAllNetworks()" id="btnTestNets">🔍 Testa Accesso Network</button><button class="btn btn-sm btn-secondary" onclick="testDownloadProfile()" id="btnTestDL" style="margin-left:4px">🧪 Test Download</button><span id="netTestStatus" style="font-size:.75rem;color:var(--text-secondary)"></span>`;
-  g.appendChild(testBtn);
+  // Bottoni test spostati fuori dal details nel #testDownloadBar
 })();
 
 // Test accesso a tutti i network con SSO per-dominio
