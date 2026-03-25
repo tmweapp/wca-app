@@ -334,6 +334,39 @@ function extractProfile($, wcaId) {
     });
   }
 
+  // Debug: dump struttura HTML per diagnostica
+  result._htmlDebug = {
+    profileLabels: $(".profile_label").length,
+    profileVals: $(".profile_val").length,
+    profileRows: $(".profile_row").length,
+    profileHeadlines: $(".profile_headline").length,
+    contactPersonRows: $(".contactperson_row").length,
+    contactPersonInfo: $("[class*='contactperson']").length,
+    officeContacts: $("[class*='office_contact']").length,
+    mailtoLinks: $("a[href^='mailto:']").length,
+    hasOfficeContactsText: $.html().includes("Office Contacts"),
+    hasMembersOnlyText: $.html().includes("Members Only"),
+    // Campione dei primi 5 label trovati
+    sampleLabels: [],
+    // Tutte le classi CSS rilevanti nel documento
+    allContactClasses: [],
+    // Snippet HTML dell'area contatti (primi 2000 caratteri)
+    contactAreaSnippet: "",
+  };
+  $(".profile_label").each((i, el) => {
+    if(i < 8) result._htmlDebug.sampleLabels.push({ label: $(el).text().trim(), val: $(el).nextAll(".profile_val").first().text().trim().substring(0,80) });
+  });
+  // Trova classi rilevanti
+  const classSet = new Set();
+  $("[class]").each((_, el) => {
+    const cls = $(el).attr("class") || "";
+    cls.split(/\s+/).forEach(c => { if(/contact|person|office|profile|member|detail/i.test(c)) classSet.add(c); });
+  });
+  result._htmlDebug.allContactClasses = [...classSet];
+  // Snippet area contatti
+  const officeMatch = $.html().match(/Office\s*Contacts([\s\S]{0,3000})/i);
+  if(officeMatch) result._htmlDebug.contactAreaSnippet = officeMatch[0].substring(0, 2000);
+
   console.log(`[contacts] Extracted ${result.contacts.length} contacts: ${JSON.stringify(result.contacts.map(c => ({n:c.name,e:c.email,t:c.title})))}`);
 
   $("[class*='service'] span, [class*='service'] li, [class*='service'] a").each((_, el) => {
@@ -500,7 +533,7 @@ module.exports = async (req, res) => {
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
   try {
-    const { wcaIds, members, networkDomain } = req.body || {};
+    const { wcaIds, members, networkDomain, debug } = req.body || {};
     if (!wcaIds || !Array.isArray(wcaIds) || wcaIds.length === 0) return res.status(400).json({ error: "wcaIds richiesto" });
 
     // Determina il dominio target per l'autenticazione
@@ -537,7 +570,95 @@ module.exports = async (req, res) => {
     }
     const results = [];
     for (const wcaId of batch) {
-      const profile = await fetchProfile(wcaId, cookies, memberMap[wcaId], networkDomain);
+      let profile = await fetchProfile(wcaId, cookies, memberMap[wcaId], networkDomain);
+
+      // === AUTO-RETRY su network specifico se wcaworld.com dà contatti vuoti ===
+      const noContacts = !profile.contacts || profile.contacts.length === 0;
+      const noEmail = !profile.email;
+      const isLimited = profile.access_limited || (noContacts && noEmail && profile.state === "ok");
+      const wasGeneric = !isNetworkMode; // veniva da wcaworld.com
+
+      if (isLimited && wasGeneric && profile.networks && profile.networks.length > 0) {
+        console.log(`[scrape] Auto-retry: ${wcaId} ha contatti vuoti su wcaworld.com, networks del membro: ${profile.networks.join(", ")}`);
+
+        // Mappa nome network → dominio
+        const NAME_TO_DOMAIN = {
+          "wca projects": "wcaprojects.com",
+          "wca dangerous goods": "wcadangerousgoods.com",
+          "wca perishables": "wcaperishables.com",
+          "wca time critical": "wcatimecritical.com",
+          "wca pharma": "wcapharma.com",
+          "wca relocations": "wcarelocations.com",
+          "wca ecommerce": "wcaecommercesolutions.com",
+          "wca expo": "wcaexpo.com",
+          "wca live events": "wcaexpo.com",
+          "lognet global": "lognetglobal.com",
+          "lognet": "lognetglobal.com",
+          "global affinity": "globalaffinityalliance.com",
+          "gaa": "globalaffinityalliance.com",
+          "elite global": "elitegln.com",
+          "egln": "elitegln.com",
+          "ifc8": "ifc8.network",
+          "infinite connection": "ifc8.network",
+        };
+
+        // Trova i domini da provare
+        const domainsToTry = [];
+        for (const netName of profile.networks) {
+          const lower = netName.toLowerCase();
+          for (const [key, domain] of Object.entries(NAME_TO_DOMAIN)) {
+            if (lower.includes(key) && !domainsToTry.includes(domain)) {
+              domainsToTry.push(domain);
+            }
+          }
+        }
+
+        console.log(`[scrape] Auto-retry: domini da provare: ${domainsToTry.join(", ") || "nessuno"}`);
+
+        for (const retryDomain of domainsToTry) {
+          const retryBase = NETWORK_DOMAINS[retryDomain];
+          if (!retryBase) continue;
+
+          try {
+            // SSO login sul network specifico
+            let netCookies = await getCachedCookies(retryDomain);
+            if (netCookies) {
+              const valid = await testCookies(netCookies, retryBase);
+              if (!valid) netCookies = null;
+            }
+            if (!netCookies) {
+              console.log(`[scrape] Auto-retry SSO login su ${retryBase}...`);
+              const lr = await ssoLogin(null, null, retryBase);
+              if (!lr.success) { console.log(`[scrape] Auto-retry SSO failed on ${retryDomain}`); continue; }
+              netCookies = lr.cookies;
+              await saveCookiesToCache(netCookies, retryDomain);
+            }
+
+            const retryProfile = await fetchProfile(wcaId, netCookies, null, retryDomain);
+            const retryHasContacts = retryProfile.contacts && retryProfile.contacts.length > 0;
+            const retryHasEmail = !!retryProfile.email;
+
+            console.log(`[scrape] Auto-retry ${retryDomain}: contacts=${retryProfile.contacts?.length||0} email=${retryHasEmail} state=${retryProfile.state}`);
+
+            if (retryHasContacts || retryHasEmail) {
+              // Merge: prendi i dati migliori da entrambe le fonti
+              retryProfile.source_network = retryDomain;
+              retryProfile.auto_retried = true;
+              // Mantieni dati dal profilo originale che potrebbero mancare
+              if (!retryProfile.logo_url && profile.logo_url) retryProfile.logo_url = profile.logo_url;
+              if (!retryProfile.enrolled_offices?.length && profile.enrolled_offices?.length) retryProfile.enrolled_offices = profile.enrolled_offices;
+              if (!retryProfile.networks?.length && profile.networks?.length) retryProfile.networks = profile.networks;
+              if (!retryProfile.address && profile.address) retryProfile.address = profile.address;
+              profile = retryProfile;
+              console.log(`[scrape] Auto-retry SUCCESS via ${retryDomain}: ${profile.contacts?.length||0} contacts`);
+              break;
+            }
+          } catch (e) {
+            console.log(`[scrape] Auto-retry error ${retryDomain}: ${e.message}`);
+          }
+        }
+      }
+
       results.push(profile);
     }
     return res.json({ success: true, results });
