@@ -351,18 +351,25 @@ function extractProfile($, wcaId) {
     if (bc && bc.length > 1 && bc.length < 80 && !result.branch_cities.includes(bc)) result.branch_cities.push(bc);
   });
 
-  // Detect "Members only" / restricted access
-  const fullText = $.html();
-  const membersOnlyMatches = fullText.match(/Members\s*Only/gi) || [];
-  const loginOnlyMatches = fullText.match(/>Login<\/a>/gi) || [];
-  result.members_only_count = membersOnlyMatches.length + loginOnlyMatches.length;
-  // Se ci sono campi "Members only" e non abbiamo email nei contatti → accesso limitato
+  // Detect "Members only" / restricted access — solo nell'area contatti, NON nel menu/nav
+  // Cerca "Members Only" SOLO nei campi profilo (label, valori contatto), non nell'intero HTML
+  let membersOnlyInProfile = 0;
+  $(".profile_label, .profile_detail, .profile_value, .contact_detail, .contact_info, [class*='profile'] td, [class*='contact'] td").each((_, el) => {
+    const text = $(el).text().trim();
+    if (/Members\s*Only/i.test(text)) membersOnlyInProfile++;
+  });
+  result.members_only_count = membersOnlyInProfile;
+
   const hasContactEmails = result.contacts.some(c => c.email);
   const hasCompanyEmail = !!result.email;
-  if (result.members_only_count > 0 && !hasContactEmails && !hasCompanyEmail) {
+  const hasContacts = result.contacts.length > 0;
+  const hasPhone = !!result.phone;
+
+  // Accesso limitato SOLO se: "Members Only" nei campi profilo E nessun dato di contatto
+  if (membersOnlyInProfile > 2 && !hasContactEmails && !hasCompanyEmail && !hasContacts && !hasPhone) {
     result.access_limited = true;
   }
-  console.log(`[scrape] Profile ${wcaId}: membersOnly=${result.members_only_count} hasEmails=${hasContactEmails||hasCompanyEmail} access_limited=${result.access_limited}`);
+  console.log(`[scrape] Profile ${wcaId}: membersOnlyInProfile=${membersOnlyInProfile} contacts=${result.contacts.length} emails=${hasContactEmails||hasCompanyEmail} phone=${hasPhone} access_limited=${result.access_limited}`);
 
   return result;
 }
