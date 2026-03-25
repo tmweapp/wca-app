@@ -367,8 +367,9 @@ function extractProfile($, wcaId) {
   return result;
 }
 
-async function tryFetchUrl(url, cookies) {
+async function tryFetchUrl(url, cookies, refererBase) {
   // Gestione redirect manuale per preservare i cookies di autenticazione
+  const baseForReferer = refererBase || BASE;
   let currentUrl = url;
   let redirectCount = 0;
   let resp;
@@ -380,7 +381,7 @@ async function tryFetchUrl(url, cookies) {
         "Cookie": cookies,
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
         "Accept-Language": "en-US,en;q=0.9,it;q=0.8",
-        "Referer": BASE + "/Directory",
+        "Referer": baseForReferer + "/Directory",
       },
       redirect: "manual",
       timeout: 15000,
@@ -428,39 +429,61 @@ async function tryFetchUrl(url, cookies) {
   return { $, html, resp, h1 };
 }
 
-async function fetchProfile(wcaId, cookies, profileHref) {
-  // Phase 1: Try the direct href and main domain first
+// NETWORK_DOMAINS — mappa dominio → base URL
+const NETWORK_DOMAINS = {
+  "wcaworld.com":              "https://www.wcaworld.com",
+  "lognetglobal.com":          "https://www.lognetglobal.com",
+  "globalaffinityalliance.com":"https://www.globalaffinityalliance.com",
+  "elitegln.com":              "https://www.elitegln.com",
+  "ifc8.network":              "https://ifc8.network",
+  "wcaprojects.com":           "https://www.wcaprojects.com",
+  "wcadangerousgoods.com":     "https://www.wcadangerousgoods.com",
+  "wcaperishables.com":        "https://www.wcaperishables.com",
+  "wcatimecritical.com":       "https://www.wcatimecritical.com",
+  "wcapharma.com":             "https://www.wcapharma.com",
+  "wcarelocations.com":        "https://www.wcarelocations.com",
+  "wcaecommercesolutions.com": "https://www.wcaecommercesolutions.com",
+  "wcaexpo.com":               "https://www.wcaexpo.com",
+};
+
+async function fetchProfile(wcaId, cookies, profileHref, networkDomain) {
+  // Determina il base URL: network specifico o wcaworld.com
+  const networkBase = networkDomain ? (NETWORK_DOMAINS[networkDomain] || BASE) : BASE;
+
   const primaryUrls = [];
   if (profileHref) {
-    const fullHref = profileHref.startsWith("http") ? profileHref : BASE + profileHref;
+    const fullHref = profileHref.startsWith("http") ? profileHref : networkBase + profileHref;
     primaryUrls.push(fullHref);
   }
-  primaryUrls.push(`${BASE}/directory/members/${wcaId}`);
+  primaryUrls.push(`${networkBase}/directory/members/${wcaId}`);
+  // Fallback su wcaworld.com se stiamo cercando su un network specifico
+  if (networkDomain && networkDomain !== "wcaworld.com") {
+    primaryUrls.push(`${BASE}/directory/members/${wcaId}`);
+  }
 
   for (const url of primaryUrls) {
     try {
-      console.log(`[scrape] Try ${wcaId} ${url.substring(0,60)}`);
-      const result = await tryFetchUrl(url, cookies);
+      console.log(`[scrape] Try ${wcaId} ${url.substring(0,80)}`);
+      const result = await tryFetchUrl(url, cookies, networkBase);
       if (!result) continue;
       if (result.loginRedirect) {
         return { wca_id: wcaId, state: "login_redirect", debug: { url, finalUrl: result.finalUrl } };
       }
       const { $, html } = result;
       console.log(`[scrape] OK ${wcaId} labels=${$(".profile_label").length} len=${html.length}`);
-      // Debug auth: check for "Login" links and "Members Only" in contact area
       const loginLinks = html.match(/>Login<\/a>/gi)?.length || 0;
       const membersOnly = html.match(/Members\s*Only/gi)?.length || 0;
       const contactSection = html.match(/Office\s*Contacts/i) ? "found" : "not_found";
       const profile = extractProfile($, wcaId);
       profile._debug = { loginLinks, membersOnly, contactSection, cookieLen: cookies.length, htmlLen: html.length, cookieKeys: cookies.split("; ").map(c => c.split("=")[0]).join(",") };
+      profile.source_network = networkDomain || "wcaworld.com";
       if (profile.state === "ok") { profile.source_url = url; return profile; }
     } catch (err) { console.log(`[scrape] Err ${url.substring(0,50)}: ${err.message}`); }
   }
 
-  // Non trovato sul dominio principale → segnalare come "not_found"
-  // I profili non trovati vanno verificati manualmente nella pagina Verifica, network per network
-  console.log(`[scrape] ${wcaId} not found on main domain`);
-  return { wca_id: wcaId, state: "not_found" };
+  const state = networkDomain ? "not_in_network" : "not_found";
+  console.log(`[scrape] ${wcaId} ${state} on ${networkDomain || "wcaworld.com"}`);
+  return { wca_id: wcaId, state, source_network: networkDomain || "wcaworld.com" };
 }
 
 module.exports = async (req, res) => {
@@ -470,7 +493,7 @@ module.exports = async (req, res) => {
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
   try {
-    const { wcaIds, members } = req.body || {};
+    const { wcaIds, members, networkDomain } = req.body || {};
     if (!wcaIds || !Array.isArray(wcaIds) || wcaIds.length === 0) return res.status(400).json({ error: "wcaIds richiesto" });
 
     // 1. Prova cookies cached da Supabase (evita SSO login ripetuto)
@@ -492,6 +515,10 @@ module.exports = async (req, res) => {
       await saveCookiesToCache(cookies);
     }
 
+    if (networkDomain) {
+      console.log(`[scrape] Network mode: ${networkDomain}`);
+    }
+
     const batch = wcaIds.slice(0, 1); // 1 SOLO profilo per request — MAI più di uno
     const memberMap = {};
     if (members && Array.isArray(members)) {
@@ -499,7 +526,7 @@ module.exports = async (req, res) => {
     }
     const results = [];
     for (const wcaId of batch) {
-      const profile = await fetchProfile(wcaId, cookies, memberMap[wcaId]);
+      const profile = await fetchProfile(wcaId, cookies, memberMap[wcaId], networkDomain);
       results.push(profile);
     }
     return res.json({ success: true, results });

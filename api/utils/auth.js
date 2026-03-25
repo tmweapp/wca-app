@@ -103,7 +103,7 @@ async function ssoLogin(username, password) {
   const jar = cookieJar();
 
   try {
-    // Step 1: GET login page → follow redirects to SSO page (domain-aware cookies)
+    // Step 1: GET login page → get WCA base cookies + SSO URL
     let resp = await fetch(`${BASE}/Account/Login`, { headers: { "User-Agent": UA }, redirect: "manual" });
     jar.add(WCA_DOMAIN, resp.headers.raw()["set-cookie"] || []);
     let currentUrl = `${BASE}/Account/Login`;
@@ -111,11 +111,8 @@ async function ssoLogin(username, password) {
     while (resp.status >= 300 && resp.status < 400 && rc < 5) {
       const loc = resp.headers.get("location") || "";
       currentUrl = loc.startsWith("http") ? loc : new URL(loc, currentUrl).href;
-      // Send domain-appropriate cookies
-      const reqDomain = currentUrl.includes("sso.api.wcaworld.com") ? SSO_DOMAIN : WCA_DOMAIN;
-      resp = await fetch(currentUrl, { headers: { "User-Agent": UA, "Cookie": jar.get(reqDomain) }, redirect: "manual" });
-      // Add cookies to the correct domain
-      jar.add(reqDomain, resp.headers.raw()["set-cookie"] || []);
+      resp = await fetch(currentUrl, { headers: { "User-Agent": UA, "Cookie": jar.get(WCA_DOMAIN) }, redirect: "manual" });
+      jar.add(WCA_DOMAIN, resp.headers.raw()["set-cookie"] || []);
       rc++;
     }
     const loginHtml = resp.status === 200 ? await resp.text() : "";
@@ -127,59 +124,37 @@ async function ssoLogin(username, password) {
     const ssoUrl = ssoUrlMatch[1].replace(/&amp;/g, "&");
     console.log(`[auth] SSO URL: ${ssoUrl.substring(0, 80)}...`);
 
-    // Step 1b: Extract ALL hidden form fields from SSO login page
-    const cheerio = require("cheerio");
-    const $login = cheerio.load(loginHtml);
-    const formFields = {};
-    $login("input[type='hidden']").each((_, el) => {
-      const name = $login(el).attr("name");
-      const val = $login(el).attr("value") || "";
-      if (name) formFields[name] = val;
-    });
-    console.log(`[auth] SSO form hidden fields: ${Object.keys(formFields).join(", ") || "none"}`);
-
-    // Build POST body with ALL form fields + credentials
-    const postParams = new URLSearchParams();
-    for (const [k, v] of Object.entries(formFields)) {
-      postParams.set(k, v);
-    }
-    postParams.set("UserName", username);
-    postParams.set("Password", password);
-    postParams.set("pwd", password);
-
-    // Step 2: POST credentials to SSO endpoint with all form fields
+    // Step 2: POST credentials to SSO endpoint (cookies go to SSO domain only)
     const ssoResp = await fetch(ssoUrl, {
       method: "POST",
       headers: {
         "User-Agent": UA,
         "Content-Type": "application/x-www-form-urlencoded",
         "Origin": "https://sso.api.wcaworld.com",
-        "Referer": currentUrl,
-        "Cookie": jar.get(SSO_DOMAIN),
+        "Referer": ssoUrl,
       },
-      body: postParams.toString(),
+      body: `UserName=${encodeURIComponent(username)}&Password=${encodeURIComponent(password)}&pwd=${encodeURIComponent(password)}`,
       redirect: "manual",
     });
     jar.add(SSO_DOMAIN, ssoResp.headers.raw()["set-cookie"] || []);
     const hasAuth = jar.keys(SSO_DOMAIN).includes(".ASPXAUTH");
     console.log(`[auth] SSO POST status=${ssoResp.status} hasAuth=${hasAuth} ssoCookies=${jar.keys(SSO_DOMAIN).join(",")}`);
-    if (!hasAuth || ssoResp.status < 300 || ssoResp.status >= 400) {
-      // If no redirect, check if the response itself contains a form post-back (common in SAML/WS-Fed)
-      const postBackHtml = ssoResp.status === 200 ? await ssoResp.text() : "";
+
+    // Check for WS-Federation postback (SSO returns 200 with auto-submit form instead of 302)
+    if (ssoResp.status === 200) {
+      const cheerio = require("cheerio");
+      const postBackHtml = await ssoResp.text();
       const $pb = cheerio.load(postBackHtml);
       const postBackAction = $pb("form").attr("action") || "";
       if (postBackAction && postBackAction.includes("wcaworld.com")) {
-        // WS-Federation: SSO returns a form with SAMLResponse/wresult that auto-posts back to WCA
         console.log(`[auth] WS-Fed postback detected → ${postBackAction.substring(0, 80)}`);
-        const pbFields = {};
+        const pbParams = new URLSearchParams();
         $pb("input[type='hidden']").each((_, el) => {
           const n = $pb(el).attr("name");
           const v = $pb(el).attr("value") || "";
-          if (n) pbFields[n] = v;
+          if (n) pbParams.set(n, v);
         });
-        console.log(`[auth] Postback fields: ${Object.keys(pbFields).join(", ")}`);
-        const pbParams = new URLSearchParams();
-        for (const [k, v] of Object.entries(pbFields)) pbParams.set(k, v);
+        console.log(`[auth] Postback fields: ${[...pbParams.keys()].join(", ")}`);
         const pbResp = await fetch(postBackAction, {
           method: "POST",
           headers: {
@@ -192,8 +167,8 @@ async function ssoLogin(username, password) {
           redirect: "manual",
         });
         jar.add(WCA_DOMAIN, pbResp.headers.raw()["set-cookie"] || []);
-        console.log(`[auth] WS-Fed postback status=${pbResp.status} wcaCookies=${jar.keys(WCA_DOMAIN).join(",")}`);
-        // Follow any remaining redirects
+        console.log(`[auth] WS-Fed postback status=${pbResp.status} wcaHasAuth=${jar.keys(WCA_DOMAIN).includes(".ASPXAUTH")}`);
+        // Follow remaining redirects
         let pbLoc = pbResp.headers.get("location") || "";
         let pbCount = 0;
         while (pbLoc && pbCount < 5) {
@@ -208,10 +183,12 @@ async function ssoLogin(username, password) {
           pbCount++;
           if (pbFollowResp.status === 200) break;
         }
-      } else if (!hasAuth) {
-        console.log("[auth] SSO login failed - no ASPXAUTH and no postback");
-        return { success: false, error: "SSO login failed - no auth cookie" };
       }
+    }
+
+    if (!hasAuth && !jar.keys(WCA_DOMAIN).includes(".ASPXAUTH")) {
+      console.log("[auth] SSO login failed - no ASPXAUTH on either domain");
+      return { success: false, error: "SSO login failed - no auth cookie" };
     }
 
     // Step 3: Follow redirect chain back to WCA
