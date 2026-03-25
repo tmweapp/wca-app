@@ -9,15 +9,21 @@ module.exports = async (req, res) => {
   if (req.method === "OPTIONS") return res.status(200).end();
 
   const wcaId = req.body?.wcaId || req.query?.id || 37861;
+  const forceLogin = req.query?.fresh === "1"; // ?fresh=1 to force fresh SSO login
 
   try {
-    // 1. Get cookies (cached or fresh SSO)
-    let cookies = await getCachedCookies();
-    if (cookies) {
-      const valid = await testCookies(cookies);
-      if (!valid) cookies = null;
-    }
+    // 1. Get cookies (always fresh if ?fresh=1, otherwise try cache)
+    let cookies = null;
     let wcaToken = null;
+    if (!forceLogin) {
+      cookies = await getCachedCookies();
+      if (cookies) {
+        const valid = await testCookies(cookies);
+        if (!valid) cookies = null;
+      }
+    } else {
+      console.log("[debug] Forced fresh login (fresh=1)");
+    }
     if (!cookies) {
       const loginResult = await ssoLogin();
       if (!loginResult.success) return res.json({ success: false, error: "Login failed: " + loginResult.error });
