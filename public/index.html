@@ -804,11 +804,11 @@ tr:hover td {
       </div>
       <div class="field" style="min-width:300px">
         <label>Paesi (seleziona uno o più)</label>
-        <div id="countrySelector" style="position:relative">
+        <div id="countrySelector" style="position:relative;z-index:999">
           <div id="countryDisplay" onclick="toggleCountryDropdown()" style="background:var(--bg-input);border:1px solid var(--border-color);color:var(--text-primary);padding:10px 12px;border-radius:10px;font-size:.85rem;cursor:pointer;min-height:40px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;transition:all 0.2s">
             <span style="color:var(--text-muted)">Seleziona paesi...</span>
           </div>
-          <div id="countryDropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg-card);border:1px solid var(--border-color);border-radius:0 0 10px 10px;max-height:300px;overflow-y:auto;z-index:50;box-shadow:var(--card-shadow)">
+          <div id="countryDropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg-card);border:1px solid var(--border-color);border-radius:0 0 10px 10px;max-height:300px;overflow-y:auto;z-index:9999;box-shadow:0 12px 40px rgba(0,0,0,0.25)">
             <div style="padding:8px;border-bottom:1px solid var(--border-color);display:flex;gap:6px">
               <input type="text" id="countryFilter" placeholder="Filtra..." oninput="filterCountries()" style="flex:1;background:var(--bg-input);border:1px solid var(--border-color);color:var(--text-primary);padding:8px;border-radius:8px;font-size:.8rem">
               <button class="btn btn-sm btn-secondary" onclick="clearCountries()">Reset</button>
