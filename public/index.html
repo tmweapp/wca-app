@@ -194,6 +194,9 @@ tr:hover td{background:#334155}
           <input type="checkbox" id="chkUpdateAddress" style="accent-color:#d97706"> Aggiorna address esistenti
         </label>
       </div>
+      <div class="field" style="align-self:center;margin-top:18px">
+        <button class="btn btn-danger btn-sm" onclick="resetCountryAndRestart()" title="Cancella cache e directory locale del paese selezionato e riesegui da zero">🔄 Riesegui Paese da zero</button>
+      </div>
     </div>
     <!-- Networks -->
     <details style="margin-top:12px">
@@ -678,6 +681,34 @@ function stopScraping(){
   log("Scraping fermato dall'utente.", "warn");
   // Salva stato per poter riprendere
   saveScrapingState();
+}
+
+function resetCountryAndRestart(){
+  const countries = selectedCountries.length > 0 ? [...selectedCountries] : [];
+  if(countries.length === 0){
+    alert("Seleziona almeno un paese da resettare.");
+    return;
+  }
+  const names = countries.map(c => countryFlag(c.code) + " " + c.name).join(", ");
+  if(!confirm(`Vuoi CANCELLARE tutti i dati locali e rieseguire da zero per:\n\n${names}\n\nQuesto cancellerà:\n- Directory locale (stato done/pending)\n- Cache discover\n- Job sospesi\n- Stato "completato"\n\nI dati già salvati su Supabase NON vengono toccati.\n\nConfermi?`)) return;
+
+  for(const c of countries){
+    // Cancella directory locale
+    try { localStorage.removeItem("wca_dir_" + c.code); } catch(e){}
+    // Cancella cache discover (tutti i formati possibili)
+    Object.keys(discoverCache).forEach(k => { if(k.startsWith(c.code + "_")) delete discoverCache[k]; });
+    // Cancella job sospeso
+    removeSuspendedJob(c.code);
+    // Cancella stato completato da localStorage (se esiste)
+    try {
+      const cc = JSON.parse(localStorage.getItem("wca_completed_countries") || "{}");
+      if(cc[c.code]){ delete cc[c.code]; localStorage.setItem("wca_completed_countries", JSON.stringify(cc)); }
+    } catch(e){}
+    log(`🗑 ${c.name} (${c.code}): tutti i dati locali cancellati`,"warn");
+  }
+
+  alert(`Reset completato per ${countries.length} paes${countries.length > 1 ? "i" : "e"}.\n\nPremi "Avvia Scraping" per rieseguire da zero con il flusso multi-network.`);
+  setStatus(`Reset completato — pronto per rieseguire ${names}`, true);
 }
 
 // Salva lo stato del download interrotto in localStorage
