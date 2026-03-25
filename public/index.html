@@ -1125,40 +1125,65 @@ document.addEventListener("click", e => {
 
 initCountrySelector();
 
-// Init networks — evidenzia quelli non disponibili dai test
+// Init networks — tutti abilitati, test opzionale con SSO per-dominio
 (function(){
-  const g = document.getElementById("networksGrid");
-  let networkGroups = {};
-  let networkResults = {};
-  try { networkGroups = JSON.parse(localStorage.getItem("wca_network_groups")||"{}"); } catch(e){}
-  try { networkResults = JSON.parse(localStorage.getItem("wca_network_results")||"{}"); } catch(e){}
-  const available = new Set(networkGroups.available || []);
-  const hasTested = Object.keys(networkResults).length > 0;
+  // Pulisci vecchi test con auth sbagliata
+  try { localStorage.removeItem("wca_network_results"); localStorage.removeItem("wca_network_groups"); } catch(e){}
 
+  const g = document.getElementById("networksGrid");
   for(const [name] of Object.entries(NETWORKS)){
     const lbl = document.createElement("label");
-    const isAvail = !hasTested || available.has(name);
-    const checked = isAvail ? "checked" : "";
-    const disabled = !isAvail ? "disabled" : "";
-    let badge = "";
-    if(hasTested){
-      if(isAvail){
-        badge = `<span style="font-size:.6rem;background:#059669;color:#fff;padding:1px 5px;border-radius:4px;margin-left:4px">OK</span>`;
-      } else {
-        badge = `<span style="font-size:.6rem;background:#dc2626;color:#fff;padding:1px 5px;border-radius:4px;margin-left:4px">NO ACCESSO</span>`;
-      }
-    }
-    lbl.style.opacity = isAvail ? "1" : "0.4";
-    lbl.innerHTML = `<input type="checkbox" ${checked} ${disabled} value="${name}"> ${name}${badge}`;
+    lbl.innerHTML = `<input type="checkbox" checked value="${name}"> ${name}`;
     g.appendChild(lbl);
   }
-  if(!hasTested){
-    const note = document.createElement("div");
-    note.style.cssText = "grid-column:1/-1;font-size:.75rem;color:#d97706;padding:4px 0";
-    note.textContent = "Vai su Impostazioni → Test Network per verificare quali network sono accessibili";
-    g.appendChild(note);
-  }
+  const testBtn = document.createElement("div");
+  testBtn.style.cssText = "grid-column:1/-1;padding:6px 0;display:flex;gap:8px;align-items:center";
+  testBtn.innerHTML = `<button class="btn btn-sm btn-secondary" onclick="testAllNetworks()" id="btnTestNets">🔍 Testa Accesso Network</button><span id="netTestStatus" style="font-size:.75rem;color:var(--text-secondary)"></span>`;
+  g.appendChild(testBtn);
 })();
+
+// Test accesso a tutti i network con SSO per-dominio
+async function testAllNetworks(){
+  const btn = document.getElementById("btnTestNets");
+  const status = document.getElementById("netTestStatus");
+  btn.disabled = true;
+  status.textContent = "Testing...";
+  const labels = document.querySelectorAll("#networksGrid label");
+
+  for(const net of ALL_NETWORKS){
+    status.textContent = `Testing ${net.name}...`;
+    try {
+      const resp = await fetch(API+"/api/discover-network",{
+        method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({ networkDomain: net.domain, country: "US" })
+      });
+      const data = await resp.json();
+      // Trova la label corrispondente
+      labels.forEach(lbl => {
+        const cb = lbl.querySelector("input");
+        if(!cb) return;
+        // Match per nome o dominio
+        const netName = cb.value;
+        const matchNet = ALL_NETWORKS.find(n => n.name === netName || Object.entries(NETWORKS).find(([k,v]) => k === netName)?.[0] === netName);
+        if(matchNet && matchNet.domain === net.domain){
+          const oldBadge = lbl.querySelector(".net-badge");
+          if(oldBadge) oldBadge.remove();
+          const badge = document.createElement("span");
+          badge.className = "net-badge";
+          badge.style.cssText = `font-size:.6rem;color:#fff;padding:1px 5px;border-radius:4px;margin-left:4px;background:${data.success ? "#059669" : "#dc2626"}`;
+          badge.textContent = data.success ? `OK (${data.members?.length||0})` : data.error||"ERRORE";
+          lbl.appendChild(badge);
+        }
+      });
+    } catch(e){
+      console.warn(`Test ${net.name} error:`, e.message);
+    }
+    // Piccola pausa tra test
+    await new Promise(r => setTimeout(r, 2000));
+  }
+  btn.disabled = false;
+  status.textContent = "Test completato!";
+}
 
 function log(msg, cls=""){
   const d = document.getElementById("logArea");
@@ -2054,34 +2079,23 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
     return;
   }
 
-  // Carica risultati test network da localStorage
-  let networkGroups = {};
-  let networkTestResults = {};
-  try {
-    networkGroups = JSON.parse(localStorage.getItem("wca_network_groups")||"{}");
-    networkTestResults = JSON.parse(localStorage.getItem("wca_network_results")||"{}");
-  } catch(e){}
-
-  const availableNetworks = networkGroups.available || [];
-  if(availableNetworks.length === 0){
-    log("⚠ Nessun network disponibile per l'arricchimento. Vai su Impostazioni → Test Tutti i Network","warn");
-    return;
-  }
+  // Tutti i network sono disponibili — usa ALL_NETWORKS direttamente
+  const availableNetworks = ALL_NETWORKS.map(n => n.name);
 
   log(`═══ FASE 3: ARRICCHIMENTO — ${limitedProfiles.length} profili limitati, ${availableNetworks.length} network disponibili ═══`);
   setStatus(`FASE 3: Arricchimento ${limitedProfiles.length} profili limitati...`, true);
 
-  // Mappa nomi network → domini
+  // Mappa nomi network → domini CORRETTI (coerenti con ALL_NETWORKS)
   const NETWORK_DOMAIN_MAP = {
-    "WCA First":"https://www.wcaworld.com","WCA Advanced Professionals":"https://www.wcaworld.com",
-    "WCA China Global":"https://www.wcachinaglobal.com","WCA Inter Global":"https://www.wcainterglobal.com",
-    "Lognet Global":"https://www.lognetglobal.com","Global Affinity Alliance":"https://www.globalaffinityalliance.com",
-    "Elite Global Logistics Network":"https://www.elitegln.com","InFinite Connection (IFC8)":"https://www.ifc8.com",
-    "WCA Projects":"https://www.wcaprojects.com","WCA Dangerous Goods":"https://www.wcadangerousgoods.com",
-    "WCA Perishables":"https://www.wcaperishables.com","WCA Time Critical":"https://www.wcatimecritical.com",
-    "WCA Relocations":"https://www.wcarelocations.com","WCA Pharma":"https://www.wcapharma.com",
-    "WCA Vendors":"https://www.wcavendors.com","WCA eCommerce Solutions":"https://www.wcaecommerce.com",
-    "WCA Live Events and Expo":"https://www.wcaliveevents.com",
+    "WCA First":"wcaworld.com","WCA Advanced Professionals":"wcaworld.com",
+    "WCA China Global":"wcaworld.com","WCA Inter Global":"wcaworld.com",
+    "Lognet Global":"lognetglobal.com","Global Affinity Alliance":"globalaffinityalliance.com",
+    "Elite Global Logistics Network":"elitegln.com","InFinite Connection (IFC8)":"ifc8.network",
+    "WCA Projects":"wcaprojects.com","WCA Dangerous Goods":"wcadangerousgoods.com",
+    "WCA Perishables":"wcaperishables.com","WCA Time Critical":"wcatimecritical.com",
+    "WCA Relocations":"wcarelocations.com","WCA Pharma":"wcapharma.com",
+    "WCA Vendors":"wcaworld.com","WCA eCommerce Solutions":"wcaecommercesolutions.com",
+    "WCA Live Events and Expo":"wcaexpo.com",
   };
 
   let enriched = 0;
@@ -2105,7 +2119,7 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
       }
     }
     // Escludi wcaworld.com (già provato nella Fase 2)
-    targetNetworks = targetNetworks.filter(n => NETWORK_DOMAIN_MAP[n] !== "https://www.wcaworld.com");
+    targetNetworks = targetNetworks.filter(n => NETWORK_DOMAIN_MAP[n] !== "wcaworld.com");
 
     if(targetNetworks.length === 0){
       log(`${lp.company_name}: nessun network alternativo disponibile`,"warn");
@@ -2121,42 +2135,41 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
 
       log(`Arricchimento ${lp.company_name} via ${netName} (${domain})...`);
       try {
-        const resp = await fetch(API+"/api/enrich",{
+        // Usa /api/scrape con networkDomain — fa SSO sul dominio specifico
+        const resp = await fetch(API+"/api/scrape",{
           method:"POST",headers:{"Content-Type":"application/json"},
           body:JSON.stringify({
-            companyName: lp.company_name,
-            originalWcaId: lp.wca_id,
-            networkName: netName,
+            wcaIds: [lp.wca_id],
             networkDomain: domain,
           })
         });
         const data = await resp.json();
-        if(data.success && data.enriched && data.profile){
-          // Merge: aggiorna il profilo nell'array con i dati completi
+        const profile = data.success ? data.results?.[0] : null;
+        if(profile && profile.state === "ok" && !profile.access_limited){
+          // Merge: aggiorna il profilo nell'array con i dati completi dal network
           const idx = scrapedProfiles.findIndex(p => p.wca_id === lp.wca_id);
           if(idx >= 0){
-            const merged = data.profile;
-            merged.access_limited = false;
-            merged.enriched_from = netName;
-            merged.enriched_domain = domain;
+            profile.enriched_from = netName;
+            profile.enriched_domain = domain;
             // Mantieni dati originali che il nuovo profilo potrebbe non avere
-            if(!merged.logo_url && lp.logo_url) merged.logo_url = lp.logo_url;
-            if(!merged.enrolled_offices?.length && lp.enrolled_offices?.length) merged.enrolled_offices = lp.enrolled_offices;
-            if(!merged.networks?.length && lp.networks?.length) merged.networks = lp.networks;
-            scrapedProfiles[idx] = merged;
-            // Aggiorna tab
-            refreshScrapedTab(idx, merged);
-            log(`✓ ARRICCHITO: ${merged.company_name} via ${netName} — ${merged.contacts?.length||0} contatti, email=${!!merged.email}`,"ok");
-            saveToSupabase(merged);
+            if(!profile.logo_url && lp.logo_url) profile.logo_url = lp.logo_url;
+            if(!profile.enrolled_offices?.length && lp.enrolled_offices?.length) profile.enrolled_offices = lp.enrolled_offices;
+            if(!profile.networks?.length && lp.networks?.length) profile.networks = lp.networks;
+            scrapedProfiles[idx] = profile;
+            refreshScrapedTab(idx, profile);
+            log(`✓ ARRICCHITO: ${profile.company_name} via ${netName} — ${profile.contacts?.length||0} contatti, email=${!!profile.email}`,"ok");
+            saveToSupabase(profile);
             enriched++;
             success = true;
           }
-          break; // Arricchito con successo, passa al prossimo profilo
+          break;
+        } else if(profile){
+          log(`${netName}: stato=${profile.state} limitato=${profile.access_limited}`,"warn");
         } else {
-          log(`${netName}: ${data.error || "non arricchito"}`,"warn");
+          log(`${netName}: ${data.error || "nessun risultato"}`,"warn");
         }
       } catch(e){
-        log(`Errore enrich ${netName}: ${e.message}`,"err");
+        log(`Errore scrape ${netName}: ${e.message}`,"err");
       }
 
       // Delay tra tentativi su network diversi — 5s perché ogni enrich fa SSO+search+fetch
