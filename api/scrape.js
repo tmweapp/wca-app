@@ -150,14 +150,16 @@ module.exports = async (req, res) => {
     for (const wcaId of batch) {
       let profile = await fetchProfile(wcaId, cookies, memberMap[wcaId], networkDomain);
 
-      // ═══ AUTO-RETRY su network se wcaworld.com dà contatti vuoti ═══
+      // ═══ AUTO-RETRY su network se wcaworld.com dà contatti personali vuoti ═══
+      // Scatta quando NON ci sono contatti personali (nome+email+telefono)
+      // Anche se c'è l'email/telefono aziendale — quelli li abbiamo già, servono i CONTATTI
       const noContacts = !profile.contacts || profile.contacts.length === 0;
-      const noEmail = !profile.email;
-      const isLimited = profile.access_limited || (noContacts && noEmail && profile.state === "ok");
+      const noContactEmails = !profile.contacts?.some(c => c.email);
+      const needsRetry = profile.access_limited || (noContacts && profile.state === "ok") || (noContactEmails && profile.state === "ok");
       const wasGeneric = !isNetworkMode;
 
-      if (isLimited && wasGeneric && profile.networks && profile.networks.length > 0) {
-        console.log(`[scrape] Auto-retry: ${wcaId} contatti vuoti su wcaworld.com, networks: ${profile.networks.join(", ")}`);
+      if (needsRetry && wasGeneric && profile.networks && profile.networks.length > 0) {
+        console.log(`[scrape] Auto-retry: ${wcaId} contacts=${profile.contacts?.length||0} contactEmails=${noContactEmails} limited=${profile.access_limited} networks: ${profile.networks.join(", ")}`);
         const domainsToTry = networkNameToDomains(profile.networks);
         console.log(`[scrape] Auto-retry domini: ${domainsToTry.join(", ") || "nessuno"}`);
 

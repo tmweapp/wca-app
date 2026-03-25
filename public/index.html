@@ -1804,6 +1804,7 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
   const MAX_RETRIES = 2;
   let consecutiveFailures = 0;
   const doneIds = new Set(); // ID già scaricati con successo in questa sessione
+  const memberNetworkMap = {}; // id → [domain1, domain2...] — network dove il membro è stato trovato
 
   // Carica ID già fatti dalla directory locale
   const existingDir = getDirectory(country);
@@ -1909,6 +1910,12 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
       }
     }
 
+    // Traccia su quale network ogni membro è stato trovato
+    for(const m of members){
+      if(!memberNetworkMap[m.id]) memberNetworkMap[m.id] = [];
+      if(!memberNetworkMap[m.id].includes(network.domain)) memberNetworkMap[m.id].push(network.domain);
+    }
+
     // Aggiorna tabella risultati
     for(const m of members){
       if(!discoveredMembers.find(d => d.id === m.id)){
@@ -2003,16 +2010,25 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
     // Download solo chi NON è stato scaricato dai network
     const wcaToDownload = updateAddress ? wcaMembers : wcaMembers.filter(m => !doneIds.has(m.id));
     if(wcaToDownload.length > 0){
-      log(`📥 wcaworld.com: ${wcaToDownload.length} membri da scaricare`,"ok");
+      log(`📥 wcaworld.com fallback: ${wcaToDownload.length} membri da scaricare`,"ok");
+      // Conta quanti hanno un network noto dalla fase discover
+      const withNetwork = wcaToDownload.filter(m => memberNetworkMap[m.id]?.length > 0).length;
+      if(withNetwork > 0) log(`   ↳ ${withNetwork} di questi hanno un network noto — scaricherò da lì`,"ok");
+
       for(let i = 0; i < wcaToDownload.length && scraping; i++){
         const member = wcaToDownload[i];
         if(doneIds.has(member.id) && !updateAddress) continue;
 
-        setStatus(`${countryName} [wcaworld.com] ${i+1}/${wcaToDownload.length} — ${member.name||member.id}`, true);
-        setProgress(i+1, wcaToDownload.length);
-        showActivity("📥", `wcaworld.com ${i+1}/${wcaToDownload.length} — ${member.name||member.id}`);
+        // Se il membro è stato trovato su un network specifico, usa QUELLO
+        const knownNets = memberNetworkMap[member.id] || [];
+        const useNetwork = knownNets.length > 0 ? knownNets[0] : null;
+        const netLabel = useNetwork || "wcaworld.com";
 
-        const result = await downloadProfile(member, null, "wcaworld.com");
+        setStatus(`${countryName} [${netLabel}] ${i+1}/${wcaToDownload.length} — ${member.name||member.id}`, true);
+        setProgress(i+1, wcaToDownload.length);
+        showActivity("📥", `${netLabel} ${i+1}/${wcaToDownload.length} — ${member.name||member.id}`);
+
+        const result = await downloadProfile(member, useNetwork, netLabel);
         if(result.ok) doneIds.add(member.id);
 
         if(i + 1 < wcaToDownload.length && scraping){
