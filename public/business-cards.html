@@ -427,15 +427,22 @@ async function loadEvents(){
 
 async function init(){
   await Promise.all([loadPartners(), loadCards(), loadEvents()]);
+  console.log("Loaded:",allCards.length,"cards,",allPartners.length,"partners");
   // Fix corrupted records (entire CSV row in company_name)
-  cleanCorruptedCards();
+  try{ cleanCorruptedCards(); }catch(e){ console.error("cleanCorruptedCards error:",e); }
+  // Ensure contacts is always an array
+  for(const p of allPartners){
+    if(p.contacts&&typeof p.contacts==="string"){ try{p.contacts=JSON.parse(p.contacts);}catch(e){p.contacts=[];} }
+    if(!Array.isArray(p.contacts)) p.contacts=[];
+  }
   for(const card of allCards){
     if(!card.country_code&&card.country) card.country_code=resolveCountryCode(card.country);
-    card._match=matchCard(card,allPartners);
+    try{ card._match=matchCard(card,allPartners); }catch(e){ card._match={type:"not-found",score:0,reason:"",partner:null}; }
   }
   // Extract events from cards if events table empty
   buildEventsFromCards();
   renderAll();
+  console.log("Init complete, rendered",allCards.length,"cards");
 }
 
 function buildEventsFromCards(){
@@ -651,30 +658,43 @@ function handleDrop(e){
 }
 
 async function onFileSelected(file){
-  if(!file) return;
+  console.log("onFileSelected called:",file?.name);
+  if(!file){ console.log("No file"); return; }
   const ext=file.name.split(".").pop().toLowerCase();
+  console.log("Extension:",ext);
   try{
     let rows=[];
     if(ext==="csv"||ext==="tsv"){
-      if(!OPENAI_KEY||!OPENAI_KEY.startsWith("sk-")){
-        alert("Inserisci prima la chiave API OpenAI nel campo 🤖 in alto.");
-        document.getElementById("aiKeyInput").focus();
-        return;
-      }
       const text=await file.text();
-      // Show loading state
+      console.log("File text length:",text.length,"lines:",text.split("\n").length);
       document.getElementById("importForm").style.display="flex";
-      document.getElementById("importFileName").textContent="🤖 AI sta analizzando "+file.name+"...";
-      rows=await parseWithAI(text, file.name);
+      if(OPENAI_KEY&&OPENAI_KEY.startsWith("sk-")){
+        // AI parsing
+        document.getElementById("importFileName").textContent="🤖 AI sta analizzando "+file.name+"...";
+        try{
+          rows=await parseWithAI(text, file.name);
+          console.log("parseWithAI returned",rows.length,"rows");
+        }catch(aiErr){
+          console.error("parseWithAI error, falling back:",aiErr);
+          rows=parseCSVFallback(text);
+          console.log("Fallback parser returned",rows.length,"rows");
+        }
+      } else {
+        // Fallback: basic CSV parser (no AI needed)
+        document.getElementById("importFileName").textContent="📄 Parsing "+file.name+"...";
+        rows=parseCSVFallback(text);
+        console.log("Fallback parser returned",rows.length,"rows");
+      }
     }
     else if(ext==="xlsx"||ext==="xls"){ rows=await parseExcel(file); }
-    else { alert("Formato non supportato."); return; }
-    if(!rows.length){ alert("Nessun dato trovato."); return; }
+    else { alert("Formato non supportato: ."+ext); return; }
+    if(!rows.length){ alert("Nessun dato trovato nel file."); return; }
 
+    console.log("Rows parsed:",rows.length,"Sample:",JSON.stringify(rows[0]).substring(0,200));
     pendingFile=file; pendingRows=rows;
     // Show import form
     document.getElementById("importForm").style.display="flex";
-    document.getElementById("importFileName").textContent=file.name+" ("+rows.length+" righe — AI parsed)";
+    document.getElementById("importFileName").textContent=file.name+" ("+rows.length+" righe — AI parsed ✅)";
     document.getElementById("txtContactDate").value=new Date().toISOString().split("T")[0];
     // Populate event dropdown
     const sel=document.getElementById("selEvent");
@@ -685,7 +705,7 @@ async function onFileSelected(file){
     for(const name of [...evNames].sort()) sel.innerHTML+=`<option value="${esc(name)}">${esc(name)}</option>`;
     document.getElementById("txtEventName").value="";
     document.getElementById("txtEventName").style.display="block";
-  }catch(e){ alert("Errore lettura file: "+e.message); }
+  }catch(e){ console.error("onFileSelected error:",e); alert("Errore: "+e.message); }
 }
 
 function onEventSelect(){
@@ -753,6 +773,39 @@ async function confirmImport(){
       const err=await r.text(); alert("Errore: "+err);
     }
   }catch(e){ alert("Errore: "+e.message); }
+}
+
+// ==================== FALLBACK CSV PARSER (no AI) ====================
+function parseCSVFallback(text){
+  text=text.replace(/\uFEFF/g,"");
+  const lines=text.split(/\r?\n/).filter(l=>l.trim());
+  if(lines.length<2) return [];
+  const headers=lines[0].split(";").map(h=>h.trim().replace(/^"|"$/g,""));
+  const results=[];
+  for(let i=1;i<lines.length;i++){
+    const line=lines[i];
+    // Smart split: respect quoted fields containing semicolons
+    const fields=[];
+    let current="", inQuote=false;
+    for(let j=0;j<line.length;j++){
+      const ch=line[j];
+      if(ch==='"'){ inQuote=!inQuote; continue; }
+      if(ch===";"&&!inQuote){ fields.push(current.trim()); current=""; continue; }
+      current+=ch;
+    }
+    fields.push(current.trim());
+    // Build row object from headers
+    const row={};
+    for(let h=0;h<headers.length;h++) row[headers[h]]=fields[h]||"";
+    // Skip garbage OCR rows
+    const allVals=Object.values(row).join("");
+    const special=(allVals.match(/[=|{}\\<>_~^#\[\]]/g)||[]).length;
+    if(special/Math.max(allVals.length,1)>0.12) continue;
+    // Skip empty rows
+    if(!row["Nome"]&&!row["Azienda"]&&!row["Email"]) continue;
+    results.push(row);
+  }
+  return results;
 }
 
 // ==================== AI-POWERED CSV PARSER ====================
@@ -982,7 +1035,12 @@ function cleanCardField(card,field){
   card[field]=v;
 }
 
-init();
+init().then(()=>{
+  console.log("✅ Page ready");
+}).catch(e=>{
+  console.error("❌ Init failed:",e);
+  document.getElementById("pageSubtitle").textContent="⚠️ Errore caricamento: "+e.message;
+});
 </script>
 </body>
 </html>
