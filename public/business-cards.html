@@ -142,8 +142,9 @@ body{font-family:"SF Pro Display","Geist",'Inter',system-ui,sans-serif;backgroun
 .flag-dd-item .dd-flag{font-size:1.3rem}
 .flag-dd-item .dd-name{flex:1}
 .flag-dd-item .dd-count{font-size:.65rem;color:#a5b4fc;font-weight:700}
-.flag-track-outer{overflow:hidden;position:relative;padding:6px 0 10px}
-.flag-track{display:flex;gap:6px;transition:transform .4s cubic-bezier(.25,.8,.25,1);padding:0 24px;will-change:transform}
+.flag-track-outer{overflow-x:auto;overflow-y:hidden;position:relative;padding:6px 0 10px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.flag-track-outer::-webkit-scrollbar{display:none}
+.flag-track{display:flex;gap:6px;padding:0 24px;width:max-content}
 .flag-chip{display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;padding:5px 8px;border-radius:10px;transition:all .3s;position:relative;flex-shrink:0;min-width:52px}
 .flag-chip:hover{background:rgba(99,102,241,0.12)}
 .flag-chip.selected{background:rgba(99,102,241,0.18);outline:2px solid rgba(165,180,252,0.5);transform:scale(1.15)}
@@ -710,17 +711,16 @@ function renderFlagTrack(){
 }
 function scrollFlagToCenter(){
   if(!currentCountryFilter) return;
+  const outer=document.querySelector(".flag-track-outer");
   const track=document.getElementById("flagTrack");
-  const outer=track.parentElement;
+  if(!outer||!track) return;
   const idx=flagCountries.findIndex(f=>f.cc===currentCountryFilter);
   if(idx<0) return;
-  const chips=track.children;
-  if(!chips[idx]) return;
-  const chipLeft=chips[idx].offsetLeft;
-  const chipW=chips[idx].offsetWidth;
-  const outerW=outer.offsetWidth;
-  const offset=chipLeft-outerW/2+chipW/2;
-  track.style.transform=`translateX(${-Math.max(0,offset)}px)`;
+  const chip=track.children[idx];
+  if(!chip) return;
+  // Scroll so the selected chip is centered
+  const scrollTarget=chip.offsetLeft-outer.offsetWidth/2+chip.offsetWidth/2;
+  outer.scrollTo({left:Math.max(0,scrollTarget),behavior:"smooth"});
 }
 function filterByCountry(cc){
   currentCountryFilter=currentCountryFilter===cc?"":cc;
