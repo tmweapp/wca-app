@@ -91,15 +91,56 @@ function resolveUrl(src, base) {
 }
 
 // ═══ ESTRAZIONE CONTATTI DA CONTAINER ═══
+// Struttura WCA reale:
+//   .contactperson_row > .contactperson_info > .profile_row > .row > .profile_label + .profile_val
 function extractContactsFromContainer($, $container) {
   const contacts = [];
-  const allEls = $container.find("*").toArray();
+
+  // STRATEGIA 1: Usa la struttura CSS label/val (più affidabile)
+  const profileRows = $container.find(".profile_row");
+  if (profileRows.length > 0) {
+    let currentContact = {};
+    profileRows.each((_, row) => {
+      const label = $(row).find(".profile_label").text().trim().replace(/:\s*$/, "").toLowerCase();
+      const valEl = $(row).find(".profile_val");
+      let val = valEl.text().trim();
+
+      // Salta "Members only" / "please Login"
+      if (/members\s*only|please.*login/i.test(val)) val = "";
+
+      // Cerca mailto nei link
+      const mailtoLink = valEl.find("a[href^='mailto:']").attr("href");
+      if (mailtoLink) val = mailtoLink.replace("mailto:", "").trim();
+
+      const mappedField = CONTACT_LABELS[label];
+      if (!mappedField) return;
+
+      // Nuovo contatto quando troviamo un nuovo "name"
+      if (mappedField === "name" && (currentContact.name || currentContact.email || currentContact.title)) {
+        contacts.push({ ...currentContact });
+        currentContact = {};
+      }
+
+      if (val) {
+        if (mappedField === "email" && val.includes("@")) currentContact.email = val;
+        else if (mappedField === "email") { /* skip non-email */ }
+        else currentContact[mappedField] = val;
+      }
+    });
+    if (currentContact.name || currentContact.email || currentContact.title) {
+      contacts.push(currentContact);
+    }
+    return contacts;
+  }
+
+  // STRATEGIA 2: Fallback — walk all elements (per HTML non-standard)
   let currentContact = {};
   let lastLabel = null;
+  const allEls = $container.find("*").toArray();
 
   for (const el of allEls) {
     const $el = $(el);
-    if ($el.children().length > 2) continue;
+    if ($el.children().length > 5) continue;
     const directText = $el.clone().children().remove().end().text().trim();
     const text = directText || $el.text().trim();
     if (!text || text.length > 200) continue;
@@ -118,10 +159,6 @@ function extractContactsFromContainer($, $container) {
         const mailto = $el.find("a[href^='mailto:']").attr("href") || $el.closest("a[href^='mailto:']").attr("href");
         if (mailto) currentContact.email = mailto.replace("mailto:", "").trim();
         else if (text.includes("@")) currentContact.email = text;
-        else {
-          const linkHref = $el.is("a") ? ($el.attr("href") || "") : "";
-          if (linkHref.startsWith("mailto:")) currentContact.email = linkHref.replace("mailto:", "").trim();
-        }
       } else {
         currentContact[lastLabel] = text;
       }
@@ -145,10 +182,15 @@ function extractProfile($, wcaId, sourceBase) {
     certifications: [], branch_cities: [], access_limited: false, members_only_count: 0,
   };
 
-  // Company name
-  const h1 = $("h1.company, h1").first().text().trim();
-  result.company_name = h1;
-  if (!h1 || /not\s*found|error|404/i.test(h1)) return { wca_id: wcaId, state: "not_found" };
+  // Company name — WCA usa <span class="company"> dentro <div class="company_name">, NON h1
+  let companyName = $(".company_name .company, span.company, .company_name").first().text().trim();
+  if (!companyName) companyName = $("h1.company, h1").first().text().trim(); // fallback h1
+  result.company_name = companyName;
+  if (!companyName || /not\s*found|error|404|page\s*not/i.test(companyName)) {
+    // Ultima chance: controlla se c'è un profile_wrapper con dati
+    const hasProfileData = $(".profile_wrapper").length > 0 && $(".profile_label").length > 0;
+    if (!hasProfileData) return { wca_id: wcaId, state: "not_found" };
+  }
 
   // Logo
   $("img[src]").each((_, el) => {
@@ -208,19 +250,29 @@ function extractProfile($, wcaId, sourceBase) {
     if (countryCity) result.enrolled_offices.push({ location: countryCity, covered });
   });
 
-  // Enrolled since
-  $(".announce-display").each((_, el) => {
-    const t = $(el).text().trim();
-    const m = t.match(/since:?\s*(.+)/i);
-    if (m) result.enrolled_since = m[1].trim();
-  });
+  // Enrolled since — cerca nel testo completo della pagina
+  const fullPageText = $.text();
+  const sinceMatch = fullPageText.match(/(?:Proudly\s+)?Enrolled\s+Since:?\s*([A-Za-z]+\s+\d{1,2},?\s+\d{4})/i);
+  if (sinceMatch) result.enrolled_since = sinceMatch[1].trim();
+  // Fallback vecchio metodo
+  if (!result.enrolled_since) {
+    $(".announce-display").each((_, el) => {
+      const t = $(el).text().trim();
+      const m = t.match(/since:?\s*(.+)/i);
+      if (m) result.enrolled_since = m[1].trim();
+    });
+  }
 
   // Expires
-  $(".memberprofile_memberof, .memberof_expire").each((_, el) => {
-    const t = $(el).text().trim();
-    const m = t.match(/expires?:?\s*(.+)/i);
-    if (m && !result.expires) result.expires = m[1].trim().split("\n")[0].trim();
-  });
+  const expiresMatch = fullPageText.match(/Membership\s+Expires:?\s*([A-Za-z]+\s+\d{1,2},?\s+\d{4})/i);
+  if (expiresMatch) result.expires = expiresMatch[1].trim();
+  if (!result.expires) {
+    $(".memberprofile_memberof, .memberof_expire").each((_, el) => {
+      const t = $(el).text().trim();
+      const m = t.match(/expires?:?\s*(.+)/i);
+      if (m && !result.expires) result.expires = m[1].trim().split("\n")[0].trim();
+    });
+  }
 
   // Networks
   $(".memberprofile_memberof img[alt], .memberof_img img[alt]").each((_, el) => {
@@ -250,13 +302,24 @@ function extractProfile($, wcaId, sourceBase) {
     });
   }
 
-  // Address & Mailing
-  $(".profile_headline").each((_, el) => {
-    if (/address/i.test($(el).text())) {
-      const next = $(el).next("span, div, p");
-      if (next.length) result.address = next.html().replace(/<br\s*\/?>/gi, ", ").replace(/<[^>]+>/g, "").trim();
+  // Address & Mailing — WCA usa .profile_addr con <span> per ogni riga
+  $(".profile_addr").each((_, el) => {
+    if (!result.address) {
+      const parts = [];
+      $(el).find("span").each((_, s) => { const t = $(s).text().trim(); if (t) parts.push(t); });
+      if (parts.length) result.address = parts.join(", ");
+      else result.address = $(el).text().trim().replace(/\s+/g, " ");
     }
   });
+  // Fallback: vecchio metodo con .profile_headline
+  if (!result.address) {
+    $(".profile_headline").each((_, el) => {
+      if (/address/i.test($(el).text())) {
+        const next = $(el).next("span, div, p, .profile_addr");
+        if (next.length) result.address = next.html().replace(/<br\s*\/?>/gi, ", ").replace(/<[^>]+>/g, "").trim();
+      }
+    });
+  }
   $(".profile_headline").each((_, el) => {
     if (/mailing/i.test($(el).text())) {
       const next = $(el).next("span, div, p");

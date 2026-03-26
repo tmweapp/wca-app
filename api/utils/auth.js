@@ -50,7 +50,7 @@ async function saveCookiesToCache(cookies, domain) {
   } catch (e) { console.log("[auth] Cache save error: " + e.message); }
 }
 
-// Test rapido: i cookies funzionano? Fai un GET su /Directory del dominio target
+// Test rapido: i cookies funzionano? Controlla /Directory + verifica autenticazione reale
 async function testCookies(cookies, targetBase) {
   const testBase = targetBase || BASE;
   try {
@@ -60,13 +60,32 @@ async function testCookies(cookies, targetBase) {
     });
     // Se redirect al login → cookies non validi
     const loc = resp.headers.get("location") || "";
-    if (loc.toLowerCase().includes("/login") || loc.toLowerCase().includes("/signin")) return false;
+    if (loc.toLowerCase().includes("/login") || loc.toLowerCase().includes("/signin")) {
+      console.log(`[auth] testCookies: redirect al login → invalidi`);
+      return false;
+    }
     if (resp.status === 200) {
       const html = await resp.text();
-      return !html.includes('type="password"') && /logout|sign.?out/i.test(html);
+      const hasPassword = html.includes('type="password"');
+      const hasLogout = /logout|sign.?out/i.test(html);
+      // Verifica che ci sia REALMENTE un logout link — se no, non siamo loggati
+      if (hasPassword || !hasLogout) {
+        console.log(`[auth] testCookies: password=${hasPassword} logout=${hasLogout} → invalidi`);
+        return false;
+      }
+      // Verifica extra: cookie contiene .ASPXAUTH (necessario per autenticazione WCA)
+      if (!cookies.includes(".ASPXAUTH")) {
+        console.log(`[auth] testCookies: nessun .ASPXAUTH nel cookie → invalidi`);
+        return false;
+      }
+      console.log(`[auth] testCookies: OK (logout presente, ASPXAUTH presente)`);
+      return true;
     }
     return resp.status >= 200 && resp.status < 400;
-  } catch (e) { return false; }
+  } catch (e) {
+    console.log(`[auth] testCookies error: ${e.message}`);
+    return false;
+  }
 }
 
 // SSO login - domain-aware cookie jar

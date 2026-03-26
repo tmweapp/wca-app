@@ -147,8 +147,47 @@ module.exports = async (req, res) => {
       });
     }
 
+    // ═══ CHECK AUTENTICAZIONE ═══
+    const hasLogout = /logout|sign.?out/i.test(html);
+    const membersOnlyCount = (html.match(/Members\s*only/gi) || []).length;
+    addLog(`Auth check: hasLogout=${hasLogout} membersOnlyCount=${membersOnlyCount}`);
+
+    // Se NON siamo loggati (no logout link), forza SSO refresh e riprova
+    if (!hasLogout && authMethod === "cached") {
+      addLog(`⚠ Cookies cached NON autenticati — forzo SSO refresh`);
+      const freshLogin = await ssoLogin(null, null, networkBase);
+      if (freshLogin.success) {
+        cookies = freshLogin.cookies;
+        await saveCookiesToCache(cookies, domain);
+        authMethod = "sso_refresh";
+        addLog(`SSO refresh OK — rifetch profilo...`);
+        // Rifetch con nuovi cookies
+        let retryResp = await fetch(profileUrl, {
+          headers: { "User-Agent": UA, "Cookie": cookies, "Accept": "text/html,application/xhtml+xml", "Referer": `${networkBase}/Directory` },
+          redirect: "follow", timeout: 15000,
+        });
+        const retryHtml = await retryResp.text();
+        const retryHasLogout = /logout|sign.?out/i.test(retryHtml);
+        addLog(`Retry: status=${retryResp.status} len=${retryHtml.length} hasLogout=${retryHasLogout}`);
+        if (retryHasLogout || retryHtml.length > html.length) {
+          // Usa la nuova pagina
+          var $ = cheerio.load(retryHtml);
+          var html2 = retryHtml;
+        } else {
+          var $ = cheerio.load(html);
+          var html2 = html;
+        }
+      } else {
+        addLog(`SSO refresh FALLITO: ${freshLogin.error}`);
+        var $ = cheerio.load(html);
+        var html2 = html;
+      }
+    } else {
+      var $ = cheerio.load(html);
+      var html2 = html;
+    }
+
     // ═══ STEP 3: ESTRAI PROFILO ═══
-    const $ = cheerio.load(html);
     const profile = extractProfile($, wcaId, networkBase);
 
     addLog(`Profilo estratto: company="${profile.company_name}" state=${profile.state}`);
@@ -195,7 +234,7 @@ module.exports = async (req, res) => {
     diagnostics.contactClasses = [...classSet];
 
     // Snippet Office Contacts
-    const officeMatch = html.match(/Office\s*Contacts([\s\S]{0,2000})/i);
+    const officeMatch = (html2||html).match(/Office\s*Contacts([\s\S]{0,2000})/i);
     if (officeMatch) diagnostics.officeContactsSnippet = officeMatch[0].substring(0, 500);
 
     // ═══ RAW HTML DUMP per debug ═══
@@ -210,7 +249,8 @@ module.exports = async (req, res) => {
     diagnostics.rawSnippets.contactPersonElements = contactPersonHtml;
 
     // 2. Cerco nell'HTML raw pattern email e dintorni
-    const emailPatterns = html.match(/.{0,200}[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}.{0,200}/g) || [];
+    const finalHtml = html2 || html;
+    const emailPatterns = finalHtml.match(/.{0,200}[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}.{0,200}/g) || [];
     diagnostics.rawSnippets.emailContexts = emailPatterns.slice(0, 5).map(s => s.substring(0, 300));
 
     // 3. Tutti i mailto links
@@ -231,20 +271,20 @@ module.exports = async (req, res) => {
     const nameContexts = [];
     const nameRegex = /Name\s*:?\s*[^<]{2,50}/gi;
     let m;
-    while ((m = nameRegex.exec(html)) !== null && nameContexts.length < 5) {
+    while ((m = nameRegex.exec(finalHtml)) !== null && nameContexts.length < 5) {
       const start = Math.max(0, m.index - 100);
-      nameContexts.push(html.substring(start, m.index + m[0].length + 200));
+      nameContexts.push(finalHtml.substring(start, m.index + m[0].length + 200));
     }
     diagnostics.rawSnippets.nameContexts = nameContexts;
 
     // 6. Primi 3000 chars dopo "Office Contacts" o "Contact" heading
-    const contactSectionMatch = html.match(/(Office\s*Contacts|Contact\s*Details|Contact\s*Information)([\s\S]{0,3000})/i);
+    const contactSectionMatch = finalHtml.match(/(Office\s*Contacts|Contact\s*Details|Contact\s*Information)([\s\S]{0,3000})/i);
     if (contactSectionMatch) diagnostics.rawSnippets.contactSectionHtml = contactSectionMatch[0].substring(0, 2000);
 
     // 7. HTML len totale e se sembra un profilo completo
-    diagnostics.htmlLength = html.length;
-    diagnostics.hasPasswordField = html.includes('type="password"');
-    diagnostics.bodyPreview = html.substring(0, 500);
+    diagnostics.htmlLength = finalHtml.length;
+    diagnostics.hasPasswordField = finalHtml.includes('type="password"');
+    diagnostics.bodyPreview = finalHtml.substring(0, 500);
 
     addLog(`COMPLETATO in ${Date.now() - startTime}ms`);
 
