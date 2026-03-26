@@ -1196,6 +1196,7 @@ tr:hover td {
     </div>
     <div class="header-actions" style="margin-left:auto">
       <button class="btn btn-secondary btn-sm" onclick="openAgenda()" data-tip="Apri l'agenda completa dei partner salvati">Agenda</button>
+      <button class="btn btn-danger btn-sm" onclick="resetDatabase()" data-tip="Cancella TUTTI i dati dal database e riparti da zero" style="font-size:.62rem">Reset DB</button>
       <a href="/wca-extension.zip" download class="btn btn-secondary btn-sm" style="text-decoration:none" data-tip="Scarica l'estensione Chrome per catturare i cookies WCA">Estensione</a>
       <button class="btn btn-secondary btn-sm" onclick="openVerifica()" data-tip="Rivedi i profili non trovati e ritenta il download">Non trovati <span id="failedCountHeader">0</span></button>
       <!-- LOGIN ICON — rosso disconnesso, verde connesso -->
@@ -2366,6 +2367,47 @@ function stopScraping(){
   setStatus("Scraping fermato.", true);
   log("Scraping fermato dall'utente.", "warn");
   saveScrapingState();
+}
+
+async function resetDatabase(){
+  if(!confirm("⚠️ ATTENZIONE!\n\nQuesto cancellerà TUTTI i partner, job e sessioni dal database Supabase.\n\nSei sicuro di voler ricominciare da zero?")) return;
+  if(!confirm("ULTIMA CONFERMA: tutti i dati saranno persi per sempre. Confermi?")) return;
+  log("🗑 Reset database in corso...","warn");
+  try {
+    const resp = await fetch(API+"/api/reset", {
+      method: "POST", headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({ confirm: "RESET_ALL" })
+    });
+    const data = await resp.json();
+    if(data.success){
+      log("✅ Database completamente svuotato!","ok");
+      // Pulisci anche tutto il localStorage locale
+      const keysToRemove = [];
+      for(let i = 0; i < localStorage.length; i++){
+        const k = localStorage.key(i);
+        if(k && (k.startsWith("wca_") || k.startsWith("discover_"))) keysToRemove.push(k);
+      }
+      keysToRemove.forEach(k => localStorage.removeItem(k));
+      // Reset contatori UI
+      document.getElementById("headerTotalPartners").textContent = "0";
+      document.getElementById("headerLimitedPartners").textContent = "0";
+      scrapedProfiles = [];
+      totalScraped = 0;
+      discoveredMembers = [];
+      selectedCountries = [];
+      updateCountryDisplay();
+      document.getElementById("tabsSection").style.display = "none";
+      document.getElementById("resultsCard").style.display = "none";
+      setStatus("Database azzerato — pronto per nuova scansione.", true);
+      alert("Database svuotato! Puoi ricominciare da zero.");
+    } else {
+      log("⚠ Errore reset: " + (data.error||"sconosciuto"),"err");
+      alert("Errore: " + (data.error||"sconosciuto"));
+    }
+  } catch(e){
+    log("⚠ Errore reset: " + e.message,"err");
+    alert("Errore di rete: " + e.message);
+  }
 }
 
 function resetCountryAndRestart(){
