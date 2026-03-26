@@ -113,16 +113,45 @@ body{font-family:"SF Pro Display","Geist",'Inter',system-ui,sans-serif;backgroun
 .bc-card .card-field a:hover{text-decoration:underline}
 .bc-card .card-bottom{display:flex;align-items:center;justify-content:space-between;margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.05)}
 .bc-card .card-date{font-size:.6rem;color:#64748b}
+.bc-card .inferred{opacity:.7;font-style:italic}
+.bc-card .inferred::after{content:" ~";color:#a5b4fc;font-size:.55rem}
+/* NOTES ICON + POPUP */
+.bc-card .notes-btn{background:none;border:none;cursor:pointer;font-size:.85rem;padding:2px;opacity:.5;transition:opacity .2s;filter:grayscale(.5)}
+.bc-card .notes-btn:hover{opacity:1}
+.bc-card .notes-btn.has-notes{opacity:.85;filter:none}
+.notes-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:500;align-items:center;justify-content:center}
+.notes-overlay.open{display:flex}
+.notes-modal{background:#1a1a2e;border:1px solid rgba(165,180,252,0.2);border-radius:16px;padding:20px;width:90%;max-width:440px;box-shadow:0 20px 60px rgba(0,0,0,0.5)}
+.notes-modal h3{font-size:.9rem;color:#a5b4fc;margin-bottom:12px;font-weight:700}
+.notes-modal textarea{width:100%;min-height:120px;background:#12121e;border:1px solid rgba(165,180,252,0.15);border-radius:10px;color:#e2e8f0;font-size:.82rem;padding:12px;resize:vertical;outline:none;font-family:inherit}
+.notes-modal textarea:focus{border-color:#a5b4fc}
+.notes-modal .modal-btns{display:flex;gap:8px;margin-top:12px;justify-content:flex-end}
 /* SELECTION BAR */
 .selection-bar{display:none;padding:8px 24px;background:rgba(99,102,241,0.1);border-bottom:1px solid rgba(165,180,252,0.2);align-items:center;gap:12px;flex-wrap:wrap}
 .selection-bar.visible{display:flex}
-/* FLAG CHIPS */
-.header-flags-row{display:flex;align-items:flex-start;gap:8px;flex-wrap:wrap;border-bottom:1px solid rgba(255,255,255,0.04);min-height:0;overflow:visible}
-.flag-chip{display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;padding:4px 6px;border-radius:8px;transition:all .2s;position:relative}
+/* FLAG CAROUSEL */
+.flag-carousel-wrap{border-bottom:1px solid rgba(255,255,255,0.04);position:relative}
+.flag-search-wrap{padding:8px 24px 4px;position:relative}
+.flag-search-wrap input{width:220px;padding:6px 12px 6px 30px;border-radius:8px;border:1px solid rgba(165,180,252,0.15);background:var(--bg-input);color:var(--text-primary);font-size:.78rem;outline:none;transition:border-color .2s}
+.flag-search-wrap input:focus{border-color:#a5b4fc}
+.flag-search-wrap .search-icon{position:absolute;left:34px;top:50%;transform:translateY(-50%);color:#a5b4fc;font-size:.78rem;pointer-events:none}
+.flag-dropdown{position:absolute;top:100%;left:24px;width:260px;max-height:220px;overflow-y:auto;background:#1a1a2e;border:1px solid rgba(165,180,252,0.2);border-radius:10px;z-index:100;display:none;box-shadow:0 12px 40px rgba(0,0,0,0.5)}
+.flag-dropdown.open{display:block}
+.flag-dd-item{padding:8px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;font-size:.8rem;color:#e2e8f0;transition:background .15s}
+.flag-dd-item:hover{background:rgba(99,102,241,0.12)}
+.flag-dd-item .dd-flag{font-size:1.3rem}
+.flag-dd-item .dd-name{flex:1}
+.flag-dd-item .dd-count{font-size:.65rem;color:#a5b4fc;font-weight:700}
+.flag-track-outer{overflow:hidden;position:relative;padding:6px 0 10px}
+.flag-track{display:flex;gap:6px;transition:transform .4s cubic-bezier(.25,.8,.25,1);padding:0 24px;will-change:transform}
+.flag-chip{display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;padding:5px 8px;border-radius:10px;transition:all .3s;position:relative;flex-shrink:0;min-width:52px}
 .flag-chip:hover{background:rgba(99,102,241,0.12)}
-.flag-chip.selected{background:rgba(99,102,241,0.15);outline:1.5px solid rgba(165,180,252,0.5)}
-.flag-chip .flag-emoji{font-size:1.8rem;line-height:1}
-.flag-chip .flag-count{font-size:.62rem;font-weight:700;padding:1px 6px;border-radius:6px;min-width:20px;text-align:center;background:rgba(99,102,241,0.2);color:#a5b4fc}
+.flag-chip.selected{background:rgba(99,102,241,0.18);outline:2px solid rgba(165,180,252,0.5);transform:scale(1.15)}
+.flag-chip .flag-emoji{font-size:1.7rem;line-height:1;transition:transform .3s}
+.flag-chip.selected .flag-emoji{transform:scale(1.1)}
+.flag-chip .flag-label{font-size:.5rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;max-width:52px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.flag-chip.selected .flag-label{color:#a5b4fc}
+.flag-chip .flag-count{font-size:.6rem;font-weight:700;padding:1px 6px;border-radius:6px;min-width:18px;text-align:center;background:rgba(99,102,241,0.2);color:#a5b4fc}
 .match-badge{font-size:.62rem;font-weight:700;padding:3px 10px;border-radius:8px;white-space:nowrap;letter-spacing:.3px}
 .match-badge.found{background:linear-gradient(135deg,rgba(16,185,129,0.15),rgba(16,185,129,0.08));color:#6ee7b7;border:1px solid rgba(16,185,129,0.3);box-shadow:0 2px 8px rgba(16,185,129,0.1)}
 .match-badge.partial{background:linear-gradient(135deg,rgba(245,158,11,0.15),rgba(245,158,11,0.08));color:#fbbf24;border:1px solid rgba(245,158,11,0.3);box-shadow:0 2px 8px rgba(245,158,11,0.1)}
@@ -243,8 +272,17 @@ body{font-family:"SF Pro Display","Geist",'Inter',system-ui,sans-serif;backgroun
       <span class="stat-chip unmatched" id="chipUnmatched">0 non trovati</span>
     </div>
 
-    <!-- FLAG ROW (like home page) -->
-    <div class="header-flags-row" id="flagRow" style="display:none;padding:8px 24px"></div>
+    <!-- FLAG CAROUSEL -->
+    <div class="flag-carousel-wrap" id="flagCarousel" style="display:none">
+      <div class="flag-search-wrap">
+        <span class="search-icon">⌕</span>
+        <input type="text" id="flagSearchInput" placeholder="Cerca paese..." oninput="onFlagSearch()" onfocus="onFlagSearch()" autocomplete="off">
+        <div class="flag-dropdown" id="flagDropdown"></div>
+      </div>
+      <div class="flag-track-outer">
+        <div class="flag-track" id="flagTrack"></div>
+      </div>
+    </div>
 
     <!-- SORT BAR -->
     <div class="sort-bar" id="sortBar" style="display:none">
@@ -283,6 +321,18 @@ body{font-family:"SF Pro Display","Geist",'Inter',system-ui,sans-serif;backgroun
   </div>
 
   <div class="letter-index" id="letterIndex"></div>
+</div>
+
+<!-- NOTES POPUP -->
+<div class="notes-overlay" id="notesOverlay" onclick="if(event.target===this)closeNotes()">
+  <div class="notes-modal">
+    <h3 id="notesTitle">Note</h3>
+    <textarea id="notesTextarea" placeholder="Aggiungi note..."></textarea>
+    <div class="modal-btns">
+      <button class="btn btn-back" onclick="closeNotes()">Annulla</button>
+      <button class="btn btn-accent" onclick="saveNotes()">Salva</button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -470,7 +520,7 @@ async function init(){
     if(!Array.isArray(p.contacts)) p.contacts=[];
   }
   for(const card of allCards){
-    if(!card.country_code&&card.country) card.country_code=resolveCountryCode(card.country);
+    if(!card.country_code&&card.country) card.country_code=resolveCountryCode(card.country.replace(" [presunto]",""));
     try{ card._match=matchCard(card,allPartners); }catch(e){ card._match={type:"not-found",score:0,reason:"",partner:null}; }
   }
   // Extract events from cards if events table empty
@@ -624,30 +674,90 @@ function filterByCountry(cc){
   renderPage();
 }
 
-// ==================== FLAG ROW ====================
-function renderFlagRow(){
-  const row=document.getElementById("flagRow");
-  if(!allCards.length){ row.style.display="none"; return; }
-  row.style.display="flex";
-  // Count cards by country
-  const countries={};
+// ==================== FLAG CAROUSEL ====================
+let flagCountries=[]; // [{cc,name,count}] sorted by count desc
+function buildFlagCountries(){
+  const map={};
   for(const c of allCards){
     const cc=(c.country_code||"").toUpperCase();
     if(!cc||cc.length!==2) continue;
-    if(!countries[cc]) countries[cc]={count:0,name:c.country||cc};
-    countries[cc].count++;
+    if(!map[cc]) map[cc]={cc,name:c.country||cc,count:0};
+    map[cc].count++;
   }
-  const sorted=Object.entries(countries).sort((a,b)=>b[1].count-a[1].count);
+  flagCountries=Object.values(map).sort((a,b)=>b.count-a.count);
+}
+function renderFlagRow(){
+  const wrap=document.getElementById("flagCarousel");
+  if(!allCards.length){ wrap.style.display="none"; return; }
+  wrap.style.display="block";
+  buildFlagCountries();
+  renderFlagTrack();
+}
+function renderFlagTrack(){
+  const track=document.getElementById("flagTrack");
   let html="";
-  for(const [cc,data] of sorted){
-    const sel=currentCountryFilter===cc?"selected":"";
-    html+=`<div class="flag-chip ${sel}" onclick="filterByCountry('${cc}')" title="${esc(data.name)}">
-      <span class="flag-emoji">${ccFlag(cc)}</span>
-      <span class="flag-count">${data.count}</span>
+  for(const f of flagCountries){
+    const sel=currentCountryFilter===f.cc?"selected":"";
+    html+=`<div class="flag-chip ${sel}" onclick="filterByCountry('${f.cc}')" title="${esc(f.name)}">
+      <span class="flag-emoji">${ccFlag(f.cc)}</span>
+      <span class="flag-label">${esc(f.name)}</span>
+      <span class="flag-count">${f.count}</span>
     </div>`;
   }
-  row.innerHTML=html;
+  track.innerHTML=html;
+  // Scroll selected to center
+  scrollFlagToCenter();
 }
+function scrollFlagToCenter(){
+  if(!currentCountryFilter) return;
+  const track=document.getElementById("flagTrack");
+  const outer=track.parentElement;
+  const idx=flagCountries.findIndex(f=>f.cc===currentCountryFilter);
+  if(idx<0) return;
+  const chips=track.children;
+  if(!chips[idx]) return;
+  const chipLeft=chips[idx].offsetLeft;
+  const chipW=chips[idx].offsetWidth;
+  const outerW=outer.offsetWidth;
+  const offset=chipLeft-outerW/2+chipW/2;
+  track.style.transform=`translateX(${-Math.max(0,offset)}px)`;
+}
+function filterByCountry(cc){
+  currentCountryFilter=currentCountryFilter===cc?"":cc;
+  // Update search input
+  const inp=document.getElementById("flagSearchInput");
+  if(currentCountryFilter){
+    const f=flagCountries.find(f=>f.cc===cc);
+    inp.value=f?f.name:"";
+  } else { inp.value=""; }
+  closeFlagDropdown();
+  renderFlagTrack();
+  renderSidebar();
+  renderPage();
+}
+// ==================== FLAG SEARCH DROPDOWN ====================
+function onFlagSearch(){
+  const q=(document.getElementById("flagSearchInput").value||"").toLowerCase().trim();
+  const dd=document.getElementById("flagDropdown");
+  if(!q){ dd.classList.remove("open"); return; }
+  const matches=flagCountries.filter(f=>
+    f.name.toLowerCase().startsWith(q)||f.cc.toLowerCase().startsWith(q)
+  ).slice(0,10);
+  if(!matches.length){ dd.classList.remove("open"); return; }
+  dd.classList.add("open");
+  dd.innerHTML=matches.map(f=>`<div class="flag-dd-item" onmousedown="filterByCountry('${f.cc}')">
+    <span class="dd-flag">${ccFlag(f.cc)}</span>
+    <span class="dd-name">${esc(f.name)}</span>
+    <span class="dd-count">${f.count}</span>
+  </div>`).join("");
+}
+function closeFlagDropdown(){
+  document.getElementById("flagDropdown").classList.remove("open");
+}
+// Close dropdown on click outside
+document.addEventListener("click",e=>{
+  if(!e.target.closest(".flag-search-wrap")) closeFlagDropdown();
+});
 
 function renderPage(){
   const cards=getFilteredCards();
@@ -656,10 +766,8 @@ function renderPage(){
   const statsBar=document.getElementById("statsBar");
   const btnClear=document.getElementById("btnClear");
   const sortBar=document.getElementById("sortBar");
-  const flagRow=document.getElementById("flagRow");
-
   if(allCards.length===0){
-    dropzone.style.display="block"; lines.innerHTML=""; statsBar.style.display="none"; btnClear.style.display="none"; sortBar.style.display="none"; flagRow.style.display="none"; return;
+    dropzone.style.display="block"; lines.innerHTML=""; statsBar.style.display="none"; btnClear.style.display="none"; sortBar.style.display="none"; document.getElementById("flagCarousel").style.display="none"; return;
   }
   dropzone.style.display="none"; statsBar.style.display="flex"; btnClear.style.display="inline-flex"; sortBar.style.display="flex";
   lines.classList.toggle("list-view",currentView==="list");
@@ -695,11 +803,18 @@ function renderPage(){
       matchHtml=`<span class="match-badge not-found">✗</span>`;
     }
 
+    const isInferred=s=>(s||"").includes("[presunto]");
+    const cleanInf=s=>(s||"").replace(" [presunto]","");
+    const infCls=s=>isInferred(s)?' class="inferred"':"";
+
     const fields=[];
     if(c.email) fields.push(`<div class="card-field"><span class="f-icon">✉</span><span class="f-label">Email</span><a href="mailto:${esc(c.email)}" class="f-val">${esc(c.email)}</a></div>`);
     if(c.phone) fields.push(`<div class="card-field"><span class="f-icon">☏</span><span class="f-label">Tel</span><a href="tel:${esc(c.phone)}" class="f-val">${esc(c.phone)}</a></div>`);
-    if(c.city) fields.push(`<div class="card-field"><span class="f-icon">⌖</span><span class="f-label">Città</span><span class="f-val">${esc(c.city)}</span></div>`);
+    if(c.city) fields.push(`<div class="card-field"><span class="f-icon">⌖</span><span class="f-label">Città</span><span class="f-val"${infCls(c.city)}>${esc(cleanInf(c.city))}</span></div>`);
     if(c.website) fields.push(`<div class="card-field"><span class="f-icon">◎</span><span class="f-label">Web</span><a href="${esc(c.website.startsWith('http')?c.website:'https://'+c.website)}" target="_blank" class="f-val">${esc(c.website)}</a></div>`);
+
+    const hasNotes=!!(c.notes||"").trim();
+    const notesBtnCls=hasNotes?"notes-btn has-notes":"notes-btn";
 
     html+=`<div class="bc-card${isSel?" selected":""}" data-id="${c.id||""}" data-letter="${(c.company_name||"#")[0].toUpperCase()}">
       <div class="card-top">
@@ -709,7 +824,7 @@ function renderPage(){
           <div style="display:flex;align-items:center;gap:8px">
             <span class="card-company" title="${esc(c.company_name)}">${esc(c.company_name||"—")}</span>
           </div>
-          ${countryName?`<span class="card-country-name">${esc(countryName)}</span>`:""}
+          <span class="card-country-name"${infCls(c.country)}>${esc(cleanInf(countryName)||"—")}</span>
         </div>
         <div class="card-match">${matchHtml}</div>
       </div>
@@ -719,7 +834,7 @@ function renderPage(){
       </div>
       <div class="card-fields">${fields.join("")}</div>
       <div class="card-bottom">
-        <span></span>
+        <button class="${notesBtnCls}" onclick="openNotes('${c.id||""}')" title="${hasNotes?"Visualizza/modifica note":"Aggiungi note"}">📝</button>
         <span class="card-date">${fmtDate(c.created_at)}</span>
       </div>
     </div>`;
@@ -926,11 +1041,26 @@ async function parseWithAI(text, fileName){
     const batch=dataLines.slice(i,i+BATCH);
     if(statusEl) statusEl.textContent=`AI parsing... ${i}/${dataLines.length} righe`;
 
-    const prompt=`Sei un parser CSV esperto. Ti do l'header e alcune righe di un file CSV di biglietti da visita.
+    const prompt=`Sei un parser CSV esperto per biglietti da visita del settore logistica/freight forwarding.
 Il separatore è il punto e virgola (;).
-ATTENZIONE: alcune righe hanno un campo "Note" che contiene punti e virgola interni, spesso racchiuso tra virgolette. NON splittare su quei punti e virgola.
-Alcune righe contengono spazzatura OCR illeggibile (caratteri come =, |, {}, \\, >, <, simboli casuali). SCARTA completamente quelle righe — non includerle nell'output.
-Per i numeri di telefono che iniziano con - (es: -18917527447) aggiungi il prefisso + se riconoscibile.
+
+REGOLE PARSING:
+- Il campo "Note" può contenere ; interni tra virgolette — NON splittare su quei ;
+- Righe con spazzatura OCR (=, |, {}, \\, >, <, simboli casuali): SCARTA completamente
+- Telefoni che iniziano con - (es: -18917527447): aggiungi prefisso + internazionale
+
+INFERENZA PAESE E CITTÀ (MOLTO IMPORTANTE):
+Se il campo Paese è vuoto, DEDUCILO da queste fonti (in ordine di priorità):
+1. Prefisso telefonico: +65=Singapore, +91=India, +971=UAE, +966=Saudi Arabia, +86=China, +852=Hong Kong, +81=Japan, +82=Korea, +60=Malaysia, +62=Indonesia, +66=Thailand, +84=Vietnam, +63=Philippines, +880=Bangladesh, +92=Pakistan, +94=Sri Lanka, +95=Myanmar, +977=Nepal, +1=USA/Canada, +44=UK, +49=Germany, +33=France, +39=Italy, +34=Spain, +31=Netherlands, +32=Belgium, +41=Switzerland, +43=Austria, +46=Sweden, +47=Norway, +45=Denmark, +358=Finland, +48=Poland, +420=Czech Republic, +90=Turkey, +7=Russia, +55=Brazil, +52=Mexico, +54=Argentina, +56=Chile, +57=Colombia, +20=Egypt, +27=South Africa, +234=Nigeria, +254=Kenya
+2. Dominio email: .sg=Singapore, .in=India, .ae=UAE, .sa=Saudi Arabia, .cn=China, .hk=Hong Kong, .jp=Japan, .kr=Korea, .my=Malaysia, .id=Indonesia, .th=Thailand, .vn=Vietnam, .ph=Philippines, .de=Germany, .fr=France, .it=Italy, .es=Spain, .uk/.co.uk=UK, .nl=Netherlands, .ch=Switzerland, .au=Australia, .nz=New Zealand, .br=Brazil, .mx=Mexico, .za=South Africa
+3. Indirizzo, nome azienda, note, contesto (es. "Pte Ltd"=Singapore, "GmbH"=Germany, "Sdn Bhd"=Malaysia, "Pvt Ltd"=India, "LLC"=USA)
+
+Se il campo Città è vuoto, DEDUCILA da indirizzo, note o contesto se possibile.
+
+MARCATURA VALORI PRESUNTI:
+- Se il Paese è stato DEDOTTO (non presente nel CSV originale), aggiungi " [presunto]" dopo il nome. Es: "Singapore [presunto]"
+- Se la Città è stata DEDOTTA, aggiungi " [presunto]" dopo il nome. Es: "Mumbai [presunto]"
+- Se il valore era già presente nel CSV, NON aggiungere [presunto]
 
 HEADER:
 ${header}
@@ -938,13 +1068,13 @@ ${header}
 RIGHE:
 ${batch.join("\n")}
 
-Rispondi SOLO con un JSON array di oggetti. Ogni oggetto deve avere ESATTAMENTE questi campi:
+OUTPUT: JSON array di oggetti con ESATTAMENTE questi campi:
 {"Nome":"","Azienda":"","Ruolo":"","Email":"","Cellulare":"","Tel_Fisso":"","Fax":"","Web":"","LinkedIn":"","Indirizzo":"","Citta":"","Paese":"","Note":"","Data":""}
 
-NON includere campi Logo, P.IVA, C.F. — ignorali.
-Le Note devono essere SOLO testo leggibile e utile (info aggiuntive sull'azienda, indirizzi secondari, WCA ID). Rimuovi tutta la spazzatura OCR dalle note.
-Se una riga intera è spazzatura illeggibile, NON includerla.
-Rispondi SOLO con il JSON array, nient'altro.`;
+- NON includere Logo, P.IVA, C.F.
+- Note: SOLO testo utile (info azienda, indirizzi, WCA ID). Rimuovi spazzatura OCR.
+- Righe spazzatura: NON includerle.
+Rispondi SOLO con il JSON, nient'altro.`;
 
     try{
       const r=await fetch("https://api.openai.com/v1/chat/completions",{
@@ -1003,6 +1133,96 @@ async function parseExcel(file){
   const wb=XLSX.read(await file.arrayBuffer(),{type:"array"});
   return XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:""});
 }
+// ==================== COUNTRY/CITY INFERENCE ====================
+const PHONE_PREFIX_COUNTRY={
+  "65":"Singapore","91":"India","971":"UAE","966":"Saudi Arabia","86":"China","852":"Hong Kong",
+  "81":"Japan","82":"South Korea","60":"Malaysia","62":"Indonesia","66":"Thailand","84":"Vietnam",
+  "63":"Philippines","880":"Bangladesh","92":"Pakistan","94":"Sri Lanka","95":"Myanmar","977":"Nepal",
+  "1":"USA","44":"UK","49":"Germany","33":"France","39":"Italy","34":"Spain","31":"Netherlands",
+  "32":"Belgium","41":"Switzerland","43":"Austria","46":"Sweden","47":"Norway","45":"Denmark",
+  "358":"Finland","48":"Poland","420":"Czech Republic","90":"Turkey","7":"Russia",
+  "55":"Brazil","52":"Mexico","54":"Argentina","56":"Chile","57":"Colombia",
+  "20":"Egypt","27":"South Africa","234":"Nigeria","254":"Kenya","61":"Australia","64":"New Zealand",
+  "353":"Ireland","351":"Portugal","30":"Greece","36":"Hungary","40":"Romania","380":"Ukraine",
+  "212":"Morocco","216":"Tunisia","974":"Qatar","973":"Bahrain","968":"Oman","965":"Kuwait","962":"Jordan","961":"Lebanon"
+};
+const EMAIL_DOMAIN_COUNTRY={
+  "sg":"Singapore","in":"India","ae":"UAE","sa":"Saudi Arabia","cn":"China","hk":"Hong Kong",
+  "jp":"Japan","kr":"South Korea","my":"Malaysia","id":"Indonesia","th":"Thailand","vn":"Vietnam",
+  "ph":"Philippines","de":"Germany","fr":"France","it":"Italy","es":"Spain","nl":"Netherlands",
+  "ch":"Switzerland","at":"Austria","se":"Sweden","no":"Norway","dk":"Denmark","fi":"Finland",
+  "pl":"Poland","cz":"Czech Republic","tr":"Turkey","ru":"Russia","br":"Brazil","mx":"Mexico",
+  "ar":"Argentina","cl":"Chile","co":"Colombia","za":"South Africa","au":"Australia","nz":"New Zealand",
+  "ie":"Ireland","pt":"Portugal","gr":"Greece","hu":"Hungary","ro":"Romania","ua":"Ukraine",
+  "qa":"Qatar","bh":"Bahrain","om":"Oman","kw":"Kuwait","jo":"Jordan","lb":"Lebanon","eg":"Egypt",
+  "ng":"Nigeria","ke":"Kenya","bd":"Bangladesh","pk":"Pakistan","lk":"Sri Lanka","mm":"Myanmar","np":"Nepal"
+};
+const COMPANY_SUFFIX_COUNTRY={
+  "pte ltd":"Singapore","pte. ltd":"Singapore","sdn bhd":"Malaysia","pvt ltd":"India","pvt. ltd":"India",
+  "gmbh":"Germany","ag":"Switzerland","bv":"Netherlands","nv":"Belgium","sarl":"France","srl":"Italy",
+  "s.r.l":"Italy","s.p.a":"Italy","spa":"Italy","sa":"Spain","pty ltd":"Australia","pty. ltd":"Australia",
+  "llc":"USA","inc":"USA","corp":"USA","co ltd":"Japan","plc":"UK","ltda":"Brazil"
+};
+function inferCountry(email, phone, company, website, notes, address){
+  // 1. Phone prefix
+  if(phone){
+    const clean=phone.replace(/[\s\-().]/g,"").replace(/^00/,"+").replace(/^\+/,"");
+    for(const [prefix,country] of Object.entries(PHONE_PREFIX_COUNTRY).sort((a,b)=>b[0].length-a[0].length)){
+      if(clean.startsWith(prefix)) return country;
+    }
+  }
+  // 2. Email domain TLD
+  if(email){
+    const parts=email.split("@");
+    if(parts[1]){
+      const tld=parts[1].split(".").pop().toLowerCase();
+      if(EMAIL_DOMAIN_COUNTRY[tld]) return EMAIL_DOMAIN_COUNTRY[tld];
+      // Check second-level (.co.uk etc)
+      const tlds=parts[1].split(".");
+      if(tlds.length>=3){
+        const tld2=tlds.slice(-2).join(".");
+        if(tld2==="co.uk"||tld2==="org.uk") return "UK";
+        if(tld2==="co.jp") return "Japan";
+        if(tld2==="co.kr") return "South Korea";
+        if(tld2==="co.in") return "India";
+        if(tld2==="co.za") return "South Africa";
+        if(tld2==="com.au") return "Australia";
+        if(tld2==="com.br") return "Brazil";
+        if(tld2==="com.mx") return "Mexico";
+        if(tld2==="com.sg") return "Singapore";
+        if(tld2==="com.my") return "Malaysia";
+        if(tld2==="com.hk") return "Hong Kong";
+        if(tld2==="co.th") return "Thailand";
+      }
+    }
+  }
+  // 3. Company suffix
+  if(company){
+    const lc=company.toLowerCase();
+    for(const [suffix,country] of Object.entries(COMPANY_SUFFIX_COUNTRY)){
+      if(lc.includes(suffix)) return country;
+    }
+  }
+  // 4. Website TLD
+  if(website){
+    const tld=website.split(".").pop().toLowerCase().replace(/\//g,"");
+    if(EMAIL_DOMAIN_COUNTRY[tld]) return EMAIL_DOMAIN_COUNTRY[tld];
+  }
+  return "";
+}
+function inferCity(address, notes, country){
+  // Try to extract city from address (usually after first comma or last part)
+  if(address){
+    const parts=address.split(",").map(s=>s.trim()).filter(Boolean);
+    if(parts.length>=2){
+      // City is usually the second-to-last or last meaningful part
+      const candidate=parts[parts.length>=3?parts.length-2:parts.length-1];
+      if(candidate&&candidate.length>2&&!/^\d+$/.test(candidate)) return candidate;
+    }
+  }
+  return "";
+}
+
 function mapRows(rows, fileName){
   const keys=Object.keys(rows[0]||{});
   const find=(patterns)=>keys.find(k=>patterns.some(p=>k.toLowerCase().includes(p)))||"";
@@ -1057,11 +1277,29 @@ function mapRows(rows, fileName){
     const zipVal=colZip?r[colZip]:"";
     const addrParts=[addr,prov,zipVal].filter(Boolean).join(", ");
     if(addrParts&&!isGarbage(addrParts)) notes=(notes?notes+"\n":"")+addrParts;
+    let country=colCountry?r[colCountry]:"";
+    let city=colCity?r[colCity]:"";
+    let countryInferred=false, cityInferred=false;
+
+    // Infer country if missing
+    if(!country){
+      const inf=inferCountry(cleanEmail, phone||phone2, company, web, notes, addr);
+      if(inf){ country=inf; countryInferred=true; }
+    }
+    // Infer city if missing
+    if(!city){
+      const inf=inferCity(addr, notes, country);
+      if(inf){ city=inf; cityInferred=true; }
+    }
+    // Mark inferred values
+    if(countryInferred) country=country+" [presunto]";
+    if(cityInferred) city=city+" [presunto]";
+
     return {
       company_name:company, contact_name:cn,
       email:cleanEmail, phone:phone||(phone2||""),
-      country:colCountry?r[colCountry]:"", country_code:resolveCountryCode(colCountry?r[colCountry]:""),
-      city:colCity?r[colCity]:"", position:colPosition?r[colPosition]:"",
+      country:country, country_code:resolveCountryCode(country.replace(" [presunto]","")),
+      city:city, position:colPosition?r[colPosition]:"",
       website:web, notes:notes,
       source_file:fileName,
     };
@@ -1070,10 +1308,22 @@ function mapRows(rows, fileName){
 
 // ==================== CLEAR ====================
 async function clearAll(){
-  if(!confirm("Cancellare tutti i biglietti da visita?")) return;
-  // Delete all rows — works with UUID ids
-  await fetch(`${SUPABASE_URL}/rest/v1/wca_business_cards?id=not.is.null`,{method:"DELETE",headers:SB_HEADERS}).catch(()=>{});
-  allCards=[]; renderAll();
+  if(!confirm("Cancellare tutti i "+allCards.length+" biglietti da visita?")) return;
+  try{
+    // Delete all rows using created_at not null (always set, avoids UUID issues)
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/wca_business_cards?created_at=not.is.null`,{
+      method:"DELETE",headers:{...SB_HEADERS,"Prefer":"return=minimal"}
+    });
+    if(!r.ok){
+      // Fallback: delete by each id
+      for(const c of allCards){
+        if(c.id) await fetch(`${SUPABASE_URL}/rest/v1/wca_business_cards?id=eq.${c.id}`,{
+          method:"DELETE",headers:{...SB_HEADERS,"Prefer":"return=minimal"}
+        }).catch(()=>{});
+      }
+    }
+  }catch(e){ console.error("clearAll error:",e); }
+  allCards=[]; selectedIds.clear(); renderAll();
 }
 
 // ==================== AUTO-CLEANUP CORRUPTED DATA ====================
@@ -1137,6 +1387,44 @@ function cleanCardField(card,field){
   // Remove leading/trailing quotes and junk
   v=v.replace(/^["']+|["']+$/g,"").trim();
   card[field]=v;
+}
+
+// ==================== NOTES POPUP ====================
+let editingNoteId=null;
+function openNotes(cardId){
+  const card=allCards.find(c=>c.id===cardId);
+  if(!card) return;
+  editingNoteId=cardId;
+  document.getElementById("notesTitle").textContent="Note — "+(card.company_name||card.contact_name||"Contatto");
+  document.getElementById("notesTextarea").value=card.notes||"";
+  document.getElementById("notesOverlay").classList.add("open");
+  setTimeout(()=>document.getElementById("notesTextarea").focus(),100);
+}
+function closeNotes(){
+  document.getElementById("notesOverlay").classList.remove("open");
+  editingNoteId=null;
+}
+async function saveNotes(){
+  if(!editingNoteId) return;
+  const newNotes=document.getElementById("notesTextarea").value.trim();
+  const card=allCards.find(c=>c.id===editingNoteId);
+  if(!card) return;
+  // Update in Supabase
+  try{
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/wca_business_cards?id=eq.${editingNoteId}`,{
+      method:"PATCH",
+      headers:{...SB_HEADERS,"Prefer":"return=minimal"},
+      body:JSON.stringify({notes:newNotes})
+    });
+    if(r.ok){
+      card.notes=newNotes;
+      closeNotes();
+      renderPage();
+    } else {
+      const err=await r.text();
+      alert("Errore salvataggio: "+err);
+    }
+  }catch(e){ alert("Errore: "+e.message); }
 }
 
 init().then(()=>{
