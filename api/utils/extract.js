@@ -183,8 +183,11 @@ function extractProfile($, wcaId, sourceBase) {
   };
 
   // Company name — WCA usa <span class="company"> dentro <div class="company_name">, NON h1
-  let companyName = $(".company_name .company, span.company, .company_name").first().text().trim();
+  let companyName = $(".company_name .company, span.company").first().text().trim();
+  if (!companyName) companyName = $(".company_name").first().text().trim();
   if (!companyName) companyName = $("h1.company, h1").first().text().trim(); // fallback h1
+  // Pulisci: rimuovi newline, branch info tra parentesi, whitespace multiplo
+  companyName = companyName.replace(/\n/g, " ").replace(/\s*\(.*?\)\s*$/, "").replace(/\s{2,}/g, " ").trim();
   result.company_name = companyName;
   if (!companyName || /not\s*found|error|404|page\s*not/i.test(companyName)) {
     // Ultima chance: controlla se c'è un profile_wrapper con dati
