@@ -84,6 +84,22 @@
   opacity: 1;
 }
 
+/* ==================== SCRAPING ACTIVE — PULSE GLOW ==================== */
+@keyframes scraping-pulse {
+  0%, 100% { box-shadow: inset 0 0 0 rgba(99,102,241,0); background-image: var(--glow); }
+  50% { box-shadow: inset 0 0 120px rgba(99,102,241,0.04); background-image: radial-gradient(circle at 50% 50%, rgba(99,102,241,0.06), transparent 70%); }
+}
+body.scraping-active {
+  animation: scraping-pulse 7s ease-in-out infinite;
+}
+body.scraping-active .header {
+  border-bottom-color: rgba(99,102,241,0.25);
+  background: rgba(26,26,46,0.96);
+}
+body.scraping-active .card {
+  border-color: rgba(99,102,241,0.12);
+}
+
 /* ==================== BASE STYLES ==================== */
 * {
   box-sizing: border-box;
@@ -97,7 +113,7 @@ body {
   background-image: var(--glow);
   color: var(--text-primary);
   min-height: 100vh;
-  transition: background 0.3s, color 0.3s;
+  transition: background 0.5s, color 0.3s, box-shadow 0.5s;
 }
 
 /* ==================== SHELL TOPBAR ==================== */
@@ -946,18 +962,22 @@ tr:hover td {
         <button class="btn btn-danger btn-sm" onclick="resetCountryAndRestart()" data-tip="Cancella la cache locale del paese selezionato e riesegui lo scraping da zero">Reset Paese</button>
       </div>
     </div>
-    <!-- Network mode hint (visible solo in modalità "Per Network") -->
-    <div id="networkModePanel" style="display:none;margin-top:12px;padding:12px 14px;border-radius:10px;background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.15)">
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-        <p style="font-size:.78rem;color:#a5b4fc;margin:0;display:flex;align-items:center;gap:8px;flex:1">
-          <svg width="16" height="16" fill="none" stroke="#a5b4fc" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4m0-4h.01"/></svg>
-          Seleziona i network qui sotto. Se nessuno è selezionato, verranno usati tutti.
+    <!-- Network mode panel (visible solo in modalità "Per Network") -->
+    <div id="networkModePanel" style="display:none;margin-top:12px;padding:14px;border-radius:10px;background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.15)">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px">
+        <p style="font-size:.78rem;color:#fbbf24;margin:0;display:flex;align-items:center;gap:8px;flex:1;font-weight:600">
+          <svg width="16" height="16" fill="none" stroke="#fbbf24" stroke-width="2" viewBox="0 0 24 24"><path d="M12 9v2m0 4h.01M10.29 3.86l-8.6 14.86A1 1 0 002.56 20h18.88a1 1 0 00.87-1.28l-8.6-14.86a1 1 0 00-1.72 0z"/></svg>
+          Seleziona almeno un network dalla sezione qui sotto per procedere.
         </p>
-        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.78rem;color:#c7d2fe;padding:6px 14px;border-radius:8px;background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.2);white-space:nowrap;transition:all .2s;user-select:none" data-tip="Scarica tutti i paesi in sequenza per i network selezionati, senza dover selezionare manualmente ogni paese">
+        <span id="networkSelCount" style="font-size:.72rem;color:var(--text-muted);padding:4px 10px;border-radius:6px;background:rgba(255,255,255,0.04)">0 selezionati</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.78rem;color:#c7d2fe;padding:7px 14px;border-radius:8px;background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.2);white-space:nowrap;transition:all .2s;user-select:none" data-tip="Scarica TUTTI i paesi in ordine per codice paese (A→Z) fino a completamento, per i network selezionati">
           <input type="checkbox" id="chkAllCountries" style="accent-color:#6366f1" onchange="toggleAllCountriesMode()">
           <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
           Tutti i Paesi
         </label>
+        <span id="allCountriesHint" style="display:none;font-size:.72rem;color:#a5b4fc;line-height:1.4;max-width:400px">Scaricherà ogni paese in ordine alfabetico per codice (AD, AE, AF, ... ZW) fino a completamento totale. Operazione lunga.</span>
       </div>
     </div>
     <!-- Test Download rapido -->
@@ -1410,6 +1430,9 @@ function setMode(mode, btn){
       netDetails.style.borderRadius = "";
       netDetails.style.padding = "";
       netDetails.style.background = "";
+      // Reset all-countries checkbox when leaving network mode
+      const chk = document.getElementById("chkAllCountries");
+      if(chk && chk.checked){ chk.checked = false; toggleAllCountriesMode(); }
     }
   }
 }
@@ -1428,14 +1451,38 @@ function getSelectedNetworkObjects(){
 function toggleAllCountriesMode(){
   const chk = document.getElementById("chkAllCountries");
   const countrySelector = document.getElementById("countrySelector");
+  const hint = document.getElementById("allCountriesHint");
   if(chk.checked){
-    countrySelector.style.opacity = "0.4";
+    countrySelector.style.opacity = "0.35";
     countrySelector.style.pointerEvents = "none";
+    if(hint) hint.style.display = "inline";
   } else {
     countrySelector.style.opacity = "1";
     countrySelector.style.pointerEvents = "auto";
+    if(hint) hint.style.display = "none";
   }
 }
+function updateNetworkSelCount(){
+  const cnt = document.querySelectorAll("#networksGrid input[type=checkbox]:checked").length;
+  const el = document.getElementById("networkSelCount");
+  if(el){
+    el.textContent = cnt > 0 ? cnt + " selezionati" : "0 selezionati";
+    el.style.color = cnt > 0 ? "#6ee7b7" : "var(--text-muted)";
+    el.style.background = cnt > 0 ? "rgba(16,185,129,0.12)" : "rgba(255,255,255,0.04)";
+  }
+}
+// Attacca listener ai checkbox network dopo init
+function attachNetworkCountListeners(){
+  document.querySelectorAll("#networksGrid input[type=checkbox]").forEach(cb => {
+    cb.addEventListener("change", updateNetworkSelCount);
+  });
+}
+// Osserva quando networksGrid viene popolato
+const _nGridObs = new MutationObserver(()=>{ attachNetworkCountListeners(); updateNetworkSelCount(); });
+setTimeout(()=>{
+  const ng = document.getElementById("networksGrid");
+  if(ng) _nGridObs.observe(ng, {childList:true});
+}, 500);
 function getAllCountriesList(){
   const all = [];
   for(const group of ALL_COUNTRIES){
@@ -1450,13 +1497,17 @@ function getAllCountriesList(){
 async function scrapeByNetwork(){
   const allCountriesMode = document.getElementById("chkAllCountries")?.checked;
   const countries = allCountriesMode ? getAllCountriesList() : [...selectedCountries];
-  if(countries.length === 0){ alert("Seleziona almeno un paese!"); return; }
+  if(countries.length === 0){ alert("Seleziona almeno un paese oppure attiva 'Tutti i Paesi'!"); return; }
 
-  // Usa i network selezionati dalla checkbox grid; se nessuno, usa tutti
+  // Obbliga selezione di almeno un network
   const selectedNets = getSelectedNetworkObjects();
-  const networksToScrape = selectedNets.length > 0
-    ? selectedNets
-    : ALL_NETWORKS.map(n => ({ domain: n.domain, name: n.name }));
+  if(selectedNets.length === 0){
+    alert("Seleziona almeno un network dalla sezione 'Seleziona Network'!");
+    const netDetails = document.querySelector("details:has(#networksGrid)");
+    if(netDetails) netDetails.open = true;
+    return;
+  }
+  const networksToScrape = selectedNets;
 
   log(`═══ MODALITÀ NETWORK: ${networksToScrape.length} network × ${countries.length} paesi ═══`);
   log(`Network: ${networksToScrape.map(n=>n.name).join(", ")}`);
@@ -1682,6 +1733,7 @@ async function startScraping(){
   document.getElementById("btnStart").disabled = true;
   document.getElementById("btnStop").disabled = false;
   document.getElementById("tabsSection").style.display = "block";
+  document.body.classList.add("scraping-active");
 
   if(currentMode === "range"){
     await scrapeRange();
@@ -1739,6 +1791,7 @@ async function startScraping(){
   scraping = false;
   document.getElementById("btnStart").disabled = false;
   document.getElementById("btnStop").disabled = true;
+  document.body.classList.remove("scraping-active");
   if(totalScraped > 0){
     setStatus(`Scraping completato! ${totalScraped} profili salvati.`, true);
     log(`Scraping terminato. Profili totali salvati: ${totalScraped}`, "ok");
@@ -1750,9 +1803,9 @@ function stopScraping(){
   hideActivity();
   document.getElementById("btnStop").disabled = true;
   document.getElementById("btnStart").disabled = false;
+  document.body.classList.remove("scraping-active");
   setStatus("Scraping fermato.", true);
   log("Scraping fermato dall'utente.", "warn");
-  // Salva stato per poter riprendere
   saveScrapingState();
 }
 
