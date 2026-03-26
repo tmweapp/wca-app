@@ -49,12 +49,20 @@ CREATE TABLE IF NOT EXISTS wca_partners (
   certifications JSONB DEFAULT '[]',
   branch_cities JSONB DEFAULT '[]',
   country_code TEXT,
+  country_name TEXT,
+  city TEXT,
+  member_since DATE,
   raw_data JSONB,
   updated_at TIMESTAMPTZ DEFAULT NOW(),
   access_limited BOOLEAN DEFAULT FALSE,
   enriched_from TEXT,
   enriched_domain TEXT
 );
+
+-- Se la tabella esiste già, aggiungi le colonne mancanti:
+ALTER TABLE wca_partners ADD COLUMN IF NOT EXISTS country_name TEXT;
+ALTER TABLE wca_partners ADD COLUMN IF NOT EXISTS city TEXT;
+ALTER TABLE wca_partners ADD COLUMN IF NOT EXISTS member_since DATE;
 
 CREATE TABLE IF NOT EXISTS wca_session (
   id TEXT PRIMARY KEY DEFAULT 'default',
