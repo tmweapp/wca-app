@@ -14,7 +14,7 @@ const BUCKET = "icons";
 const ICONS = {
   "pinpoint-removebg-preview.png": "pinpoint.png",
   "lente-removebg-preview.png": "lente.png",
-  "mondo.png": "mondo.png",
+  "mondo-removebg-preview.png": "mondo.png",
   "satellite-removebg-preview.png": "satellite.png",
   "tastiera-removebg-preview.png": "tastiera.png",
   "campana-removebg-preview.png": "campana.png",
