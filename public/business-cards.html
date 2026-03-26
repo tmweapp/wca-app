@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WCA Business Cards</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-page: #0e0e18;
+  --bg-card: #1a1a2e;
+  --bg-input: #12121e;
+  --bg-header: rgba(26,26,46,0.92);
+  --text-primary: #e2e8f0;
+  --text-secondary: #a0aec0;
+  --text-muted: #64748b;
+  --border-color: rgba(99,102,241,0.15);
+  --border-subtle: rgba(99,102,241,0.08);
+  --accent: #6366f1;
+  --accent-hover: #818cf8;
+  --accent-soft: rgba(99,102,241,0.15);
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --sky: #0ea5e9;
+  --card-radius: 12px;
+  --gradient: linear-gradient(135deg, #6366f1, #818cf8, #a5b4fc);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"SF Pro Display","Geist",'Inter',system-ui,sans-serif;background:var(--bg-page);color:var(--text-primary);min-height:100vh;display:flex;flex-direction:column}
+
+.topbar{background:var(--bg-header);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.07);padding:10px 20px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:200;flex-wrap:wrap}
+.topbar h1{font-size:1.1rem;font-weight:700;background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;white-space:nowrap}
+.topbar input,.topbar select{padding:7px 12px;border-radius:8px;border:1px solid var(--border-color);background:var(--bg-input);color:var(--text-primary);font-size:.8rem;outline:none;transition:border-color .2s}
+.topbar input:focus{border-color:var(--accent)}
+.topbar .stats{margin-left:auto;font-size:.72rem;color:var(--text-muted);display:flex;gap:12px}
+.topbar .stats strong{color:var(--text-primary)}
+.btn{padding:6px 14px;border:none;border-radius:8px;font-size:.78rem;font-weight:600;cursor:pointer;color:var(--text-primary);text-decoration:none;transition:all .2s;display:inline-flex;align-items:center;gap:6px}
+.btn-back{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08)}
+.btn-back:hover{background:rgba(255,255,255,0.08)}
+.btn-accent{background:var(--accent-soft);color:#a5b4fc;border:1px solid rgba(99,102,241,0.25)}
+.btn-accent:hover{background:rgba(99,102,241,0.25)}
+.btn-danger{background:rgba(239,68,68,0.1);color:#fca5a5;border:1px solid rgba(239,68,68,0.2)}
+.btn-danger:hover{background:rgba(239,68,68,0.2)}
+
+.main-wrap{display:flex;flex:1;overflow:hidden}
+
+/* SIDEBAR */
+.filter-sidebar{width:240px;background:var(--bg-card);overflow-y:auto;flex-shrink:0;border-right:1px solid rgba(255,255,255,0.07)}
+.filter-sidebar h3{padding:12px 14px 8px;font-size:.65rem;text-transform:uppercase;letter-spacing:1px;color:#6366f1;border-bottom:1px solid var(--border-subtle);font-weight:700}
+.filter-item{display:flex;align-items:center;gap:8px;padding:8px 14px;cursor:pointer;font-size:.8rem;border-bottom:1px solid rgba(255,255,255,0.03);transition:all .15s;color:var(--text-secondary)}
+.filter-item:hover{background:rgba(99,102,241,0.08);color:var(--text-primary)}
+.filter-item.active{background:rgba(99,102,241,0.15);color:#fff;font-weight:600;border-left:3px solid var(--accent)}
+.filter-icon{font-size:1rem;flex-shrink:0}
+.filter-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.76rem}
+.filter-count{font-size:.65rem;padding:2px 8px;border-radius:10px;min-width:24px;text-align:center;background:rgba(255,255,255,0.05);color:var(--text-muted)}
+.filter-count.has{background:rgba(99,102,241,0.2);color:#a5b4fc;font-weight:600}
+.filter-date{font-size:.6rem;color:var(--text-muted);margin-top:1px}
+
+/* PAGE */
+.page-area{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg-page);position:relative}
+.page-header{background:rgba(26,26,46,0.6);backdrop-filter:blur(12px);padding:14px 24px;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.page-header .page-icon{font-size:2rem}
+.page-header .page-title{font-size:1.15rem;font-weight:700;color:var(--text-primary)}
+.page-header .page-subtitle{font-size:.75rem;color:var(--text-muted)}
+
+/* EVENT TABS */
+.event-tabs{display:flex;gap:0;padding:0 24px;border-bottom:1px solid rgba(255,255,255,0.06);background:rgba(26,26,46,0.3);overflow-x:auto;flex-shrink:0}
+.event-tab{padding:10px 18px;font-size:.78rem;font-weight:600;color:var(--text-muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;white-space:nowrap;flex-shrink:0}
+.event-tab:hover{color:var(--text-primary);background:rgba(99,102,241,0.05)}
+.event-tab.active{color:#a5b4fc;border-bottom-color:#6366f1;background:rgba(99,102,241,0.08)}
+.event-tab .tab-count{font-size:.62rem;background:rgba(99,102,241,0.2);color:#a5b4fc;padding:1px 6px;border-radius:8px;margin-left:6px}
+
+/* DROPZONE */
+.dropzone{border:2px dashed rgba(99,102,241,0.3);border-radius:14px;padding:32px 20px;text-align:center;color:var(--text-muted);font-size:.85rem;cursor:pointer;transition:all .3s;background:rgba(99,102,241,0.03);margin:20px 24px}
+.dropzone:hover,.dropzone.dragover{border-color:#6366f1;background:rgba(99,102,241,0.08);color:var(--text-primary)}
+
+/* IMPORT FORM */
+.import-form{padding:16px 24px;background:rgba(99,102,241,0.04);border-bottom:1px solid rgba(99,102,241,0.12);display:none;gap:12px;flex-wrap:wrap;align-items:end}
+.import-form label{font-size:.72rem;color:var(--text-secondary);font-weight:600;display:flex;flex-direction:column;gap:4px}
+.import-form input,.import-form select{padding:7px 12px;border-radius:8px;border:1px solid var(--border-color);background:var(--bg-input);color:var(--text-primary);font-size:.8rem;outline:none}
+.import-form input:focus,.import-form select:focus{border-color:var(--accent)}
+
+/* LINES */
+.card-lines{flex:1;overflow-y:auto;padding:0}
+.card-line{display:flex;align-items:center;gap:12px;padding:10px 24px 10px 20px;border-bottom:1px solid rgba(255,255,255,0.04);transition:all .15s;min-height:56px;position:relative}
+.card-line:hover{background:rgba(99,102,241,0.06)}
+.card-line:nth-child(even){background:rgba(255,255,255,0.015)}
+.card-line:nth-child(even):hover{background:rgba(99,102,241,0.06)}
+.card-line .line-num{width:28px;font-size:.68rem;color:var(--text-muted);text-align:right;flex-shrink:0;font-family:'JetBrains Mono',monospace}
+.card-line .line-flag{font-size:1.3rem;flex-shrink:0}
+.card-line .line-main{flex:1;overflow:hidden;min-width:0}
+.card-line .line-company{font-size:.85rem;font-weight:700;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.card-line .line-contact{font-size:.76rem;color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px}
+.card-line .line-detail{font-size:.7rem;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px}
+.card-line .line-right{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.card-line .line-event{font-size:.6rem;padding:2px 8px;border-radius:6px;background:rgba(99,102,241,0.1);color:#a5b4fc;border:1px solid rgba(99,102,241,0.2);white-space:nowrap;max-width:120px;overflow:hidden;text-overflow:ellipsis}
+.card-line .line-date{font-size:.58rem;color:var(--text-muted);white-space:nowrap}
+.match-badge{font-size:.65rem;font-weight:700;padding:3px 10px;border-radius:6px;white-space:nowrap}
+.match-badge.found{background:rgba(16,185,129,0.15);color:#6ee7b7;border:1px solid rgba(16,185,129,0.3)}
+.match-badge.partial{background:rgba(245,158,11,0.15);color:#fbbf24;border:1px solid rgba(245,158,11,0.3)}
+.match-badge.not-found{background:rgba(239,68,68,0.08);color:#fca5a5;border:1px solid rgba(239,68,68,0.15)}
+.match-detail{font-size:.6rem;color:var(--text-muted);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* STATS BAR */
+.stats-bar{display:flex;gap:10px;padding:10px 24px;border-bottom:1px solid rgba(255,255,255,0.04);flex-wrap:wrap}
+.stat-chip{font-size:.72rem;padding:4px 14px;border-radius:8px;font-weight:600}
+.stat-chip.total{background:rgba(255,255,255,0.04);color:var(--text-secondary)}
+.stat-chip.matched{background:rgba(16,185,129,0.12);color:#6ee7b7}
+.stat-chip.partial-stat{background:rgba(245,158,11,0.12);color:#fbbf24}
+.stat-chip.unmatched{background:rgba(239,68,68,0.08);color:#fca5a5}
+
+.letter-index{width:28px;background:var(--bg-card);display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:4px 0;overflow-y:auto;flex-shrink:0;border-left:1px solid rgba(255,255,255,0.06)}
+.letter-index a{color:var(--text-muted);font-size:.62rem;font-weight:600;padding:2px 0;text-decoration:none;display:block;width:100%;text-align:center;line-height:1.4;transition:all .15s}
+.letter-index a:hover{color:#a5b4fc;background:rgba(99,102,241,0.1)}
+.letter-index a.has-entries{color:#a5b4fc;font-size:.68rem}
+
+.empty-page{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;color:var(--text-muted);font-size:.9rem;gap:8px}
+
+@media(max-width:768px){
+  .filter-sidebar{width:60px}
+  .filter-name,.filter-count,.filter-date{display:none}
+  .card-line .line-detail,.card-line .line-event,.card-line .line-date{display:none}
+  .event-tabs{padding:0 10px}
+  .event-tab{padding:8px 12px;font-size:.7rem}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a href="/" class="btn btn-back">
+    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 12H5m7-7-7 7 7 7"/></svg>
+    Scraper
+  </a>
+  <a href="/agenda.html" class="btn btn-back">Agenda</a>
+  <h1>💼 Business Cards</h1>
+  <input type="text" id="searchInput" placeholder="Cerca contatto..." oninput="onSearch()" style="min-width:180px">
+  <select id="filterMatch" onchange="onFilterChange()" style="min-width:100px">
+    <option value="all">Tutti</option>
+    <option value="found">In WCA</option>
+    <option value="partial">Parziale</option>
+    <option value="not-found">Non trovati</option>
+  </select>
+  <div class="stats">
+    <span>Contatti: <strong id="statTotal">0</strong></span>
+    <span>In WCA: <strong id="statMatched">0</strong></span>
+    <span>Parziali: <strong id="statPartial">0</strong></span>
+  </div>
+</div>
+
+<div class="main-wrap">
+  <div class="filter-sidebar" id="filterSidebar">
+    <h3>Eventi</h3>
+  </div>
+
+  <div class="page-area" id="pageArea">
+    <div class="page-header" id="pageHeader">
+      <span class="page-icon">💼</span>
+      <div>
+        <div class="page-title" id="pageTitle">Business Cards</div>
+        <div class="page-subtitle" id="pageSubtitle">Importa contatti e confronta con i partner WCA</div>
+      </div>
+      <div style="margin-left:auto;display:flex;gap:6px">
+        <label class="btn btn-accent" style="cursor:pointer" id="btnImportLabel">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4m4-5 5-5 5 5m-5-5v12"/></svg>
+          Importa File <input type="file" accept=".csv,.xlsx,.xls,.tsv" id="fileInput" onchange="onFileSelected(this.files[0])" style="display:none">
+        </label>
+        <button class="btn btn-danger" onclick="clearAll()" id="btnClear" style="display:none">Cancella tutto</button>
+      </div>
+    </div>
+
+    <!-- EVENT TABS (horizontal) -->
+    <div class="event-tabs" id="eventTabs" style="display:none"></div>
+
+    <!-- IMPORT FORM (shown after file selected) -->
+    <div class="import-form" id="importForm">
+      <label>
+        Nome Evento
+        <div style="display:flex;gap:6px">
+          <select id="selEvent" onchange="onEventSelect()" style="min-width:180px">
+            <option value="">-- Nuovo evento --</option>
+          </select>
+          <input type="text" id="txtEventName" placeholder="es. Transport Logistic 2025" style="min-width:200px">
+        </div>
+      </label>
+      <label>
+        Data Contatto
+        <input type="date" id="txtContactDate" value="">
+      </label>
+      <label>
+        File selezionato
+        <span id="importFileName" style="font-size:.8rem;color:var(--text-primary);padding:7px 0">—</span>
+      </label>
+      <button class="btn btn-accent" onclick="confirmImport()" style="align-self:end">Importa</button>
+      <button class="btn btn-back" onclick="cancelImport()" style="align-self:end">Annulla</button>
+    </div>
+
+    <!-- STATS BAR -->
+    <div class="stats-bar" id="statsBar" style="display:none">
+      <span class="stat-chip total" id="chipTotal">0 contatti</span>
+      <span class="stat-chip matched" id="chipMatched">0 in WCA</span>
+      <span class="stat-chip partial-stat" id="chipPartial">0 parziali</span>
+      <span class="stat-chip unmatched" id="chipUnmatched">0 non trovati</span>
+    </div>
+
+    <!-- DROPZONE -->
+    <div class="dropzone" id="dropzone"
+         ondragover="event.preventDefault();this.classList.add('dragover')"
+         ondragleave="this.classList.remove('dragover')"
+         ondrop="handleDrop(event)"
+         onclick="document.getElementById('fileInput').click()">
+      <div style="font-size:3rem;margin-bottom:8px">📂</div>
+      <div style="font-size:1rem;font-weight:600;margin-bottom:4px">Trascina qui un file CSV o Excel</div>
+      <div style="font-size:.78rem">oppure clicca per sfogliare</div>
+    </div>
+
+    <div class="card-lines" id="cardLines"></div>
+  </div>
+
+  <div class="letter-index" id="letterIndex"></div>
+</div>
+
+<script>
+const SUPABASE_URL = "https://dlldkrzoxvjxpgkkttxu.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRsbGRrcnpveHZqeHBna2t0dHh1Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1ODcyMDU4NCwiZXhwIjoyMDc0Mjk2NTg0fQ.py_d96kA6Mqvi0ugBm4gmIlJSoOC_KbwUM7cgDR-O_E";
+const SB_HEADERS = {"Content-Type":"application/json","apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY};
+
+let allCards = [];
+let allPartners = [];
+let allEvents = [];
+let currentFilter = "all";
+let currentEvent = "all";
+let pendingFile = null;
+let pendingRows = [];
+
+function esc(s){const d=document.createElement("div");d.textContent=s||"";return d.innerHTML;}
+function ccFlag(cc){
+  if(!cc||cc.length!==2) return "🏳️";
+  return String.fromCodePoint(...[...cc.toUpperCase()].map(c=>0x1F1E6+c.charCodeAt(0)-65));
+}
+function fmtDate(d){ if(!d) return ""; try{ return new Date(d).toLocaleDateString("it-IT",{day:"2-digit",month:"short",year:"numeric"}); }catch(e){ return d; }}
+
+// ==================== SMART MATCHING ====================
+function normalize(s){
+  return (s||"").toLowerCase().trim()
+    .replace(/[.,\-_/\\()'"!@#$%^&*+=\[\]{}|<>:;`~]/g," ")
+    .replace(/\b(ltd|llc|inc|corp|gmbh|srl|s\.r\.l|s\.p\.a|spa|sa|ag|bv|nv|co|pvt|private|limited|international|intl|logistics|log|freight|forwarding|fwd|shipping|transport|trading|group|holding)\b/gi,"")
+    .replace(/\s+/g," ").trim();
+}
+function extractDomain(email){
+  if(!email) return "";
+  const parts = email.split("@");
+  return parts.length===2 ? parts[1].toLowerCase().replace(/^www\./,"") : "";
+}
+function normalizeWebsite(url){
+  return (url||"").toLowerCase().replace(/^https?:\/\//,"").replace(/^www\./,"").replace(/\/$/,"").trim();
+}
+function tokenize(s){ return normalize(s).split(/\s+/).filter(t=>t.length>=2); }
+function tokenOverlap(a,b){
+  const tokA=tokenize(a), tokB=tokenize(b);
+  if(!tokA.length||!tokB.length) return 0;
+  let m=0;
+  for(const t of tokA){ if(tokB.some(tb=>tb.includes(t)||t.includes(tb))) m++; }
+  return m/Math.max(tokA.length,tokB.length);
+}
+
+function matchCard(card, partners){
+  let bestMatch=null, bestScore=0, bestReason="";
+  const cc=normalize(card.company_name), ce=(card.email||"").toLowerCase().trim(),
+    cd=extractDomain(ce), cp=(card.phone||"").replace(/\D/g,""),
+    cCity=normalize(card.city), cContact=normalize(card.contact_name),
+    cWeb=normalizeWebsite(card.website);
+
+  for(const p of partners){
+    let score=0, reasons=[];
+    const pc=normalize(p.company_name), pe=(p.email||"").toLowerCase().trim(),
+      pd=extractDomain(pe), pp=(p.phone||"").replace(/\D/g,""),
+      pw=normalizeWebsite(p.website),
+      pCity=normalize((p.address||"").split(",").slice(-2,-1).join(""));
+
+    if(cc&&pc&&cc===pc){ score+=50; reasons.push("azienda esatta"); }
+    else if(cc&&pc){
+      const ov=tokenOverlap(card.company_name,p.company_name);
+      if(ov>=0.6){ score+=35; reasons.push("azienda ~"+Math.round(ov*100)+"%"); }
+      else if(ov>=0.3){ score+=15; reasons.push("azienda parziale"); }
+      if(pc.includes(cc)||cc.includes(pc)){ score+=20; if(!reasons.some(r=>r.includes("azienda"))) reasons.push("nome contenuto"); }
+    }
+    if(ce&&pe&&ce===pe){ score+=40; reasons.push("email"); }
+    else if(cd&&pd&&cd===pd){ score+=25; reasons.push("dominio email"); }
+    if(ce&&p.contacts){
+      for(const c of p.contacts){
+        if(c.email&&c.email.toLowerCase().trim()===ce){ score+=40; reasons.push("email contatto"); break; }
+      }
+      if(cd&&!reasons.includes("dominio email")){
+        for(const c of p.contacts){ if(c.email&&extractDomain(c.email)===cd){ score+=20; reasons.push("dominio contatto"); break; }}
+      }
+    }
+    if(cWeb&&pw&&(cWeb===pw||cWeb.includes(pw)||pw.includes(cWeb))){ score+=25; reasons.push("website"); }
+    if(cd&&pw&&(pw.includes(cd)||cd.includes(pw.replace(/\..*/,"")))){ score+=15; if(!reasons.some(r=>r.includes("dominio"))) reasons.push("dominio/web"); }
+    if(cp.length>=6&&pp.length>=6){
+      if(cp===pp){ score+=30; reasons.push("telefono"); }
+      else if(cp.slice(-8)===pp.slice(-8)){ score+=20; reasons.push("tel parziale"); }
+    }
+    if(cContact&&p.contacts){
+      for(const c of p.contacts){
+        const pn=normalize(c.name);
+        if(pn&&cContact===pn){ score+=25; reasons.push("contatto trovato"); break; }
+        else if(pn&&tokenOverlap(cContact,pn)>=0.5){ score+=12; reasons.push("contatto simile"); break; }
+      }
+    }
+    if(cCity&&pCity&&(cCity.includes(pCity)||pCity.includes(cCity))){ score+=5; }
+
+    if(score>bestScore){ bestScore=score; bestMatch=p; bestReason=reasons.join(" + "); }
+  }
+
+  let matchType="not-found";
+  if(bestScore>=40) matchType="found";
+  else if(bestScore>=15) matchType="partial";
+  else { bestMatch=null; bestReason=""; }
+  return { partner:bestMatch, score:bestScore, reason:bestReason, type:matchType };
+}
+
+// ==================== DATA LOADING ====================
+async function loadPartners(){
+  try{
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/wca_partners?select=wca_id,company_name,country_code,contacts,email,phone,website,address,logo_url&limit=10000`,{headers:SB_HEADERS});
+    if(r.ok) allPartners=await r.json();
+  }catch(e){}
+}
+async function loadCards(){
+  try{
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/wca_business_cards?select=*&order=created_at.desc&limit=2000`,{headers:SB_HEADERS});
+    if(r.ok) allCards=await r.json();
+  }catch(e){}
+}
+async function loadEvents(){
+  try{
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/wca_bc_events?select=*&order=event_date.desc&limit=100`,{headers:SB_HEADERS});
+    if(r.ok) allEvents=await r.json();
+  }catch(e){ allEvents=[]; }
+}
+
+async function init(){
+  await Promise.all([loadPartners(), loadCards(), loadEvents()]);
+  for(const card of allCards){ card._match=matchCard(card,allPartners); }
+  // Extract events from cards if events table empty
+  buildEventsFromCards();
+  renderAll();
+}
+
+function buildEventsFromCards(){
+  // Ensure events from cards are registered
+  const eventNames=new Set(allEvents.map(e=>e.event_name));
+  for(const c of allCards){
+    if(c.event_name && !eventNames.has(c.event_name)){
+      allEvents.push({event_name:c.event_name, event_date:c.contact_date||c.created_at, created_at:c.created_at});
+      eventNames.add(c.event_name);
+    }
+  }
+}
+
+function renderAll(){
+  renderSidebar();
+  renderEventTabs();
+  renderPage();
+  updateStats();
+  buildLetterIndex();
+}
+
+// ==================== SIDEBAR ====================
+function renderSidebar(){
+  const sb=document.getElementById("filterSidebar");
+  const events={};
+  for(const c of allCards){
+    const ev=c.event_name||"Senza evento";
+    if(!events[ev]) events[ev]={total:0,matched:0,date:c.contact_date||c.created_at};
+    events[ev].total++;
+    if(c._match?.type==="found") events[ev].matched++;
+  }
+  let html='<h3>Eventi</h3>';
+  html+=`<div class="filter-item ${currentEvent==='all'?'active':''}" onclick="selectEvent('all')">
+    <span class="filter-icon">📋</span><span class="filter-name">Tutti i contatti</span>
+    <span class="filter-count has">${allCards.length}</span>
+  </div>`;
+  for(const [ev,data] of Object.entries(events).sort((a,b)=>(b[1].date||"").localeCompare(a[1].date||""))){
+    const active=currentEvent===ev?"active":"";
+    html+=`<div class="filter-item ${active}" onclick="selectEvent(\`${esc(ev)}\`)">
+      <span class="filter-icon">📅</span>
+      <div style="flex:1;min-width:0">
+        <span class="filter-name" style="display:block">${esc(ev)}</span>
+        <span class="filter-date">${fmtDate(data.date)} · ${data.matched}/${data.total} in WCA</span>
+      </div>
+      <span class="filter-count has">${data.total}</span>
+    </div>`;
+  }
+  sb.innerHTML=html;
+}
+
+// ==================== EVENT TABS ====================
+function renderEventTabs(){
+  const tabs=document.getElementById("eventTabs");
+  const events={};
+  for(const c of allCards){
+    const ev=c.event_name||"Senza evento";
+    if(!events[ev]) events[ev]=0;
+    events[ev]++;
+  }
+  if(Object.keys(events).length<=1){ tabs.style.display="none"; return; }
+  tabs.style.display="flex";
+  let html=`<div class="event-tab ${currentEvent==='all'?'active':''}" onclick="selectEvent('all')">Tutti<span class="tab-count">${allCards.length}</span></div>`;
+  for(const [ev,cnt] of Object.entries(events)){
+    html+=`<div class="event-tab ${currentEvent===ev?'active':''}" onclick="selectEvent(\`${esc(ev)}\`)">${esc(ev)}<span class="tab-count">${cnt}</span></div>`;
+  }
+  tabs.innerHTML=html;
+}
+
+// ==================== RENDERING ====================
+function getFilteredCards(){
+  let cards=[...allCards];
+  if(currentEvent!=="all") cards=cards.filter(c=>(c.event_name||"Senza evento")===currentEvent);
+  const q=(document.getElementById("searchInput").value||"").toLowerCase();
+  if(q) cards=cards.filter(c=>
+    (c.company_name||"").toLowerCase().includes(q)||
+    (c.contact_name||"").toLowerCase().includes(q)||
+    (c.email||"").toLowerCase().includes(q)||
+    (c.city||"").toLowerCase().includes(q)||
+    (c.event_name||"").toLowerCase().includes(q)||
+    (c._match?.partner?.company_name||"").toLowerCase().includes(q)
+  );
+  if(currentFilter!=="all") cards=cards.filter(c=>c._match?.type===currentFilter);
+  cards.sort((a,b)=>(a.company_name||"").localeCompare(b.company_name||""));
+  return cards;
+}
+
+function renderPage(){
+  const cards=getFilteredCards();
+  const lines=document.getElementById("cardLines");
+  const dropzone=document.getElementById("dropzone");
+  const statsBar=document.getElementById("statsBar");
+  const btnClear=document.getElementById("btnClear");
+
+  if(allCards.length===0){
+    dropzone.style.display="block"; lines.innerHTML=""; statsBar.style.display="none"; btnClear.style.display="none"; return;
+  }
+  dropzone.style.display="none"; statsBar.style.display="flex"; btnClear.style.display="inline-flex";
+
+  const total=allCards.length, matched=allCards.filter(c=>c._match?.type==="found").length,
+    partial=allCards.filter(c=>c._match?.type==="partial").length;
+  document.getElementById("chipTotal").textContent=total+" contatti";
+  document.getElementById("chipMatched").textContent=matched+" in WCA";
+  document.getElementById("chipPartial").textContent=partial+" parziali";
+  document.getElementById("chipUnmatched").textContent=(total-matched-partial)+" non trovati";
+  document.getElementById("pageSubtitle").textContent=cards.length+" contatti"+(cards.length!==total?" (filtrati)":"");
+
+  if(!cards.length){
+    lines.innerHTML='<div class="empty-page"><div style="font-size:3rem;opacity:.5">🔍</div><div>Nessun risultato</div></div>'; return;
+  }
+
+  let html="";
+  for(let i=0;i<cards.length;i++){
+    const c=cards[i], m=c._match||{};
+    const flag=ccFlag(c.country_code||m.partner?.country_code||"");
+    const details=[c.position,c.email,c.phone,c.city].filter(Boolean);
+
+    let matchHtml="";
+    if(m.type==="found"){
+      matchHtml=`<div style="text-align:right">
+        <span class="match-badge found">IN WCA</span>
+        <div class="match-detail" title="${esc(m.reason)}">${esc(m.partner?.company_name)} (ID ${m.partner?.wca_id})</div>
+        <div style="font-size:.55rem;color:#6ee7b7;margin-top:1px">${esc(m.reason)}</div>
+      </div>`;
+    } else if(m.type==="partial"){
+      matchHtml=`<div style="text-align:right">
+        <span class="match-badge partial">PARZIALE</span>
+        <div class="match-detail" title="${esc(m.reason)}">${esc(m.partner?.company_name)} (${m.score}pt)</div>
+        <div style="font-size:.55rem;color:#fbbf24;margin-top:1px">${esc(m.reason)}</div>
+      </div>`;
+    } else {
+      matchHtml=`<span class="match-badge not-found">NON TROVATO</span>`;
+    }
+
+    const eventBadge=c.event_name?`<span class="line-event" title="${esc(c.event_name)}">${esc(c.event_name)}</span>`:"";
+    const dateBadge=c.contact_date?`<span class="line-date">${fmtDate(c.contact_date)}</span>`:(c.created_at?`<span class="line-date">${fmtDate(c.created_at)}</span>`:"");
+
+    html+=`<div class="card-line">
+      <span class="line-num">${i+1}</span>
+      <span class="line-flag">${flag}</span>
+      <div class="line-main">
+        <div class="line-company">${esc(c.company_name||"—")}</div>
+        <div class="line-contact">${esc(c.contact_name||"")}${c.position?' <span style="color:var(--text-muted);font-size:.66rem">('+esc(c.position)+')</span>':''}</div>
+        <div class="line-detail">${details.map(d=>esc(d)).join(" · ")}</div>
+      </div>
+      <div class="line-right" style="flex-direction:column;align-items:flex-end;gap:3px">
+        ${matchHtml}
+        <div style="display:flex;gap:4px;align-items:center">${eventBadge}${dateBadge}</div>
+      </div>
+    </div>`;
+  }
+  lines.innerHTML=html; lines.scrollTop=0; buildLetterIndex();
+}
+
+function updateStats(){
+  const total=allCards.length, matched=allCards.filter(c=>c._match?.type==="found").length,
+    partial=allCards.filter(c=>c._match?.type==="partial").length;
+  document.getElementById("statTotal").textContent=total;
+  document.getElementById("statMatched").textContent=matched;
+  document.getElementById("statPartial").textContent=partial;
+}
+
+function buildLetterIndex(){
+  const cards=getFilteredCards();
+  const idx=document.getElementById("letterIndex");
+  const used=new Set();
+  for(const c of cards){ const f=(c.company_name||"")[0]?.toUpperCase()||"#"; used.add(/[A-Z]/.test(f)?f:"#"); }
+  idx.innerHTML="ABCDEFGHIJKLMNOPQRSTUVWXYZ#".split("").map(l=>{
+    const cls=used.has(l)?"has-entries":"";
+    return `<a href="#" class="${cls}" onclick="event.preventDefault();scrollToLetter('${l}')">${l}</a>`;
+  }).join("");
+}
+function scrollToLetter(letter){
+  const cards=getFilteredCards();
+  const idx=cards.findIndex(c=>{const f=(c.company_name||"")[0]?.toUpperCase()||"#";return(/[A-Z]/.test(f)?f:"#")===letter;});
+  if(idx<0) return;
+  const lines=document.querySelectorAll(".card-line");
+  if(lines[idx]) lines[idx].scrollIntoView({behavior:"smooth",block:"center"});
+}
+
+// ==================== FILTERS ====================
+function selectEvent(ev){ currentEvent=ev; renderSidebar(); renderEventTabs(); renderPage(); }
+function onSearch(){ renderPage(); }
+function onFilterChange(){ currentFilter=document.getElementById("filterMatch").value; renderPage(); }
+
+// ==================== FILE IMPORT ====================
+function handleDrop(e){
+  e.preventDefault(); e.currentTarget.classList.remove("dragover");
+  const file=e.dataTransfer.files[0];
+  if(file) onFileSelected(file);
+}
+
+async function onFileSelected(file){
+  if(!file) return;
+  const ext=file.name.split(".").pop().toLowerCase();
+  try{
+    let rows=[];
+    if(ext==="csv"||ext==="tsv"){ const text=await file.text(); rows=parseCsv(text,ext==="tsv"?"\t":null); }
+    else if(ext==="xlsx"||ext==="xls"){ rows=await parseExcel(file); }
+    else { alert("Formato non supportato."); return; }
+    if(!rows.length){ alert("Nessun dato trovato."); return; }
+
+    pendingFile=file; pendingRows=rows;
+    // Show import form
+    document.getElementById("importForm").style.display="flex";
+    document.getElementById("importFileName").textContent=file.name+" ("+rows.length+" righe)";
+    document.getElementById("txtContactDate").value=new Date().toISOString().split("T")[0];
+    // Populate event dropdown
+    const sel=document.getElementById("selEvent");
+    sel.innerHTML='<option value="">-- Nuovo evento --</option>';
+    const evNames=new Set();
+    for(const e of allEvents) if(e.event_name) evNames.add(e.event_name);
+    for(const c of allCards) if(c.event_name) evNames.add(c.event_name);
+    for(const name of [...evNames].sort()) sel.innerHTML+=`<option value="${esc(name)}">${esc(name)}</option>`;
+    document.getElementById("txtEventName").value="";
+    document.getElementById("txtEventName").style.display="block";
+  }catch(e){ alert("Errore lettura file: "+e.message); }
+}
+
+function onEventSelect(){
+  const sel=document.getElementById("selEvent");
+  const txt=document.getElementById("txtEventName");
+  if(sel.value){ txt.value=sel.value; txt.style.display="none"; }
+  else { txt.value=""; txt.style.display="block"; txt.focus(); }
+}
+
+function cancelImport(){
+  document.getElementById("importForm").style.display="none";
+  pendingFile=null; pendingRows=[];
+  document.getElementById("fileInput").value="";
+}
+
+async function confirmImport(){
+  if(!pendingRows.length) return;
+  const eventName=(document.getElementById("selEvent").value||document.getElementById("txtEventName").value).trim();
+  const contactDate=document.getElementById("txtContactDate").value||null;
+  const uploadDate=new Date().toISOString();
+
+  const cards=mapRows(pendingRows, pendingFile?.name||"import");
+  // Add event info
+  for(const c of cards){
+    c.event_name=eventName||null;
+    c.contact_date=contactDate;
+    c.upload_date=uploadDate;
+  }
+
+  try{
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/wca_business_cards`,{
+      method:"POST", headers:{...SB_HEADERS,"Prefer":"return=representation"},
+      body:JSON.stringify(cards)
+    });
+    if(r.ok){
+      const saved=await r.json();
+      for(const card of saved){ card._match=matchCard(card,allPartners); allCards.unshift(card); }
+      // Save event if new
+      if(eventName && !allEvents.some(e=>e.event_name===eventName)){
+        const ev={event_name:eventName, event_date:contactDate, created_at:uploadDate};
+        await fetch(`${SUPABASE_URL}/rest/v1/wca_bc_events`,{
+          method:"POST", headers:{...SB_HEADERS,"Prefer":"return=minimal"},
+          body:JSON.stringify(ev)
+        }).catch(()=>{});
+        allEvents.push(ev);
+      }
+      cancelImport();
+      renderAll();
+    } else {
+      const err=await r.text(); alert("Errore: "+err);
+    }
+  }catch(e){ alert("Errore: "+e.message); }
+}
+
+function parseCsv(text, forceSep){
+  const lines=text.split(/\r?\n/).filter(l=>l.trim());
+  if(lines.length<2) return [];
+  let sep=forceSep;
+  if(!sep){
+    const f=lines[0];
+    if(f.split("\t").length>f.split(",").length) sep="\t";
+    else if(f.split(";").length>f.split(",").length) sep=";";
+    else sep=",";
+  }
+  const headers=lines[0].split(sep).map(h=>h.trim().replace(/^["']|["']$/g,""));
+  const rows=[];
+  for(let i=1;i<lines.length;i++){
+    const vals=lines[i].split(sep).map(v=>v.trim().replace(/^["']|["']$/g,""));
+    const obj={}; headers.forEach((h,idx)=>{obj[h]=vals[idx]||"";}); rows.push(obj);
+  }
+  return rows;
+}
+async function parseExcel(file){
+  if(!window.XLSX){
+    await new Promise((resolve,reject)=>{
+      const s=document.createElement("script");
+      s.src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+      s.onload=resolve;s.onerror=reject;document.head.appendChild(s);
+    });
+  }
+  return XLSX.utils.sheet_to_json(XLSX.read(await file.arrayBuffer(),{type:"array"}).Sheets[XLSX.read(await file.arrayBuffer(),{type:"array"}).SheetNames[0]],{defval:""});
+}
+function mapRows(rows, fileName){
+  const keys=Object.keys(rows[0]||{});
+  const find=(patterns)=>keys.find(k=>patterns.some(p=>k.toLowerCase().includes(p)))||"";
+  const colCompany=find(["company","azienda","società","societa","organization","organisation","firm","ditta","agency"]);
+  const colName=find(["name","nome","contact","contatto","person","persona","full name","fullname"]);
+  const colFirstName=find(["first","nome","given"]);
+  const colLastName=find(["last","cognome","family","surname"]);
+  const colEmail=find(["email","e-mail","mail"]);
+  const colPhone=find(["phone","telefono","tel","mobile","cell"]);
+  const colCountry=find(["country","paese","nazione"]);
+  const colCity=find(["city","città","citta","town"]);
+  const colPosition=find(["position","posizione","title","titolo","role","ruolo","job"]);
+  const colWebsite=find(["website","web","sito","url","site"]);
+  const colNotes=find(["note","notes","appunti","comment"]);
+
+  return rows.map(r=>{
+    let cn=colName?r[colName]:"";
+    if(!cn&&colFirstName) cn=((r[colFirstName]||"")+" "+(r[colLastName]||"")).trim();
+    return {
+      company_name:colCompany?r[colCompany]:"", contact_name:cn,
+      email:colEmail?r[colEmail]:"", phone:colPhone?r[colPhone]:"",
+      country:colCountry?r[colCountry]:"", country_code:"",
+      city:colCity?r[colCity]:"", position:colPosition?r[colPosition]:"",
+      website:colWebsite?r[colWebsite]:"", notes:colNotes?r[colNotes]:"",
+      source_file:fileName, raw_data:r, created_at:new Date().toISOString(),
+    };
+  }).filter(c=>c.company_name||c.contact_name||c.email);
+}
+
+// ==================== CLEAR ====================
+async function clearAll(){
+  if(!confirm("Cancellare tutti i biglietti da visita?")) return;
+  await fetch(`${SUPABASE_URL}/rest/v1/wca_business_cards?id=gt.0`,{method:"DELETE",headers:SB_HEADERS}).catch(()=>{});
+  allCards=[]; renderAll();
+}
+
+init();
+</script>
+</body>
+</html>
