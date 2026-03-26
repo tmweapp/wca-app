@@ -459,7 +459,7 @@ function extractProfile($, wcaId, sourceBase) {
 
   // ═══ ACCESS LIMITED detection ═══
   let membersOnlyInProfile = 0;
-  $(".profile_label, .profile_detail, .profile_value, .contact_detail, .contact_info, [class*='profile'] td, [class*='contact'] td").each((_, el) => {
+  $(".profile_label, .profile_detail, .profile_value, .profile_val, .contact_detail, .contact_info, [class*='profile'] td, [class*='contact'] td").each((_, el) => {
     if (/Members\s*Only/i.test($(el).text().trim())) membersOnlyInProfile++;
   });
   result.members_only_count = membersOnlyInProfile;
@@ -469,9 +469,16 @@ function extractProfile($, wcaId, sourceBase) {
   const hasContacts = result.contacts.length > 0;
   const hasPhone = !!result.phone;
 
-  if (membersOnlyInProfile > 2 && !hasContactEmails && !hasCompanyEmail && !hasContacts && !hasPhone) {
+  // access_limited scatta quando ci sono campi "Members only" E mancano i contatti email
+  // Prima era troppo restrittivo (richiedeva TUTTI i campi mancanti)
+  // Ora: se ci sono >2 "Members only" E nessuna email nei contatti → limitato
+  if (membersOnlyInProfile > 2 && !hasContactEmails) {
     result.access_limited = true;
   }
+
+  // ═══ hasLogout — segnale di autenticazione riuscita ═══
+  const fullHtml = $.html();
+  result.hasLogout = /logout|sign.?out/i.test(fullHtml);
 
   console.log(`[extract] ${wcaId}: contacts=${result.contacts.length} email=${hasCompanyEmail} phone=${hasPhone} limited=${result.access_limited} membersOnly=${membersOnlyInProfile}`);
   return result;

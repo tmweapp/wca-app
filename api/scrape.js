@@ -113,12 +113,18 @@ async function fetchProfile(wcaId, cookies, profileHref, networkDomain, ssoCooki
 // ═══ AUTH: ottieni cookies validi per un dominio ═══
 async function getAuthCookies(domain) {
   const networkBase = getNetworkBase(domain);
-  let cookies = await getCachedCookies(domain);
+  let cookies = null;
   let ssoCookies = "";
-  if (cookies) {
+
+  // getCachedCookies ritorna { cookies, ssoCookies } oppure null
+  const cached = await getCachedCookies(domain);
+  if (cached) {
+    cookies = cached.cookies;
+    ssoCookies = cached.ssoCookies || "";
     const valid = await testCookies(cookies, networkBase);
-    if (!valid) cookies = null;
+    if (!valid) { cookies = null; ssoCookies = ""; }
   }
+
   if (!cookies) {
     console.log(`[scrape] SSO login su ${networkBase}...`);
     const loginResult = await ssoLogin(null, null, networkBase);
@@ -127,6 +133,19 @@ async function getAuthCookies(domain) {
     ssoCookies = loginResult.ssoCookies || "";
     await saveCookiesToCache(cookies, domain, ssoCookies);
   }
+  return { cookies, ssoCookies };
+}
+
+// ═══ SSO REFRESH: forza re-login quando il profilo risulta non autenticato ═══
+async function forceSSORrefresh(domain) {
+  const networkBase = getNetworkBase(domain);
+  console.log(`[scrape] ⚠ SSO REFRESH forzato su ${networkBase}...`);
+  const loginResult = await ssoLogin(null, null, networkBase);
+  if (!loginResult.success) return { error: loginResult.error };
+  const cookies = loginResult.cookies;
+  const ssoCookies = loginResult.ssoCookies || "";
+  await saveCookiesToCache(cookies, domain, ssoCookies);
+  console.log(`[scrape] SSO REFRESH OK: hasASPXAUTH=${cookies.includes(".ASPXAUTH")} ssoCookieLen=${ssoCookies.length}`);
   return { cookies, ssoCookies };
 }
 
@@ -149,8 +168,8 @@ module.exports = async (req, res) => {
     // Auth sul dominio target
     const auth = await getAuthCookies(targetDomain);
     if (auth.error) return res.status(500).json({ success: false, error: auth.error });
-    const cookies = auth.cookies;
-    const ssoCookies = auth.ssoCookies || "";
+    let cookies = auth.cookies;
+    let ssoCookies = auth.ssoCookies || "";
 
     const batch = wcaIds.slice(0, 1); // 1 solo profilo per request
     const memberMap = {};
@@ -161,6 +180,28 @@ module.exports = async (req, res) => {
     const results = [];
     for (const wcaId of batch) {
       let profile = await fetchProfile(wcaId, cookies, memberMap[wcaId], networkDomain, ssoCookies);
+
+      // ═══ SSO REFRESH: se il profilo mostra segni di auth fallita, forza re-login ═══
+      // Segnali: login_redirect, access_limited, oppure members_only_count > 2 senza contatti
+      const authFailed = profile.state === "login_redirect" ||
+        profile.access_limited ||
+        (profile.members_only_count > 2 && (!profile.contacts || !profile.contacts.some(c => c.email)));
+
+      if (authFailed && profile.state !== "not_found") {
+        console.log(`[scrape] ⚠ Auth fallita per ${wcaId}: state=${profile.state} limited=${profile.access_limited} membersOnly=${profile.members_only_count} → SSO refresh`);
+        const refreshAuth = await forceSSORrefresh(targetDomain);
+        if (!refreshAuth.error) {
+          cookies = refreshAuth.cookies;
+          ssoCookies = refreshAuth.ssoCookies || "";
+          // Riprova con nuovi cookies
+          const retryProfile = await fetchProfile(wcaId, cookies, memberMap[wcaId], networkDomain, ssoCookies);
+          if (retryProfile.state === "ok") {
+            console.log(`[scrape] SSO refresh OK per ${wcaId}: contacts=${retryProfile.contacts?.length || 0} limited=${retryProfile.access_limited}`);
+            profile = retryProfile;
+            profile.sso_refreshed = true;
+          }
+        }
+      }
 
       // ═══ AUTO-RETRY su network se wcaworld.com dà contatti personali vuoti ═══
       // Scatta quando NON ci sono contatti personali (nome+email+telefono)

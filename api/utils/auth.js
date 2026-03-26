@@ -29,8 +29,9 @@ async function getCachedCookies(domain) {
     // Cookie validi per max 30 minuti (prima era 10min, troppo breve per 12 network)
     const age = Date.now() - new Date(row.updated_at).getTime();
     if (age > 30 * 60 * 1000) { console.log(`[auth] Cached cookies scaduti (>30min) domain=${domain||"wcaworld.com"}`); return null; }
-    console.log(`[auth] Usando cookies cached (età: ${Math.round(age/1000)}s) domain=${domain||"wcaworld.com"}`);
-    return row.cookies;
+    console.log(`[auth] Usando cookies cached (età: ${Math.round(age/1000)}s) domain=${domain||"wcaworld.com"} hasSso=${!!row.sso_cookies}`);
+    // Ritorna ANCHE i cookies SSO — servono per i redirect a sso.api.wcaworld.com/CheckLoggedIn
+    return { cookies: row.cookies, ssoCookies: row.sso_cookies || "" };
   } catch (e) { console.log("[auth] Cache read error: " + e.message); return null; }
 }
 

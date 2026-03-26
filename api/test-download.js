@@ -42,16 +42,21 @@ module.exports = async (req, res) => {
     addLog(`START: wcaId=${wcaId} domain=${domain} base=${networkBase}`);
 
     // ═══ STEP 1: AUTENTICAZIONE SSO sul network ═══
-    let cookies = await getCachedCookies(domain);
+    let cookies = null;
+    var ssoCookies = "";
     let authMethod = "cached";
 
-    if (cookies) {
+    // getCachedCookies ora ritorna { cookies, ssoCookies } oppure null
+    const cached = await getCachedCookies(domain);
+    if (cached) {
+      cookies = cached.cookies;
+      ssoCookies = cached.ssoCookies || "";
       const valid = await testCookies(cookies, networkBase);
       if (!valid) {
         addLog(`Cookies cached NON validi per ${domain}, forzo SSO login`);
-        cookies = null;
+        cookies = null; ssoCookies = "";
       } else {
-        addLog(`Cookies cached VALIDI per ${domain}`);
+        addLog(`Cookies cached VALIDI per ${domain} (hasSsoCookies=${!!ssoCookies})`);
       }
     }
 
@@ -70,7 +75,7 @@ module.exports = async (req, res) => {
         });
       }
       cookies = loginResult.cookies;
-      var ssoCookies = loginResult.ssoCookies || "";
+      ssoCookies = loginResult.ssoCookies || "";
       await saveCookiesToCache(cookies, domain, ssoCookies);
       addLog(`SSO OK: cookieLen=${cookies.length} hasASPXAUTH=${cookies.includes(".ASPXAUTH")} ssoCookieLen=${ssoCookies.length}`);
     }
@@ -84,7 +89,7 @@ module.exports = async (req, res) => {
     let resp;
 
     // Redirect manuale per preservare cookies (SSO-aware)
-    if (!ssoCookies) var ssoCookies = "";
+    // ssoCookies è già dichiarato sopra (var ssoCookies)
     while (redirectCount < 5) {
       // Usa cookies SSO quando redirect va a sso.api.wcaworld.com
       const isSSO = currentUrl.includes("sso.api.wcaworld.com");
@@ -166,19 +171,46 @@ module.exports = async (req, res) => {
       const freshLogin = await ssoLogin(null, null, networkBase);
       if (freshLogin.success) {
         cookies = freshLogin.cookies;
-        await saveCookiesToCache(cookies, domain);
+        ssoCookies = freshLogin.ssoCookies || "";
+        await saveCookiesToCache(cookies, domain, ssoCookies);
         authMethod = "sso_refresh";
-        addLog(`SSO refresh OK — rifetch profilo...`);
-        // Rifetch con nuovi cookies
-        let retryResp = await fetch(profileUrl, {
-          headers: { "User-Agent": UA, "Cookie": cookies, "Accept": "text/html,application/xhtml+xml", "Referer": `${networkBase}/Directory` },
-          redirect: "follow", timeout: 15000,
-        });
+        addLog(`SSO refresh OK — rifetch profilo con redirect manuale...`);
+
+        // Rifetch con nuovi cookies — redirect MANUALE per gestire SSO cookies
+        let retryUrl = profileUrl;
+        let retryRedirects = 0;
+        let retryResp;
+        while (retryRedirects < 5) {
+          const isSSO = retryUrl.includes("sso.api.wcaworld.com");
+          const cookiesToSend = isSSO ? ssoCookies : cookies;
+          retryResp = await fetch(retryUrl, {
+            headers: { "User-Agent": UA, "Cookie": cookiesToSend, "Accept": "text/html,application/xhtml+xml", "Referer": `${networkBase}/Directory` },
+            redirect: "manual", timeout: 15000,
+          });
+          // Aggiorna cookies
+          const newC = (retryResp.headers.raw?.()?.["set-cookie"] || []).map(c => c.split(";")[0]);
+          if (newC.length) {
+            const src = isSSO ? ssoCookies : cookies;
+            const cm = {};
+            for (const c of src.split("; ")) { const eq = c.indexOf("="); if (eq > 0) cm[c.substring(0, eq)] = c; }
+            for (const c of newC) { const eq = c.indexOf("="); if (eq > 0) cm[c.substring(0, eq)] = c; }
+            if (isSSO) ssoCookies = Object.values(cm).join("; ");
+            else cookies = Object.values(cm).join("; ");
+          }
+          if (retryResp.status >= 300 && retryResp.status < 400) {
+            const loc = retryResp.headers.get("location") || "";
+            if (!loc) break;
+            retryUrl = loc.startsWith("http") ? loc : new URL(loc, retryUrl).href;
+            retryRedirects++;
+            continue;
+          }
+          break;
+        }
+
         const retryHtml = await retryResp.text();
         const retryHasLogout = /logout|sign.?out/i.test(retryHtml);
         addLog(`Retry: status=${retryResp.status} len=${retryHtml.length} hasLogout=${retryHasLogout}`);
         if (retryHasLogout || retryHtml.length > html.length) {
-          // Usa la nuova pagina
           var $ = cheerio.load(retryHtml);
           var html2 = retryHtml;
         } else {
