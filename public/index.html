@@ -223,6 +223,60 @@ body {
   font-weight: 600;
 }
 
+/* === MODE BUTTONS === */
+.mode-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.03);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.25s;
+  min-width: 90px;
+}
+.mode-btn:hover {
+  background: rgba(99,102,241,0.08);
+  border-color: rgba(99,102,241,0.25);
+  color: #c7d2fe;
+}
+.mode-btn.active {
+  background: rgba(99,102,241,0.15);
+  border-color: rgba(99,102,241,0.45);
+  color: #a5b4fc;
+  box-shadow: 0 2px 16px rgba(99,102,241,0.15);
+}
+.mode-icon {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+.mode-name {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+/* === FIELD INPUT (unified) === */
+.field-input {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: var(--text-primary);
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+.field-input:focus {
+  outline: none;
+  border-color: rgba(99,102,241,0.5);
+  box-shadow: 0 0 0 3px rgba(99,102,241,0.1);
+  background: rgba(99,102,241,0.05);
+}
+
 /* === PICKER BUTTONS (country, network) === */
 .picker-btn {
   position: relative;
@@ -1209,92 +1263,93 @@ tr:hover td {
   <!-- ════════ CONFIG CARD ════════ -->
   <div class="card" style="position:relative;z-index:100">
 
-    <!-- ROW 1: Search + Search By + Mode -->
-    <div class="search-row">
-      <div class="field-search field" id="fieldSearch">
-        <label>Cerca</label>
-        <input type="text" id="txtSearch" placeholder="Nome azienda o ID">
+    <!-- ═══ RIGA 1: MODALITÀ (sinistra) + DESCRIZIONE (destra) ═══ -->
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;flex-wrap:wrap">
+      <!-- Mode buttons -->
+      <div style="display:flex;gap:8px">
+        <button class="mode-btn active" data-mode="discover" onclick="setMode('discover',this)">
+          <span class="mode-icon">🔍</span>
+          <span class="mode-name">Discover</span>
+        </button>
+        <button class="mode-btn" data-mode="network" onclick="setMode('network',this)">
+          <span class="mode-icon">🌐</span>
+          <span class="mode-name">Per Network</span>
+        </button>
+        <button class="mode-btn" data-mode="range" onclick="setMode('range',this)">
+          <span class="mode-icon">🔢</span>
+          <span class="mode-name">Range ID</span>
+        </button>
       </div>
-      <div class="field-search-by field">
-        <label>Tipo</label>
-        <select id="selSearchBy">
-          <option value="">Paese</option>
-          <option value="company_name">Nome</option>
-          <option value="id_number">ID WCA</option>
-        </select>
-      </div>
-      <div class="field-mode">
-        <label style="display:block;font-size:.68rem;text-transform:uppercase;letter-spacing:.8px;color:var(--text-muted);margin-bottom:6px;font-weight:600">Modalità</label>
-        <div class="mode-selector">
-          <button class="btn btn-sm btn-secondary active" data-mode="discover" onclick="setMode('discover',this)" data-tip="Scopri automaticamente tutti i partner di un paese su ogni network">Discover</button>
-          <button class="btn btn-sm btn-secondary" data-mode="network" onclick="setMode('network',this)" data-tip="Scarica i partner da un singolo network specifico">Per Network</button>
-          <button class="btn btn-sm btn-secondary" data-mode="range" onclick="setMode('range',this)" data-tip="Scarica profili per intervallo numerico di ID WCA">Range ID</button>
-        </div>
+      <!-- Description (changes with mode) -->
+      <div id="modeDescription" style="flex:1;min-width:200px">
+        <div style="font-size:.82rem;color:var(--text-primary);font-weight:600" id="modeTitle">Discover Automatico</div>
+        <div style="font-size:.72rem;color:var(--text-muted);line-height:1.4" id="modeSubtitle">Seleziona uno o più paesi — il sistema esplorerà automaticamente tutti i network e scaricherà ogni partner trovato.</div>
       </div>
     </div>
 
-    <!-- ROW 2: Country + Range + Options -->
-    <div style="display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap;margin-bottom:10px">
-      <!-- Country + Network big buttons -->
-      <div style="display:flex;gap:10px;align-self:flex-end">
+    <!-- ═══ RIGA 2: CONFIGURAZIONE (fissa — il contenuto cambia per modalità) ═══ -->
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;min-height:56px">
+
+      <!-- === DISCOVER config === -->
+      <div id="configDiscover" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;flex:1">
         <button onclick="openCountryPopup()" class="picker-btn" id="btnPickCountry">
-          <span style="font-size:1.6rem;line-height:1">📍</span>
+          <span style="font-size:1.5rem;line-height:1">📍</span>
           <span class="picker-label">Paesi</span>
           <span id="countrySelBadge" class="picker-badge" style="display:none"></span>
         </button>
+        <div id="selectedCountriesPreview" style="display:none;align-items:center;gap:5px;flex-wrap:wrap;flex:1;min-width:0"></div>
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;white-space:nowrap;font-size:.76rem;color:var(--text-secondary)">
+          <input type="checkbox" id="chkUpdateAddress" style="accent-color:var(--accent)"> Aggiorna esistenti
+        </label>
+        <button class="btn btn-danger btn-sm" onclick="resetCountryAndRestart()" style="font-size:.68rem;padding:3px 8px">Reset Paese</button>
+      </div>
+
+      <!-- === NETWORK config (hidden by default) === -->
+      <div id="configNetwork" style="display:none;align-items:center;gap:10px;flex-wrap:wrap;flex:1">
+        <button onclick="openCountryPopup()" class="picker-btn">
+          <span style="font-size:1.5rem;line-height:1">📍</span>
+          <span class="picker-label">Paesi</span>
+          <span id="countrySelBadge2" class="picker-badge" style="display:none"></span>
+        </button>
         <button onclick="openNetworkPopup()" class="picker-btn" id="btnPickNetwork">
-          <span style="font-size:1.6rem;line-height:1">🌐</span>
+          <span style="font-size:1.5rem;line-height:1">🌐</span>
           <span class="picker-label">Network</span>
           <span id="networkSelBadge" class="picker-badge" style="display:none"></span>
         </button>
-      </div>
-
-      <!-- Selected countries preview -->
-      <div id="selectedCountriesPreview" style="display:none;align-items:center;gap:6px;flex-wrap:wrap;max-width:400px;align-self:flex-end"></div>
-
-      <!-- Range (hidden) -->
-      <div class="config-section hidden" id="fieldRangeFrom" style="display:none;margin-bottom:0">
-        <label>Range ID</label>
-        <div style="display:flex;gap:8px;align-items:center">
-          <input type="number" id="txtRangeFrom" value="1" min="1" placeholder="Da" style="width:90px">
-          <span style="color:var(--text-muted)">→</span>
-          <input type="number" id="txtRangeTo" value="500" min="1" placeholder="A" style="width:90px">
+        <div id="networkModePanel" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span id="networkSelCountInline" style="font-size:.72rem;color:var(--text-muted);padding:4px 10px;border-radius:6px;background:rgba(255,255,255,0.04)">0 selezionati</span>
+          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:.76rem;color:#c7d2fe;white-space:nowrap">
+            <input type="checkbox" id="chkAllCountries" style="accent-color:#6366f1" onchange="toggleAllCountriesMode()"> Tutti i Paesi
+          </label>
+          <span id="allCountriesHint" style="display:none;font-size:.7rem;color:#a5b4fc">A→Z automatico</span>
         </div>
       </div>
-      <div class="hidden" id="fieldRangeTo" style="display:none"></div>
 
-      <!-- Options -->
-      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;align-self:flex-end;padding-bottom:2px">
-        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;white-space:nowrap;font-size:.76rem;color:var(--text-secondary)">
-          <input type="checkbox" id="chkUpdateAddress" style="accent-color:var(--accent)"> Aggiorna
-        </label>
-        <button class="btn btn-danger btn-sm" onclick="resetCountryAndRestart()" data-tip="Cancella la cache locale del paese selezionato" style="font-size:.68rem;padding:3px 8px">Reset</button>
-        <button class="btn btn-sm btn-secondary" onclick="testDownloadProfile()" id="btnTestDL" data-tip="Testa il download di un singolo profilo" style="font-size:.68rem;padding:3px 8px">Test</button>
-        <button class="btn btn-sm btn-secondary" onclick="testAllNetworks()" id="btnTestNets" data-tip="Verifica accesso su tutti i network" style="font-size:.68rem;padding:3px 8px">Test Net</button>
-        <span id="netTestStatus" style="font-size:.7rem;color:var(--text-secondary)"></span>
+      <!-- === RANGE config (hidden by default) === -->
+      <div id="configRange" style="display:none;align-items:center;gap:10px;flex-wrap:wrap;flex:1">
+        <div style="display:flex;gap:8px;align-items:center">
+          <label style="font-size:.72rem;color:var(--text-muted);font-weight:600">DA</label>
+          <input type="number" id="txtRangeFrom" value="1" min="1" placeholder="Da" class="field-input" style="width:100px">
+          <span style="color:var(--text-muted);font-size:1rem">→</span>
+          <label style="font-size:.72rem;color:var(--text-muted);font-weight:600">A</label>
+          <input type="number" id="txtRangeTo" value="500" min="1" placeholder="A" class="field-input" style="width:100px">
+        </div>
+      </div>
+
+      <!-- Search (always visible, compact) -->
+      <div id="fieldSearch" style="display:flex;align-items:center;gap:6px;margin-left:auto">
+        <input type="text" id="txtSearch" placeholder="Cerca..." class="field-input" style="width:160px;font-size:.78rem">
+        <select id="selSearchBy" class="field-input" style="width:auto;min-width:80px;font-size:.78rem">
+          <option value="">Paese</option>
+          <option value="company_name">Nome</option>
+          <option value="id_number">ID</option>
+        </select>
       </div>
     </div>
 
-    <!-- Network mode panel -->
-    <div id="networkModePanel" style="display:none;padding:12px;border-radius:10px;background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.15);margin-bottom:10px">
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px">
-        <p style="font-size:.78rem;color:#fbbf24;margin:0;display:flex;align-items:center;gap:8px;flex:1;font-weight:600">
-          <svg width="16" height="16" fill="none" stroke="#fbbf24" stroke-width="2" viewBox="0 0 24 24"><path d="M12 9v2m0 4h.01M10.29 3.86l-8.6 14.86A1 1 0 002.56 20h18.88a1 1 0 00.87-1.28l-8.6-14.86a1 1 0 00-1.72 0z"/></svg>
-          Seleziona almeno un network qui sotto.
-        </p>
-        <span id="networkSelCountInline" style="font-size:.72rem;color:var(--text-muted);padding:4px 10px;border-radius:6px;background:rgba(255,255,255,0.04)">0 selezionati</span>
-      </div>
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.78rem;color:#c7d2fe;padding:7px 14px;border-radius:8px;background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.2);white-space:nowrap;transition:all .2s;user-select:none" data-tip="Scarica TUTTI i paesi A→Z per i network selezionati">
-          <input type="checkbox" id="chkAllCountries" style="accent-color:#6366f1" onchange="toggleAllCountriesMode()">
-          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
-          Tutti i Paesi
-        </label>
-        <span id="allCountriesHint" style="display:none;font-size:.72rem;color:#a5b4fc;line-height:1.4;max-width:400px">Scaricherà ogni paese in ordine alfabetico.</span>
-      </div>
-    </div>
-
-    <!-- Networks trigger icon (inside options row) -->
+    <!-- Hidden compat elements -->
+    <div id="fieldRangeFrom" style="display:none"></div>
+    <div id="fieldRangeTo" style="display:none"></div>
 
   </div>
 
@@ -1564,12 +1619,11 @@ function updateCountryDisplay(){
   // Update popup count
   const popCnt = document.getElementById("countrySelCount");
   if(popCnt) popCnt.textContent = cnt + " selezionati";
-  // Update picker badge
-  const badge = document.getElementById("countrySelBadge");
-  if(badge){
-    if(cnt > 0){ badge.textContent = cnt; badge.style.display = "block"; }
-    else { badge.style.display = "none"; }
-  }
+  // Update ALL picker badges (discover + network panels)
+  ["countrySelBadge","countrySelBadge2"].forEach(id => {
+    const b = document.getElementById(id);
+    if(b){ if(cnt > 0){ b.textContent = cnt; b.style.display = "block"; } else { b.style.display = "none"; } }
+  });
   // Update selected countries preview with flags
   const preview = document.getElementById("selectedCountriesPreview");
   if(preview){
@@ -1765,23 +1819,27 @@ function log(msg, cls=""){
 
 function setMode(mode, btn){
   currentMode = mode;
-  document.querySelectorAll(".mode-selector .btn").forEach(b=>b.classList.remove("active"));
+  // Update mode buttons
+  document.querySelectorAll(".mode-btn").forEach(b=>b.classList.remove("active"));
   btn.classList.add("active");
-  const isRange = mode === "range";
-  const isNetwork = mode === "network";
-  document.getElementById("fieldRangeFrom").style.display = isRange ? "block" : "none";
-  document.getElementById("fieldRangeTo").style.display = "none"; // merged into fieldRangeFrom
+  // Show/hide config panels (no movement — just swap content)
+  document.getElementById("configDiscover").style.display = mode === "discover" ? "flex" : "none";
+  document.getElementById("configNetwork").style.display = mode === "network" ? "flex" : "none";
+  document.getElementById("configRange").style.display = mode === "range" ? "flex" : "none";
+  // Search visible in discover mode only
   const searchEl = document.getElementById("fieldSearch");
-  if(searchEl) searchEl.style.display = (isRange || isNetwork) ? "none" : "block";
-  document.getElementById("networkModePanel").style.display = isNetwork ? "block" : "none";
-  // In Per Network mode, auto-open the network popup
-  if(isNetwork){
-    openNetworkPopup();
-  } else {
-    closeNetworkPopup();
-    const chk = document.getElementById("chkAllCountries");
-    if(chk && chk.checked){ chk.checked = false; toggleAllCountriesMode(); }
-  }
+  if(searchEl) searchEl.style.display = mode === "discover" ? "flex" : "none";
+  // Update description
+  const titles = {
+    discover: ["Discover Automatico", "Seleziona paesi — il sistema esplorerà tutti i network e scaricherà ogni partner."],
+    network: ["Download Per Network", "Scegli i network specifici e i paesi da scaricare. Utile per aggiornare un singolo network."],
+    range: ["Range ID Numerico", "Scarica i profili in un intervallo di ID WCA. Utile per esplorare ID specifici."]
+  };
+  document.getElementById("modeTitle").textContent = titles[mode][0];
+  document.getElementById("modeSubtitle").textContent = titles[mode][1];
+  // Auto-open network popup in network mode
+  if(mode === "network"){ openNetworkPopup(); }
+  else { closeNetworkPopup(); }
 }
 
 function getSelectedNetworkObjects(){
