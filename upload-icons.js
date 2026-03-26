@@ -12,12 +12,12 @@ const BUCKET = "icons";
 
 // Mappa: nome file sorgente → nome file destinazione su Supabase
 const ICONS = {
-  "pinpoint.png": "pinpoint.png",
-  "lente.png": "lente.png",
-  "mondo.png": "mondo.png",
-  "satellite.png": "satellite.png",
-  "tastiera.png": "tastiera.png",
-  "campana.png": "campana.png",
+  "pinpoint-removebg-preview.png": "pinpoint.png",
+  "lente-removebg-preview.png": "lente.png",
+  "mondo-removebg-preview.png": "mondo.png",
+  "satellite-removebg-preview.png": "satellite.png",
+  "tastiera-removebg-preview.png": "tastiera.png",
+  "campana-removebg-preview.png": "campana.png",
 };
 
 // Cartella sorgente — cerca in vari percorsi possibili
