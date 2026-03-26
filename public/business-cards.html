@@ -81,26 +81,40 @@ body{font-family:"SF Pro Display","Geist",'Inter',system-ui,sans-serif;backgroun
 .import-form input,.import-form select{padding:7px 12px;border-radius:8px;border:1px solid var(--border-color);background:var(--bg-input);color:var(--text-primary);font-size:.8rem;outline:none}
 .import-form input:focus,.import-form select:focus{border-color:var(--accent)}
 
-/* LINES */
-.card-lines{flex:1;overflow-y:auto;padding:0}
-.card-line{display:flex;align-items:center;gap:12px;padding:10px 24px 10px 20px;border-bottom:1px solid rgba(255,255,255,0.04);transition:all .15s;min-height:56px;position:relative}
-.card-line:hover{background:rgba(99,102,241,0.06)}
-.card-line:nth-child(even){background:rgba(255,255,255,0.015)}
-.card-line:nth-child(even):hover{background:rgba(99,102,241,0.06)}
-.card-line .line-num{width:28px;font-size:.68rem;color:var(--text-muted);text-align:right;flex-shrink:0;font-family:'JetBrains Mono',monospace}
-.card-line .line-flag{font-size:1.3rem;flex-shrink:0}
-.card-line .line-main{flex:1;overflow:hidden;min-width:0}
-.card-line .line-company{font-size:.85rem;font-weight:700;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.card-line .line-contact{font-size:.76rem;color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px}
-.card-line .line-detail{font-size:.7rem;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px}
-.card-line .line-right{display:flex;align-items:center;gap:6px;flex-shrink:0}
-.card-line .line-event{font-size:.6rem;padding:2px 8px;border-radius:6px;background:rgba(99,102,241,0.1);color:#a5b4fc;border:1px solid rgba(99,102,241,0.2);white-space:nowrap;max-width:120px;overflow:hidden;text-overflow:ellipsis}
-.card-line .line-date{font-size:.58rem;color:var(--text-muted);white-space:nowrap}
-.match-badge{font-size:.65rem;font-weight:700;padding:3px 10px;border-radius:6px;white-space:nowrap}
-.match-badge.found{background:rgba(16,185,129,0.15);color:#6ee7b7;border:1px solid rgba(16,185,129,0.3)}
-.match-badge.partial{background:rgba(245,158,11,0.15);color:#fbbf24;border:1px solid rgba(245,158,11,0.3)}
-.match-badge.not-found{background:rgba(239,68,68,0.08);color:#fca5a5;border:1px solid rgba(239,68,68,0.15)}
-.match-detail{font-size:.6rem;color:var(--text-muted);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* CARDS GRID — glassmorphism */
+.card-lines{flex:1;overflow-y:auto;padding:16px 20px;display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px;align-content:start}
+.bc-card{background:rgba(255,255,255,0.04);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:16px 18px;transition:all .25s;cursor:default;position:relative;overflow:hidden}
+.bc-card::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,rgba(99,102,241,0.3),transparent);opacity:0;transition:opacity .3s}
+.bc-card:hover{background:rgba(99,102,241,0.06);border-color:rgba(99,102,241,0.2);transform:translateY(-2px);box-shadow:0 8px 32px rgba(0,0,0,0.3),0 0 20px rgba(99,102,241,0.06)}
+.bc-card:hover::before{opacity:1}
+.bc-card .card-top{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.bc-card .card-flag{font-size:1.8rem;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.3))}
+.bc-card .card-company{font-size:.95rem;font-weight:800;color:#fff;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:.2px}
+.bc-card .card-match{flex-shrink:0}
+.bc-card .card-person{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.bc-card .person-name{font-size:.82rem;font-weight:600;color:var(--text-secondary)}
+.bc-card .person-role{font-size:.68rem;color:var(--text-muted);font-style:italic}
+.bc-card .card-fields{display:flex;flex-direction:column;gap:3px}
+.bc-card .card-field{font-size:.72rem;color:var(--text-muted);display:flex;align-items:center;gap:6px;overflow:hidden}
+.bc-card .card-field .f-icon{flex-shrink:0;width:16px;text-align:center;font-size:.72rem}
+.bc-card .card-field .f-label{font-size:.62rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;min-width:42px;flex-shrink:0}
+.bc-card .card-field .f-val{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bc-card .card-field a{color:#818cf8;text-decoration:none}
+.bc-card .card-field a:hover{text-decoration:underline}
+.bc-card .card-bottom{display:flex;align-items:center;justify-content:space-between;margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.05)}
+.bc-card .card-event{font-size:.62rem;padding:2px 8px;border-radius:6px;background:rgba(99,102,241,0.1);color:#a5b4fc;border:1px solid rgba(99,102,241,0.15);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bc-card .card-date{font-size:.6rem;color:var(--text-muted)}
+.match-badge{font-size:.62rem;font-weight:700;padding:3px 10px;border-radius:8px;white-space:nowrap;letter-spacing:.3px}
+.match-badge.found{background:linear-gradient(135deg,rgba(16,185,129,0.15),rgba(16,185,129,0.08));color:#6ee7b7;border:1px solid rgba(16,185,129,0.3);box-shadow:0 2px 8px rgba(16,185,129,0.1)}
+.match-badge.partial{background:linear-gradient(135deg,rgba(245,158,11,0.15),rgba(245,158,11,0.08));color:#fbbf24;border:1px solid rgba(245,158,11,0.3);box-shadow:0 2px 8px rgba(245,158,11,0.1)}
+.match-badge.not-found{background:rgba(239,68,68,0.06);color:#fca5a5;border:1px solid rgba(239,68,68,0.12)}
+.match-sub{font-size:.55rem;color:var(--text-muted);margin-top:2px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* SORT BAR */
+.sort-bar{display:flex;gap:6px;padding:8px 24px;border-bottom:1px solid rgba(255,255,255,0.04);align-items:center;flex-wrap:wrap}
+.sort-bar label{font-size:.68rem;color:var(--text-muted);font-weight:600}
+.sort-btn{padding:3px 10px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);border-radius:6px;color:var(--text-secondary);font-size:.68rem;cursor:pointer;transition:all .15s}
+.sort-btn:hover{background:rgba(99,102,241,0.1);color:#a5b4fc}
+.sort-btn.active{background:rgba(99,102,241,0.15);color:#a5b4fc;border-color:rgba(99,102,241,0.3)}
 
 /* STATS BAR */
 .stats-bar{display:flex;gap:10px;padding:10px 24px;border-bottom:1px solid rgba(255,255,255,0.04);flex-wrap:wrap}
@@ -120,7 +134,8 @@ body{font-family:"SF Pro Display","Geist",'Inter',system-ui,sans-serif;backgroun
 @media(max-width:768px){
   .filter-sidebar{width:60px}
   .filter-name,.filter-count,.filter-date{display:none}
-  .card-line .line-detail,.card-line .line-event,.card-line .line-date{display:none}
+  .bc-card .card-fields{display:none}
+  .card-lines{grid-template-columns:1fr}
   .event-tabs{padding:0 10px}
   .event-tab{padding:8px 12px;font-size:.7rem}
 }
@@ -204,6 +219,16 @@ body{font-family:"SF Pro Display","Geist",'Inter',system-ui,sans-serif;backgroun
       <span class="stat-chip unmatched" id="chipUnmatched">0 non trovati</span>
     </div>
 
+    <!-- SORT BAR -->
+    <div class="sort-bar" id="sortBar" style="display:none">
+      <label>Ordina:</label>
+      <button class="sort-btn active" onclick="setSort('company')" id="sortCompany">Azienda A→Z</button>
+      <button class="sort-btn" onclick="setSort('name')" id="sortName">Nome</button>
+      <button class="sort-btn" onclick="setSort('country')" id="sortCountry">Paese</button>
+      <button class="sort-btn" onclick="setSort('match')" id="sortMatch">Match WCA</button>
+      <button class="sort-btn" onclick="setSort('date')" id="sortDate">Data</button>
+    </div>
+
     <!-- DROPZONE -->
     <div class="dropzone" id="dropzone"
          ondragover="event.preventDefault();this.classList.add('dragover')"
@@ -238,6 +263,12 @@ function esc(s){const d=document.createElement("div");d.textContent=s||"";return
 function ccFlag(cc){
   if(!cc||cc.length!==2) return "🏳️";
   return String.fromCodePoint(...[...cc.toUpperCase()].map(c=>0x1F1E6+c.charCodeAt(0)-65));
+}
+const COUNTRY_CODES={"afghanistan":"AF","albania":"AL","algeria":"DZ","argentina":"AR","armenia":"AM","australia":"AU","austria":"AT","azerbaijan":"AZ","bahrain":"BH","bangladesh":"BD","belarus":"BY","belgium":"BE","bolivia":"BO","bosnia":"BA","brazil":"BR","brasile":"BR","brunei":"BN","bulgaria":"BG","cambodia":"KH","cameroon":"CM","canada":"CA","chile":"CL","china":"CN","cina":"CN","colombia":"CO","costa rica":"CR","croatia":"HR","cuba":"CU","cyprus":"CY","czech republic":"CZ","czechia":"CZ","denmark":"DK","danimarca":"DK","dominican republic":"DO","ecuador":"EC","egypt":"EG","egitto":"EG","el salvador":"SV","estonia":"EE","ethiopia":"ET","finland":"FI","finlandia":"FI","france":"FR","francia":"FR","georgia":"GE","germany":"DE","germania":"DE","ghana":"GH","greece":"GR","grecia":"GR","guatemala":"GT","honduras":"HN","hong kong":"HK","hungary":"HU","ungheria":"HU","iceland":"IS","india":"IN","indonesia":"ID","iran":"IR","iraq":"IQ","ireland":"IE","irlanda":"IE","israel":"IL","israele":"IL","italy":"IT","italia":"IT","ivory coast":"CI","jamaica":"JM","japan":"JP","giappone":"JP","jordan":"JO","giordania":"JO","kazakhstan":"KZ","kenya":"KE","korea":"KR","south korea":"KR","corea":"KR","corea del sud":"KR","kuwait":"KW","laos":"LA","latvia":"LV","lebanon":"LB","libano":"LB","libya":"LY","libia":"LY","lithuania":"LT","luxembourg":"LU","lussemburgo":"LU","malaysia":"MY","malesia":"MY","maldives":"MV","malta":"MT","mauritius":"MU","mexico":"MX","messico":"MX","mongolia":"MN","montenegro":"ME","morocco":"MA","marocco":"MA","mozambique":"MZ","myanmar":"MM","nepal":"NP","netherlands":"NL","paesi bassi":"NL","olanda":"NL","new zealand":"NZ","nuova zelanda":"NZ","nicaragua":"NI","nigeria":"NG","norway":"NO","norvegia":"NO","oman":"OM","pakistan":"PK","panama":"PA","panamá":"PA","paraguay":"PY","peru":"PE","perù":"PE","philippines":"PH","filippine":"PH","poland":"PL","polonia":"PL","portugal":"PT","portogallo":"PT","qatar":"QA","romania":"RO","russia":"RU","saudi arabia":"SA","arabia saudita":"SA","senegal":"SN","serbia":"RS","singapore":"SG","slovakia":"SK","slovenia":"SI","south africa":"ZA","sudafrica":"ZA","spain":"ES","spagna":"ES","sri lanka":"LK","sudan":"SD","sweden":"SE","svezia":"SE","switzerland":"CH","svizzera":"CH","syria":"SY","siria":"SY","taiwan":"TW","tanzania":"TZ","thailand":"TH","tailandia":"TH","tunisia":"TN","turkey":"TR","turchia":"TR","turkiye":"TR","uae":"AE","uganda":"UG","ukraine":"UA","ucraina":"UA","united arab emirates":"AE","emirati arabi":"AE","emirati arabi uniti":"AE","united kingdom":"GB","uk":"GB","gran bretagna":"GB","regno unito":"GB","united states":"US","usa":"US","stati uniti":"US","uruguay":"UY","uzbekistan":"UZ","venezuela":"VE","vietnam":"VN","yemen":"YE","zambia":"ZM","zimbabwe":"ZW"};
+function resolveCountryCode(name){
+  if(!name) return "";
+  const n=name.toLowerCase().trim();
+  return COUNTRY_CODES[n]||"";
 }
 function fmtDate(d){ if(!d) return ""; try{ return new Date(d).toLocaleDateString("it-IT",{day:"2-digit",month:"short",year:"numeric"}); }catch(e){ return d; }}
 
@@ -343,7 +374,10 @@ async function loadEvents(){
 
 async function init(){
   await Promise.all([loadPartners(), loadCards(), loadEvents()]);
-  for(const card of allCards){ card._match=matchCard(card,allPartners); }
+  for(const card of allCards){
+    if(!card.country_code&&card.country) card.country_code=resolveCountryCode(card.country);
+    card._match=matchCard(card,allPartners);
+  }
   // Extract events from cards if events table empty
   buildEventsFromCards();
   renderAll();
@@ -429,8 +463,30 @@ function getFilteredCards(){
     (c._match?.partner?.company_name||"").toLowerCase().includes(q)
   );
   if(currentFilter!=="all") cards=cards.filter(c=>c._match?.type===currentFilter);
-  cards.sort((a,b)=>(a.company_name||"").localeCompare(b.company_name||""));
+  cards=sortCards(cards);
   return cards;
+}
+
+let currentSort="company";
+function setSort(key){
+  currentSort=key;
+  document.querySelectorAll(".sort-btn").forEach(b=>b.classList.remove("active"));
+  const btn=document.getElementById("sort"+key.charAt(0).toUpperCase()+key.slice(1));
+  if(btn) btn.classList.add("active");
+  renderPage();
+}
+function sortCards(cards){
+  switch(currentSort){
+    case "company": return cards.sort((a,b)=>(a.company_name||"").localeCompare(b.company_name||""));
+    case "name": return cards.sort((a,b)=>(a.contact_name||"").localeCompare(b.contact_name||""));
+    case "country": return cards.sort((a,b)=>(a.country||a.country_code||"").localeCompare(b.country||b.country_code||""));
+    case "match": return cards.sort((a,b)=>{
+      const order={"found":0,"partial":1,"not-found":2};
+      return (order[a._match?.type]??2)-(order[b._match?.type]??2);
+    });
+    case "date": return cards.sort((a,b)=>(b.contact_date||b.created_at||"").localeCompare(a.contact_date||a.created_at||""));
+    default: return cards;
+  }
 }
 
 function renderPage(){
@@ -440,10 +496,11 @@ function renderPage(){
   const statsBar=document.getElementById("statsBar");
   const btnClear=document.getElementById("btnClear");
 
+  const sortBar=document.getElementById("sortBar");
   if(allCards.length===0){
-    dropzone.style.display="block"; lines.innerHTML=""; statsBar.style.display="none"; btnClear.style.display="none"; return;
+    dropzone.style.display="block"; lines.innerHTML=""; statsBar.style.display="none"; btnClear.style.display="none"; sortBar.style.display="none"; return;
   }
-  dropzone.style.display="none"; statsBar.style.display="flex"; btnClear.style.display="inline-flex";
+  dropzone.style.display="none"; statsBar.style.display="flex"; btnClear.style.display="inline-flex"; sortBar.style.display="flex";
 
   const total=allCards.length, matched=allCards.filter(c=>c._match?.type==="found").length,
     partial=allCards.filter(c=>c._match?.type==="partial").length;
@@ -461,39 +518,39 @@ function renderPage(){
   for(let i=0;i<cards.length;i++){
     const c=cards[i], m=c._match||{};
     const flag=ccFlag(c.country_code||m.partner?.country_code||"");
-    const details=[c.position,c.email,c.phone,c.city].filter(Boolean);
 
     let matchHtml="";
     if(m.type==="found"){
-      matchHtml=`<div style="text-align:right">
-        <span class="match-badge found">IN WCA</span>
-        <div class="match-detail" title="${esc(m.reason)}">${esc(m.partner?.company_name)} (ID ${m.partner?.wca_id})</div>
-        <div style="font-size:.55rem;color:#6ee7b7;margin-top:1px">${esc(m.reason)}</div>
-      </div>`;
+      matchHtml=`<span class="match-badge found">IN WCA</span>
+        <div class="match-sub" title="${esc(m.reason)}">${esc(m.partner?.company_name)} · ${esc(m.reason)}</div>`;
     } else if(m.type==="partial"){
-      matchHtml=`<div style="text-align:right">
-        <span class="match-badge partial">PARZIALE</span>
-        <div class="match-detail" title="${esc(m.reason)}">${esc(m.partner?.company_name)} (${m.score}pt)</div>
-        <div style="font-size:.55rem;color:#fbbf24;margin-top:1px">${esc(m.reason)}</div>
-      </div>`;
+      matchHtml=`<span class="match-badge partial">PARZIALE</span>
+        <div class="match-sub" title="${esc(m.reason)}">${esc(m.partner?.company_name)} · ${m.score}pt</div>`;
     } else {
       matchHtml=`<span class="match-badge not-found">NON TROVATO</span>`;
     }
 
-    const eventBadge=c.event_name?`<span class="line-event" title="${esc(c.event_name)}">${esc(c.event_name)}</span>`:"";
-    const dateBadge=c.contact_date?`<span class="line-date">${fmtDate(c.contact_date)}</span>`:(c.created_at?`<span class="line-date">${fmtDate(c.created_at)}</span>`:"");
+    const fields=[];
+    if(c.email) fields.push(`<div class="card-field"><span class="f-icon" style="color:#818cf8">✉</span><span class="f-label">Email</span><a href="mailto:${esc(c.email)}" class="f-val" style="color:#818cf8">${esc(c.email)}</a></div>`);
+    if(c.phone) fields.push(`<div class="card-field"><span class="f-icon" style="color:#34d399">☎</span><span class="f-label">Tel</span><a href="tel:${esc(c.phone)}" class="f-val" style="color:#34d399">${esc(c.phone)}</a></div>`);
+    if(c.city||c.country) fields.push(`<div class="card-field"><span class="f-icon" style="color:#f59e0b">📍</span><span class="f-label">Luogo</span><span class="f-val">${esc([c.city,c.province,c.country].filter(Boolean).join(", "))}</span></div>`);
+    if(c.website) fields.push(`<div class="card-field"><span class="f-icon" style="color:#0ea5e9">🌐</span><span class="f-label">Web</span><a href="${esc(c.website.startsWith('http')?c.website:'https://'+c.website)}" target="_blank" class="f-val" style="color:#0ea5e9">${esc(c.website)}</a></div>`);
+    if(c.address) fields.push(`<div class="card-field"><span class="f-icon" style="color:#a78bfa">🏢</span><span class="f-label">Indirizzo</span><span class="f-val">${esc(c.address)}</span></div>`);
 
-    html+=`<div class="card-line">
-      <span class="line-num">${i+1}</span>
-      <span class="line-flag">${flag}</span>
-      <div class="line-main">
-        <div class="line-company">${esc(c.company_name||"—")}</div>
-        <div class="line-contact">${esc(c.contact_name||"")}${c.position?' <span style="color:var(--text-muted);font-size:.66rem">('+esc(c.position)+')</span>':''}</div>
-        <div class="line-detail">${details.map(d=>esc(d)).join(" · ")}</div>
+    html+=`<div class="bc-card" data-letter="${(c.company_name||"#")[0].toUpperCase()}">
+      <div class="card-top">
+        <span class="card-flag">${flag}</span>
+        <span class="card-company" title="${esc(c.company_name)}">${esc(c.company_name||"—")}</span>
+        <div class="card-match">${matchHtml}</div>
       </div>
-      <div class="line-right" style="flex-direction:column;align-items:flex-end;gap:3px">
-        ${matchHtml}
-        <div style="display:flex;gap:4px;align-items:center">${eventBadge}${dateBadge}</div>
+      <div class="card-person">
+        <span class="person-name">${esc(c.contact_name||"")}</span>
+        ${c.position?`<span class="person-role">${esc(c.position)}</span>`:""}
+      </div>
+      <div class="card-fields">${fields.join("")}</div>
+      <div class="card-bottom">
+        ${c.event_name?`<span class="card-event" title="${esc(c.event_name)}">${esc(c.event_name)}</span>`:`<span></span>`}
+        <span class="card-date">${fmtDate(c.contact_date||c.created_at)}</span>
       </div>
     </div>`;
   }
@@ -522,8 +579,8 @@ function scrollToLetter(letter){
   const cards=getFilteredCards();
   const idx=cards.findIndex(c=>{const f=(c.company_name||"")[0]?.toUpperCase()||"#";return(/[A-Z]/.test(f)?f:"#")===letter;});
   if(idx<0) return;
-  const lines=document.querySelectorAll(".card-line");
-  if(lines[idx]) lines[idx].scrollIntoView({behavior:"smooth",block:"center"});
+  const els=document.querySelectorAll(".bc-card");
+  if(els[idx]) els[idx].scrollIntoView({behavior:"smooth",block:"center"});
 }
 
 // ==================== FILTERS ====================
@@ -584,7 +641,22 @@ async function confirmImport(){
   const contactDate=document.getElementById("txtContactDate").value||null;
   const uploadDate=new Date().toISOString();
 
-  const cards=mapRows(pendingRows, pendingFile?.name||"import");
+  let cards=mapRows(pendingRows, pendingFile?.name||"import");
+  // Deduplicate by company+name+email key
+  const seen=new Set();
+  cards=cards.filter(c=>{
+    const key=(c.company_name||"").toLowerCase().trim()+"||"+(c.contact_name||"").toLowerCase().trim()+"||"+(c.email||"").toLowerCase().trim();
+    if(seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  // Also skip if already in DB
+  const dbKeys=new Set(allCards.map(c=>(c.company_name||"").toLowerCase().trim()+"||"+(c.contact_name||"").toLowerCase().trim()+"||"+(c.email||"").toLowerCase().trim()));
+  cards=cards.filter(c=>{
+    const key=(c.company_name||"").toLowerCase().trim()+"||"+(c.contact_name||"").toLowerCase().trim()+"||"+(c.email||"").toLowerCase().trim();
+    return !dbKeys.has(key);
+  });
+  if(!cards.length){ alert("Tutti i contatti sono già presenti nel database."); cancelImport(); return; }
   // Add event info
   for(const c of cards){
     c.event_name=eventName||null;
@@ -618,19 +690,54 @@ async function confirmImport(){
 }
 
 function parseCsv(text, forceSep){
+  text=text.replace(/\uFEFF/g,"");
   const lines=text.split(/\r?\n/).filter(l=>l.trim());
   if(lines.length<2) return [];
   let sep=forceSep;
   if(!sep){
+    // Detect separator from header line only (no quoted fields expected in header)
     const f=lines[0];
-    if(f.split("\t").length>f.split(",").length) sep="\t";
-    else if(f.split(";").length>f.split(",").length) sep=";";
+    const tabCount=(f.match(/\t/g)||[]).length;
+    const semiCount=(f.match(/;/g)||[]).length;
+    const commaCount=(f.match(/,/g)||[]).length;
+    if(tabCount>=semiCount && tabCount>=commaCount && tabCount>0) sep="\t";
+    else if(semiCount>=commaCount && semiCount>0) sep=";";
     else sep=",";
   }
-  const headers=lines[0].split(sep).map(h=>h.trim().replace(/^["']|["']$/g,""));
+  // RFC4180-aware field splitter: respects quoted fields containing separators and newlines
+  function splitRow(line){
+    const fields=[]; let field=""; let inQuotes=false;
+    for(let i=0;i<line.length;i++){
+      const ch=line[i];
+      if(inQuotes){
+        if(ch==='"'){ if(line[i+1]==='"'){ field+='"'; i++; } else { inQuotes=false; } }
+        else { field+=ch; }
+      } else {
+        if(ch==='"'){ inQuotes=true; }
+        else if(ch===sep){ fields.push(field.trim()); field=""; }
+        else { field+=ch; }
+      }
+    }
+    fields.push(field.trim());
+    return fields;
+  }
+  // Handle multi-line quoted fields: rejoin lines that are inside quotes
+  const joinedLines=[];
+  let buffer=""; let open=false;
+  for(const line of lines){
+    if(open){ buffer+="\n"+line; } else { buffer=line; }
+    const quoteCount=(buffer.match(/"/g)||[]).length;
+    open=(quoteCount%2!==0);
+    if(!open){ joinedLines.push(buffer); buffer=""; }
+  }
+  if(buffer) joinedLines.push(buffer);
+
+  const headers=splitRow(joinedLines[0]).map(h=>h.replace(/^["']|["']$/g,""));
+  const numCols=headers.length;
   const rows=[];
-  for(let i=1;i<lines.length;i++){
-    const vals=lines[i].split(sep).map(v=>v.trim().replace(/^["']|["']$/g,""));
+  for(let i=1;i<joinedLines.length;i++){
+    const vals=splitRow(joinedLines[i]);
+    if(vals.length<2) continue;
     const obj={}; headers.forEach((h,idx)=>{obj[h]=vals[idx]||"";}); rows.push(obj);
   }
   return rows;
@@ -643,35 +750,69 @@ async function parseExcel(file){
       s.onload=resolve;s.onerror=reject;document.head.appendChild(s);
     });
   }
-  return XLSX.utils.sheet_to_json(XLSX.read(await file.arrayBuffer(),{type:"array"}).Sheets[XLSX.read(await file.arrayBuffer(),{type:"array"}).SheetNames[0]],{defval:""});
+  const wb=XLSX.read(await file.arrayBuffer(),{type:"array"});
+  return XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:""});
 }
 function mapRows(rows, fileName){
   const keys=Object.keys(rows[0]||{});
   const find=(patterns)=>keys.find(k=>patterns.some(p=>k.toLowerCase().includes(p)))||"";
-  const colCompany=find(["company","azienda","società","societa","organization","organisation","firm","ditta","agency"]);
-  const colName=find(["name","nome","contact","contatto","person","persona","full name","fullname"]);
-  const colFirstName=find(["first","nome","given"]);
-  const colLastName=find(["last","cognome","family","surname"]);
+  const colCompany=find(["azienda","company","società","societa","organization","organisation","firm","ditta","agency"]);
+  const colName=find(["nome","name","contact","contatto","person","persona","full name","fullname"]);
+  const colFirstName=find(["first name","given"]);
+  const colLastName=find(["last name","cognome","family","surname"]);
   const colEmail=find(["email","e-mail","mail"]);
-  const colPhone=find(["phone","telefono","tel","mobile","cell"]);
-  const colCountry=find(["country","paese","nazione"]);
-  const colCity=find(["city","città","citta","town"]);
-  const colPosition=find(["position","posizione","title","titolo","role","ruolo","job"]);
-  const colWebsite=find(["website","web","sito","url","site"]);
+  const colPhone=find(["cellulare","phone","telefono","tel","mobile","cell"]);
+  const colPhone2=find(["tel. fisso","fisso","landline","office phone"]);
+  const colFax=find(["fax"]);
+  const colCountry=find(["paese","country","nazione"]);
+  const colCity=find(["città","city","citta","town"]);
+  const colPosition=find(["ruolo","position","posizione","title","titolo","role","job"]);
+  const colWebsite=find(["web","website","sito","url","site"]);
   const colNotes=find(["note","notes","appunti","comment"]);
+  const colAddress=find(["indirizzo","address","via"]);
+  const colProvince=find(["provincia","province","state","stato"]);
+  const colZip=find(["cap","zip","postal","postcode"]);
+  const colLinkedIn=find(["linkedin"]);
+  const colLogo=find(["logo"]);
+  const colDate=find(["data","date"]);
 
+  // Helper: detect garbage OCR text (too many special chars, no real words)
+  function isGarbage(s){
+    if(!s||s.length<3) return false;
+    const special=(s.match(/[=|{}\\<>_~^#\[\]]/g)||[]).length;
+    return special/s.length>0.15;
+  }
   return rows.map(r=>{
     let cn=colName?r[colName]:"";
     if(!cn&&colFirstName) cn=((r[colFirstName]||"")+" "+(r[colLastName]||"")).trim();
+    const company=colCompany?r[colCompany]:"";
+    const email=colEmail?r[colEmail]:"";
+    // Skip rows where name or company is OCR garbage
+    if(isGarbage(cn)&&isGarbage(company)) return null;
+    // Clean phone: take first number only if field has OCR junk
+    let phone=colPhone?r[colPhone]:"";
+    if(phone&&isGarbage(phone)){ const m=phone.match(/[\d\s()+-]+/); phone=m?m[0].trim():""; }
+    let phone2=colPhone2?r[colPhone2]:"";
+    if(phone2&&isGarbage(phone2)){ const m=phone2.match(/[\d\s()+-]+/); phone2=m?m[0].trim():""; }
+    // Use first email if multiple separated by comma
+    const cleanEmail=(email.split(",")[0]||"").trim();
+    // Clean website
+    let web=colWebsite?r[colWebsite]:"";
+    if(web&&isGarbage(web)) web="";
+    // Build notes without OCR garbage
+    let notes=colNotes?r[colNotes]:"";
+    if(isGarbage(notes)) notes="";
     return {
-      company_name:colCompany?r[colCompany]:"", contact_name:cn,
-      email:colEmail?r[colEmail]:"", phone:colPhone?r[colPhone]:"",
-      country:colCountry?r[colCountry]:"", country_code:"",
+      company_name:company, contact_name:cn,
+      email:cleanEmail, phone:phone||(phone2||""),
+      country:colCountry?r[colCountry]:"", country_code:resolveCountryCode(colCountry?r[colCountry]:""),
       city:colCity?r[colCity]:"", position:colPosition?r[colPosition]:"",
-      website:colWebsite?r[colWebsite]:"", notes:colNotes?r[colNotes]:"",
-      source_file:fileName, raw_data:r, created_at:new Date().toISOString(),
+      website:web, notes:notes,
+      address:colAddress?r[colAddress]:"", province:colProvince?r[colProvince]:"",
+      zip:colZip?r[colZip]:"",
+      source_file:fileName, created_at:colDate?r[colDate]:new Date().toISOString(),
     };
-  }).filter(c=>c.company_name||c.contact_name||c.email);
+  }).filter(c=>c&&(c.company_name||c.contact_name||c.email));
 }
 
 // ==================== CLEAR ====================
