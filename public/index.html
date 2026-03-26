@@ -1250,9 +1250,10 @@ tr:hover td {
   <div class="cmd-bar">
     <!-- ROW A: 📍Paese picker + bandiere + Aggiorna/Reset | separatore | status -->
     <div style="display:flex;align-items:center;gap:8px;width:100%;flex-wrap:wrap">
-      <button onclick="openCountryPopup()" style="position:relative;background:none;border:none;cursor:pointer;padding:0;flex-shrink:0" title="Seleziona paesi">
-        <img src="https://dlldkrzoxvjxpgkkttxu.supabase.co/storage/v1/object/public/icons/pinpoint.png?v=2" style="width:40px;height:40px;object-fit:contain;filter:drop-shadow(0 3px 8px rgba(0,0,0,0.3));transition:all 0.25s" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'" alt="Paesi">
-        <span id="countrySelBadge" style="position:absolute;top:-4px;right:-8px;font-size:.6rem;min-width:18px;height:18px;line-height:18px;text-align:center;padding:0 4px;border-radius:9px;background:linear-gradient(135deg,#6366f1,#818cf8);color:white;font-weight:700;box-shadow:0 2px 8px rgba(99,102,241,0.4);display:none"></span>
+      <button onclick="openCountryPopup()" style="position:relative;background:none;border:none;cursor:pointer;padding:0;flex-shrink:0;display:flex;align-items:center;gap:8px" title="Seleziona paesi">
+        <img src="https://dlldkrzoxvjxpgkkttxu.supabase.co/storage/v1/object/public/icons/pinpoint.png?v=2" style="width:72px;height:72px;object-fit:contain;filter:drop-shadow(0 4px 12px rgba(0,0,0,0.3));transition:all 0.25s" onmouseover="this.style.transform='scale(1.08)'" onmouseout="this.style.transform='scale(1)'" alt="Paesi">
+        <span style="font-size:.76rem;color:var(--text-secondary);font-weight:600;white-space:nowrap">Scegli Country</span>
+        <span id="countrySelBadge" style="position:absolute;top:-4px;left:58px;font-size:.6rem;min-width:18px;height:18px;line-height:18px;text-align:center;padding:0 4px;border-radius:9px;background:linear-gradient(135deg,#6366f1,#818cf8);color:white;font-weight:700;box-shadow:0 2px 8px rgba(99,102,241,0.4);display:none"></span>
       </button>
       <div id="selectedCountriesPreview" style="display:none;align-items:center;gap:4px;flex-wrap:wrap;max-width:280px"></div>
       <label style="display:flex;align-items:center;gap:4px;cursor:pointer;white-space:nowrap;font-size:.72rem;color:var(--text-secondary)">
@@ -1317,33 +1318,33 @@ tr:hover td {
   <!-- ════════ CONFIG CARD ════════ -->
   <div class="card" style="position:relative;z-index:100">
 
-    <!-- ═══ MODALITÀ: icone 3x grandi + descrizione ═══ -->
-    <div style="display:flex;align-items:center;gap:20px;margin-bottom:14px;flex-wrap:wrap">
-      <div style="display:flex;gap:10px">
-        <button class="mode-btn active" data-mode="discover" onclick="setMode('discover',this)">
-          <img src="https://dlldkrzoxvjxpgkkttxu.supabase.co/storage/v1/object/public/icons/lente.png?v=2" class="mode-icon-img" alt="Discover">
-          <span class="mode-name">Discover</span>
-        </button>
-        <button class="mode-btn" data-mode="network" onclick="setMode('network',this)">
-          <img src="https://dlldkrzoxvjxpgkkttxu.supabase.co/storage/v1/object/public/icons/mondo.png?v=2" class="mode-icon-img" alt="Per Network">
-          <span class="mode-name">Per Network</span>
-        </button>
-        <button class="mode-btn" data-mode="range" onclick="setMode('range',this)">
-          <img src="https://dlldkrzoxvjxpgkkttxu.supabase.co/storage/v1/object/public/icons/tastiera.png?v=2" class="mode-icon-img" alt="Range ID">
-          <span class="mode-name">Range ID</span>
-        </button>
-      </div>
-      <div style="flex:1;min-width:200px">
-        <div style="font-size:.9rem;color:var(--text-primary);font-weight:700" id="modeTitle">Discover Automatico</div>
-        <div style="font-size:.74rem;color:var(--text-muted);line-height:1.5" id="modeSubtitle">Seleziona paesi — il sistema esplorerà tutti i network e scaricherà ogni partner.</div>
-      </div>
+    <!-- ═══ DESCRIZIONE MODALITÀ (sopra) ═══ -->
+    <div style="text-align:center;margin-bottom:16px">
+      <div style="font-size:1rem;color:var(--text-primary);font-weight:700" id="modeTitle">Discover Automatico</div>
+      <div style="font-size:.76rem;color:var(--text-muted);line-height:1.5;margin-top:4px" id="modeSubtitle">Seleziona paesi — il sistema esplorerà tutti i network e scaricherà ogni partner.</div>
     </div>
 
-    <!-- ═══ CONFIGURAZIONE per modalità (posizione FISSA, contenuto swap) ═══ -->
+    <!-- ═══ MODALITÀ: icone centrate ═══ -->
+    <div style="display:flex;justify-content:center;gap:24px;margin-bottom:18px">
+      <button class="mode-btn active" data-mode="discover" onclick="setMode('discover',this)">
+        <img src="https://dlldkrzoxvjxpgkkttxu.supabase.co/storage/v1/object/public/icons/lente.png?v=2" class="mode-icon-img" alt="Discover">
+        <span class="mode-name">Discover</span>
+      </button>
+      <button class="mode-btn" data-mode="network" onclick="setMode('network',this)">
+        <img src="https://dlldkrzoxvjxpgkkttxu.supabase.co/storage/v1/object/public/icons/mondo.png?v=2" class="mode-icon-img" alt="Per Network">
+        <span class="mode-name">Per Network</span>
+      </button>
+      <button class="mode-btn" data-mode="range" onclick="setMode('range',this)">
+        <img src="https://dlldkrzoxvjxpgkkttxu.supabase.co/storage/v1/object/public/icons/tastiera.png?v=2" class="mode-icon-img" alt="Range ID">
+        <span class="mode-name">Range ID</span>
+      </button>
+    </div>
+
+    <!-- ═══ CONFIGURAZIONE per modalità (sotto le icone) ═══ -->
     <div style="min-height:50px">
 
       <!-- DISCOVER: solo cerca -->
-      <div id="configDiscover" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <div id="configDiscover" style="display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap">
         <div id="fieldSearch" style="display:flex;align-items:center;gap:6px">
           <input type="text" id="txtSearch" placeholder="Cerca partner..." class="field-input" style="width:220px">
           <select id="selSearchBy" class="field-input" style="width:auto;min-width:90px">
@@ -1354,23 +1355,26 @@ tr:hover td {
         </div>
       </div>
 
-      <!-- NETWORK: solo picker network + Tutti i Paesi (NO duplicato paesi) -->
-      <div id="configNetwork" style="display:none;align-items:center;gap:12px;flex-wrap:wrap">
-        <button onclick="openNetworkPopup()" class="picker-btn" id="btnPickNetwork">
-          <img src="https://dlldkrzoxvjxpgkkttxu.supabase.co/storage/v1/object/public/icons/satellite.png?v=2" class="picker-icon-img" alt="Network">
-          <span class="picker-label">Scegli Network</span>
-          <span id="networkSelBadge" class="picker-badge" style="display:none"></span>
-        </button>
-        <span id="networkSelCountInline" style="font-size:.78rem;color:var(--text-muted);padding:5px 14px;border-radius:8px;background:rgba(255,255,255,0.04)">0 selezionati</span>
-        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.8rem;color:#c7d2fe;white-space:nowrap;padding:6px 12px;border-radius:8px;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.2)">
-          <input type="checkbox" id="chkAllCountries" style="accent-color:#6366f1" onchange="toggleAllCountriesMode()"> Tutti i Paesi
-        </label>
-        <span id="allCountriesHint" style="display:none;font-size:.72rem;color:#a5b4fc">Scarica A→Z</span>
+      <!-- NETWORK: picker + network selezionati + Tutti i Paesi -->
+      <div id="configNetwork" style="display:none;flex-direction:column;align-items:center;gap:12px">
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:center">
+          <button onclick="openNetworkPopup()" class="picker-btn" id="btnPickNetwork">
+            <img src="https://dlldkrzoxvjxpgkkttxu.supabase.co/storage/v1/object/public/icons/satellite.png?v=2" class="picker-icon-img" alt="Network">
+            <span class="picker-label">Scegli Network</span>
+            <span id="networkSelBadge" class="picker-badge" style="display:none"></span>
+          </button>
+          <span id="networkSelCountInline" style="font-size:.78rem;color:var(--text-muted);padding:5px 14px;border-radius:8px;background:rgba(255,255,255,0.04)">0 selezionati</span>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.8rem;color:#c7d2fe;white-space:nowrap;padding:6px 12px;border-radius:8px;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.2)">
+            <input type="checkbox" id="chkAllCountries" style="accent-color:#6366f1" onchange="toggleAllCountriesMode()"> Tutti i Paesi
+          </label>
+          <span id="allCountriesHint" style="display:none;font-size:.72rem;color:#a5b4fc">Scarica A→Z</span>
+        </div>
+        <!-- Network selezionati evidenziati -->
+        <div id="selectedNetworksTags" style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center"></div>
       </div>
 
-      <!-- RANGE: icona grande + input -->
-      <div id="configRange" style="display:none;align-items:center;gap:14px;flex-wrap:wrap">
-        <img src="https://dlldkrzoxvjxpgkkttxu.supabase.co/storage/v1/object/public/icons/tastiera.png?v=2" style="width:48px;height:48px;object-fit:contain;filter:drop-shadow(0 3px 10px rgba(0,0,0,0.3))" alt="Range">
+      <!-- RANGE: input centrato -->
+      <div id="configRange" style="display:none;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap">
         <div style="display:flex;gap:10px;align-items:center">
           <label style="font-size:.78rem;color:var(--text-muted);font-weight:700">DA</label>
           <input type="number" id="txtRangeFrom" value="1" min="1" class="field-input" style="width:110px">
@@ -3575,6 +3579,26 @@ function openNetworkPopup(){
 function closeNetworkPopup(){
   document.getElementById("networkPopupOverlay").classList.remove("open");
   updateNetworkSelBadge();
+  renderSelectedNetworkTags();
+}
+function confirmNetworkSelection(){
+  closeNetworkPopup();
+}
+function renderSelectedNetworkTags(){
+  const container = document.getElementById("selectedNetworksTags");
+  if(!container) return;
+  const checked = document.querySelectorAll("#networksGrid input[type=checkbox]:checked");
+  container.innerHTML = "";
+  if(checked.length === 0){
+    container.innerHTML = '<span style="font-size:.74rem;color:var(--text-muted);font-style:italic">Nessun network selezionato</span>';
+    return;
+  }
+  checked.forEach(cb => {
+    const tag = document.createElement("span");
+    tag.textContent = cb.value;
+    tag.style.cssText = "display:inline-block;font-size:.7rem;font-weight:600;color:#a5b4fc;background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.3);padding:3px 10px;border-radius:12px;white-space:nowrap";
+    container.appendChild(tag);
+  });
 }
 function updateNetworkSelBadge(){
   const cnt = document.querySelectorAll("#networksGrid input[type=checkbox]:checked").length;
@@ -3617,6 +3641,9 @@ function updateNetworkSelBadge(){
       </div>
     </div>
     <div class="networks-grid" id="networksGrid"></div>
+    <div style="display:flex;justify-content:center;padding:16px 0 8px">
+      <button class="btn btn-primary" onclick="confirmNetworkSelection()" style="padding:10px 40px;font-size:.88rem;font-weight:700;border-radius:10px;letter-spacing:0.5px">Conferma</button>
+    </div>
   </div>
 </div>
 
