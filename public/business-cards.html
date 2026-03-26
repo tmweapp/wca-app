@@ -150,9 +150,10 @@ body{font-family:"SF Pro Display","Geist",'Inter',system-ui,sans-serif;backgroun
   </a>
   <a href="/agenda.html" class="btn btn-back">Agenda</a>
   <h1>💼 Business Cards</h1>
-  <div style="position:relative;display:flex;align-items:center">
+  <div style="position:relative;display:flex;align-items:center;gap:6px">
     <span id="aiKeyIcon" onclick="document.getElementById('aiKeyInput').focus()" style="cursor:pointer;font-size:1rem;margin-right:-28px;z-index:1;filter:grayscale(1);transition:filter .3s" title="OpenAI API Key">🤖</span>
-    <input type="password" id="aiKeyInput" placeholder="OpenAI API Key..." oninput="onAiKeyChange()" style="padding:7px 12px 7px 30px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:var(--bg-input);color:var(--text-primary);font-size:.75rem;width:160px;outline:none;transition:border-color .3s">
+    <input type="password" id="aiKeyInput" placeholder="OpenAI API Key..." oninput="onAiKeyChange()" style="padding:7px 12px 7px 30px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:var(--bg-input);color:var(--text-primary);font-size:.75rem;width:180px;outline:none;transition:border-color .3s">
+    <span id="aiKeyStatus" style="font-size:.65rem;color:var(--text-muted);white-space:nowrap"></span>
   </div>
   <input type="text" id="searchInput" placeholder="Cerca contatto..." oninput="onSearch()" style="min-width:180px">
   <select id="filterMatch" onchange="onFilterChange()" style="min-width:100px">
@@ -255,16 +256,51 @@ const SUPABASE_URL = "https://dlldkrzoxvjxpgkkttxu.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRsbGRrcnpveHZqeHBna2t0dHh1Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1ODcyMDU4NCwiZXhwIjoyMDc0Mjk2NTg0fQ.py_d96kA6Mqvi0ugBm4gmIlJSoOC_KbwUM7cgDR-O_E";
 const SB_HEADERS = {"Content-Type":"application/json","apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY};
 let OPENAI_KEY = "";
+let aiKeyTestTimer=null;
 function onAiKeyChange(){
   const inp=document.getElementById("aiKeyInput");
   const icon=document.getElementById("aiKeyIcon");
+  const status=document.getElementById("aiKeyStatus");
   OPENAI_KEY=inp.value.trim();
-  if(OPENAI_KEY&&OPENAI_KEY.startsWith("sk-")){
-    icon.style.filter="none";
-    inp.style.borderColor="rgba(16,185,129,0.5)";
-  } else {
+  if(!OPENAI_KEY||!OPENAI_KEY.startsWith("sk-")){
     icon.style.filter="grayscale(1)";
     inp.style.borderColor="rgba(255,255,255,0.08)";
+    status.textContent="";
+    return;
+  }
+  // Debounce: test after 500ms of no typing
+  status.textContent="⏳ Test...";
+  status.style.color="var(--text-muted)";
+  clearTimeout(aiKeyTestTimer);
+  aiKeyTestTimer=setTimeout(()=>testOpenAIKey(),500);
+}
+async function testOpenAIKey(){
+  const inp=document.getElementById("aiKeyInput");
+  const icon=document.getElementById("aiKeyIcon");
+  const status=document.getElementById("aiKeyStatus");
+  try{
+    const r=await fetch("https://api.openai.com/v1/models",{
+      headers:{"Authorization":"Bearer "+OPENAI_KEY}
+    });
+    if(r.ok){
+      icon.style.filter="none";
+      inp.style.borderColor="rgba(16,185,129,0.6)";
+      status.textContent="✅ Connesso";
+      status.style.color="#10b981";
+    } else {
+      const err=await r.json().catch(()=>({}));
+      icon.style.filter="grayscale(1)";
+      inp.style.borderColor="rgba(239,68,68,0.5)";
+      status.textContent="❌ "+(err.error?.message||"Chiave non valida");
+      status.style.color="#ef4444";
+      OPENAI_KEY="";
+    }
+  }catch(e){
+    icon.style.filter="grayscale(1)";
+    inp.style.borderColor="rgba(239,68,68,0.5)";
+    status.textContent="❌ Errore connessione";
+    status.style.color="#ef4444";
+    OPENAI_KEY="";
   }
 }
 
