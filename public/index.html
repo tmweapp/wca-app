@@ -223,6 +223,51 @@ body {
   font-weight: 600;
 }
 
+/* === PICKER BUTTONS (country, network) === */
+.picker-btn {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 10px 18px;
+  border-radius: 12px;
+  border: 1px solid rgba(99,102,241,0.3);
+  background: rgba(99,102,241,0.08);
+  color: #a5b4fc;
+  cursor: pointer;
+  transition: all 0.25s;
+  min-width: 80px;
+}
+.picker-btn:hover {
+  background: rgba(99,102,241,0.18);
+  border-color: rgba(99,102,241,0.5);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px rgba(99,102,241,0.15);
+}
+.picker-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.picker-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  font-size: 0.62rem;
+  min-width: 20px;
+  height: 20px;
+  line-height: 20px;
+  text-align: center;
+  padding: 0 5px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #6366f1, #818cf8);
+  color: white;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(99,102,241,0.4);
+}
+
 /* === SEARCH ROW (compact) === */
 .search-row {
   display: flex;
@@ -1190,17 +1235,22 @@ tr:hover td {
 
     <!-- ROW 2: Country + Range + Options -->
     <div style="display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap;margin-bottom:10px">
-      <!-- Country + Network icon buttons -->
-      <div style="display:flex;gap:6px;align-self:flex-end">
-        <button onclick="openCountryPopup()" style="position:relative;width:36px;height:36px;border-radius:10px;border:1px solid rgba(99,102,241,0.25);background:rgba(99,102,241,0.12);color:#a5b4fc;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s" data-tip="Seleziona paesi">
-          <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-          <span id="countrySelBadge" style="position:absolute;top:-5px;right:-5px;font-size:.58rem;min-width:16px;height:16px;line-height:16px;text-align:center;padding:0 3px;border-radius:8px;background:#6366f1;color:white;font-weight:700;display:none"></span>
+      <!-- Country + Network big buttons -->
+      <div style="display:flex;gap:10px;align-self:flex-end">
+        <button onclick="openCountryPopup()" class="picker-btn" id="btnPickCountry">
+          <span style="font-size:1.6rem;line-height:1">📍</span>
+          <span class="picker-label">Paesi</span>
+          <span id="countrySelBadge" class="picker-badge" style="display:none"></span>
         </button>
-        <button onclick="openNetworkPopup()" style="position:relative;width:36px;height:36px;border-radius:10px;border:1px solid rgba(99,102,241,0.25);background:rgba(99,102,241,0.12);color:#a5b4fc;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s" data-tip="Seleziona network">
-          <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
-          <span id="networkSelBadge" style="position:absolute;top:-5px;right:-5px;font-size:.58rem;min-width:16px;height:16px;line-height:16px;text-align:center;padding:0 3px;border-radius:8px;background:#6366f1;color:white;font-weight:700;display:none"></span>
+        <button onclick="openNetworkPopup()" class="picker-btn" id="btnPickNetwork">
+          <span style="font-size:1.6rem;line-height:1">🌐</span>
+          <span class="picker-label">Network</span>
+          <span id="networkSelBadge" class="picker-badge" style="display:none"></span>
         </button>
       </div>
+
+      <!-- Selected countries preview -->
+      <div id="selectedCountriesPreview" style="display:none;align-items:center;gap:6px;flex-wrap:wrap;max-width:400px;align-self:flex-end"></div>
 
       <!-- Range (hidden) -->
       <div class="config-section hidden" id="fieldRangeFrom" style="display:none;margin-bottom:0">
@@ -1514,11 +1564,29 @@ function updateCountryDisplay(){
   // Update popup count
   const popCnt = document.getElementById("countrySelCount");
   if(popCnt) popCnt.textContent = cnt + " selezionati";
-  // Update icon badge
+  // Update picker badge
   const badge = document.getElementById("countrySelBadge");
   if(badge){
     if(cnt > 0){ badge.textContent = cnt; badge.style.display = "block"; }
     else { badge.style.display = "none"; }
+  }
+  // Update selected countries preview with flags
+  const preview = document.getElementById("selectedCountriesPreview");
+  if(preview){
+    if(cnt === 0){
+      preview.style.display = "none";
+      preview.innerHTML = "";
+    } else {
+      preview.style.display = "flex";
+      preview.innerHTML = selectedCountries.map(c => {
+        const pCnt = countryPartnerCounts[c.code] || 0;
+        const done = isCountryCompleted(c.code);
+        const bg = done ? "rgba(16,185,129,0.12)" : "rgba(99,102,241,0.1)";
+        const border = done ? "rgba(16,185,129,0.3)" : "rgba(99,102,241,0.25)";
+        const color = done ? "#6ee7b7" : "#c7d2fe";
+        return `<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:8px;background:${bg};border:1px solid ${border};font-size:.75rem;color:${color};font-weight:500;white-space:nowrap">${countryFlag(c.code)} ${c.name}${pCnt > 0 ? ' <span style="opacity:.6;font-size:.65rem">('+pCnt+')</span>' : ''}${done ? ' <span style="font-size:.6rem">✓</span>' : ''}<span onclick="event.stopPropagation();removeCountry('${c.code}')" style="cursor:pointer;opacity:.5;margin-left:2px;font-size:.8rem">×</span></span>`;
+      }).join("");
+    }
   }
 }
 function removeCountry(code){
@@ -1563,26 +1631,28 @@ function renderFlagChips(){
 }
 // Click fuori gestito dal popup overlay onclick
 
-initCountrySelector();
+// Init country + networks — posticipato a DOMContentLoaded perché i popup sono in fondo al body
+function _initAllPopups(){ initCountrySelector(); initNetworksGrid(); }
+if(document.readyState === "loading"){ document.addEventListener("DOMContentLoaded", _initAllPopups); }
+else { _initAllPopups(); }
 
-// Init networks — tutti abilitati, test opzionale con SSO per-dominio
-(function(){
-  // Pulisci vecchi test con auth sbagliata
-  try { localStorage.removeItem("wca_network_results"); localStorage.removeItem("wca_network_groups"); } catch(e){}
-
+// Init networks
+function initNetworksGrid(){
   const g = document.getElementById("networksGrid");
-  // Bottoni Tutti/Nessuno
-  const btnBar = document.createElement("div");
-  btnBar.style.cssText = "grid-column:1/-1;display:flex;gap:6px;margin-bottom:4px";
-  btnBar.innerHTML = `<button class="btn btn-sm btn-secondary" onclick="document.querySelectorAll('#networksGrid input[type=checkbox]').forEach(c=>c.checked=true);updateNetworkSelCount()" style="font-size:.7rem;padding:2px 8px">Tutti</button><button class="btn btn-sm btn-secondary" onclick="document.querySelectorAll('#networksGrid input[type=checkbox]').forEach(c=>c.checked=false);updateNetworkSelCount()" style="font-size:.7rem;padding:2px 8px">Nessuno</button>`;
-  g.appendChild(btnBar);
+  if(!g){ console.warn("[init] networksGrid non trovato, ritento..."); setTimeout(initNetworksGrid, 200); return; }
+  if(g.children.length > 0) return; // già popolato
+  // Pulisci vecchi test
+  try { localStorage.removeItem("wca_network_results"); localStorage.removeItem("wca_network_groups"); } catch(e){}
   for(const [name] of Object.entries(NETWORKS)){
     const lbl = document.createElement("label");
-    lbl.innerHTML = `<input type="checkbox" value="${name}"> ${name}`;
+    lbl.innerHTML = `<input type="checkbox" value="${name}" checked> ${name}`;
     g.appendChild(lbl);
   }
-  // Bottoni test spostati fuori dal details nel #testDownloadBar
-})();
+  attachNetworkCountListeners();
+  updateNetworkSelCount();
+  console.log("[init] networksGrid popolato con", Object.keys(NETWORKS).length, "network");
+}
+// initNetworksGrid viene chiamato da _initAllPopups sopra
 
 // Test accesso a tutti i network con SSO per-dominio
 async function testAllNetworks(){
@@ -3314,6 +3384,8 @@ function updateNetworkSelBadge(){
     <div class="network-popup-header">
       <h3>Seleziona Network</h3>
       <div style="display:flex;align-items:center;gap:8px">
+        <button class="btn btn-sm btn-secondary" onclick="document.querySelectorAll('#networksGrid input[type=checkbox]').forEach(c=>c.checked=true);updateNetworkSelCount()" style="font-size:.68rem;padding:3px 10px">Tutti</button>
+        <button class="btn btn-sm btn-secondary" onclick="document.querySelectorAll('#networksGrid input[type=checkbox]').forEach(c=>c.checked=false);updateNetworkSelCount()" style="font-size:.68rem;padding:3px 10px">Nessuno</button>
         <span id="networkSelCount" style="font-size:.72rem;color:var(--text-muted);padding:4px 10px;border-radius:6px;background:rgba(255,255,255,0.04)">0 selezionati</span>
         <button class="network-popup-close" onclick="closeNetworkPopup()">✕</button>
       </div>
