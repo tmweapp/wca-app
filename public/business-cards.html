@@ -83,27 +83,46 @@ body{font-family:"SF Pro Display","Geist",'Inter',system-ui,sans-serif;backgroun
 
 /* CARDS GRID — glassmorphism */
 .card-lines{flex:1;overflow-y:auto;padding:16px 20px;display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px;align-content:start}
+.card-lines.list-view{grid-template-columns:1fr;gap:6px}
 .bc-card{background:rgba(255,255,255,0.04);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:16px 18px;transition:all .25s;cursor:default;position:relative;overflow:hidden}
-.bc-card::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,rgba(99,102,241,0.3),transparent);opacity:0;transition:opacity .3s}
-.bc-card:hover{background:rgba(99,102,241,0.06);border-color:rgba(99,102,241,0.2);transform:translateY(-2px);box-shadow:0 8px 32px rgba(0,0,0,0.3),0 0 20px rgba(99,102,241,0.06)}
+.bc-card::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,rgba(165,180,252,0.4),transparent);opacity:0;transition:opacity .3s}
+.bc-card:hover{background:rgba(99,102,241,0.06);border-color:rgba(165,180,252,0.25);transform:translateY(-2px);box-shadow:0 8px 32px rgba(0,0,0,0.3),0 0 20px rgba(99,102,241,0.06)}
 .bc-card:hover::before{opacity:1}
+.bc-card.selected{border-color:rgba(165,180,252,0.4);background:rgba(99,102,241,0.08)}
+.list-view .bc-card{border-radius:10px;padding:10px 14px}
+.list-view .bc-card:hover{transform:none}
+.list-view .bc-card .card-fields{flex-direction:row;flex-wrap:wrap;gap:6px 16px}
 .bc-card .card-top{display:flex;align-items:center;gap:10px;margin-bottom:10px}
-.bc-card .card-flag{font-size:1.8rem;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.3))}
-.bc-card .card-company{font-size:.95rem;font-weight:800;color:#fff;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:.2px}
+.bc-card .card-check{flex-shrink:0;width:18px;height:18px;border-radius:5px;border:2px solid rgba(165,180,252,0.3);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;padding:0}
+.bc-card .card-check:hover{border-color:#a5b4fc}
+.bc-card .card-check.checked{background:#6366f1;border-color:#6366f1}
+.bc-card .card-check.checked::after{content:"✓";color:#fff;font-size:.7rem;font-weight:700}
+.bc-card .card-flag{font-size:1.6rem;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.3))}
+.bc-card .card-country-name{font-size:.62rem;font-weight:700;color:#a5b4fc;text-transform:uppercase;letter-spacing:.8px}
+.bc-card .card-company{font-size:.95rem;font-weight:800;color:#e2e8f0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:.2px}
 .bc-card .card-match{flex-shrink:0}
 .bc-card .card-person{display:flex;align-items:center;gap:8px;margin-bottom:8px}
-.bc-card .person-name{font-size:.82rem;font-weight:600;color:var(--text-secondary)}
-.bc-card .person-role{font-size:.68rem;color:var(--text-muted);font-style:italic}
+.bc-card .person-name{font-size:.82rem;font-weight:600;color:#a5b4fc}
+.bc-card .person-role{font-size:.68rem;color:#64748b;font-style:italic}
 .bc-card .card-fields{display:flex;flex-direction:column;gap:3px}
-.bc-card .card-field{font-size:.72rem;color:var(--text-muted);display:flex;align-items:center;gap:6px;overflow:hidden}
-.bc-card .card-field .f-icon{flex-shrink:0;width:16px;text-align:center;font-size:.72rem}
-.bc-card .card-field .f-label{font-size:.62rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;min-width:42px;flex-shrink:0}
-.bc-card .card-field .f-val{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.bc-card .card-field a{color:#818cf8;text-decoration:none}
+.bc-card .card-field{font-size:.72rem;color:#64748b;display:flex;align-items:center;gap:6px;overflow:hidden}
+.bc-card .card-field .f-icon{flex-shrink:0;width:16px;text-align:center;font-size:.72rem;color:#a5b4fc}
+.bc-card .card-field .f-label{font-size:.62rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;min-width:42px;flex-shrink:0}
+.bc-card .card-field .f-val{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#e2e8f0}
+.bc-card .card-field a{color:#a5b4fc;text-decoration:none}
 .bc-card .card-field a:hover{text-decoration:underline}
 .bc-card .card-bottom{display:flex;align-items:center;justify-content:space-between;margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.05)}
-.bc-card .card-event{font-size:.62rem;padding:2px 8px;border-radius:6px;background:rgba(99,102,241,0.1);color:#a5b4fc;border:1px solid rgba(99,102,241,0.15);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.bc-card .card-date{font-size:.6rem;color:var(--text-muted)}
+.bc-card .card-date{font-size:.6rem;color:#64748b}
+/* SELECTION BAR */
+.selection-bar{display:none;padding:8px 24px;background:rgba(99,102,241,0.1);border-bottom:1px solid rgba(165,180,252,0.2);align-items:center;gap:12px;flex-wrap:wrap}
+.selection-bar.visible{display:flex}
+/* FLAG CHIPS */
+.header-flags-row{display:flex;align-items:flex-start;gap:8px;flex-wrap:wrap;border-bottom:1px solid rgba(255,255,255,0.04);min-height:0;overflow:visible}
+.flag-chip{display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;padding:4px 6px;border-radius:8px;transition:all .2s;position:relative}
+.flag-chip:hover{background:rgba(99,102,241,0.12)}
+.flag-chip.selected{background:rgba(99,102,241,0.15);outline:1.5px solid rgba(165,180,252,0.5)}
+.flag-chip .flag-emoji{font-size:1.8rem;line-height:1}
+.flag-chip .flag-count{font-size:.62rem;font-weight:700;padding:1px 6px;border-radius:6px;min-width:20px;text-align:center;background:rgba(99,102,241,0.2);color:#a5b4fc}
 .match-badge{font-size:.62rem;font-weight:700;padding:3px 10px;border-radius:8px;white-space:nowrap;letter-spacing:.3px}
 .match-badge.found{background:linear-gradient(135deg,rgba(16,185,129,0.15),rgba(16,185,129,0.08));color:#6ee7b7;border:1px solid rgba(16,185,129,0.3);box-shadow:0 2px 8px rgba(16,185,129,0.1)}
 .match-badge.partial{background:linear-gradient(135deg,rgba(245,158,11,0.15),rgba(245,158,11,0.08));color:#fbbf24;border:1px solid rgba(245,158,11,0.3);box-shadow:0 2px 8px rgba(245,158,11,0.1)}
@@ -224,14 +243,29 @@ body{font-family:"SF Pro Display","Geist",'Inter',system-ui,sans-serif;backgroun
       <span class="stat-chip unmatched" id="chipUnmatched">0 non trovati</span>
     </div>
 
+    <!-- FLAG ROW (like home page) -->
+    <div class="header-flags-row" id="flagRow" style="display:none;padding:8px 24px"></div>
+
     <!-- SORT BAR -->
     <div class="sort-bar" id="sortBar" style="display:none">
       <label>Ordina:</label>
-      <button class="sort-btn active" onclick="setSort('company')" id="sortCompany">Azienda A→Z</button>
+      <button class="sort-btn active" onclick="setSort('company')" id="sortCompany">Azienda</button>
       <button class="sort-btn" onclick="setSort('name')" id="sortName">Nome</button>
       <button class="sort-btn" onclick="setSort('country')" id="sortCountry">Paese</button>
-      <button class="sort-btn" onclick="setSort('match')" id="sortMatch">Match WCA</button>
-      <button class="sort-btn" onclick="setSort('date')" id="sortDate">Data</button>
+      <button class="sort-btn" onclick="setSort('city')" id="sortCity">Città</button>
+      <button class="sort-btn" onclick="setSort('match')" id="sortMatch">Match</button>
+      <span style="margin-left:auto;display:flex;gap:4px">
+        <button class="sort-btn" onclick="setView('grid')" id="viewGrid" title="Griglia">▦</button>
+        <button class="sort-btn active" onclick="setView('list')" id="viewList" title="Elenco">☰</button>
+      </span>
+    </div>
+
+    <!-- SELECTION BAR -->
+    <div class="selection-bar" id="selectionBar">
+      <span style="font-size:.78rem;color:#a5b4fc;font-weight:600" id="selCount">0 selezionati</span>
+      <button class="btn btn-accent" onclick="selectAllVisible()" style="font-size:.7rem">Seleziona tutti</button>
+      <button class="btn btn-back" onclick="deselectAll()" style="font-size:.7rem">Deseleziona</button>
+      <button class="btn btn-danger" onclick="deleteSelected()" style="font-size:.7rem">🗑 Cancella selezionati</button>
     </div>
 
     <!-- DROPZONE -->
@@ -446,46 +480,43 @@ async function init(){
 }
 
 function buildEventsFromCards(){
-  // Ensure events from cards are registered
-  const eventNames=new Set(allEvents.map(e=>e.event_name));
-  for(const c of allCards){
-    if(c.event_name && !eventNames.has(c.event_name)){
-      allEvents.push({event_name:c.event_name, event_date:c.contact_date||c.created_at, created_at:c.created_at});
-      eventNames.add(c.event_name);
-    }
-  }
+  // Legacy — events now derived from notes field if needed
 }
 
 function renderAll(){
   renderSidebar();
   renderEventTabs();
+  renderFlagRow();
   renderPage();
   updateStats();
   buildLetterIndex();
 }
 
-// ==================== SIDEBAR ====================
+// ==================== SIDEBAR (countries) ====================
 function renderSidebar(){
   const sb=document.getElementById("filterSidebar");
-  const events={};
+  const countries={};
   for(const c of allCards){
-    const ev=c.event_name||"Senza evento";
-    if(!events[ev]) events[ev]={total:0,matched:0,date:c.contact_date||c.created_at};
-    events[ev].total++;
-    if(c._match?.type==="found") events[ev].matched++;
+    const cc=(c.country_code||"").toUpperCase();
+    const name=c.country||cc||"—";
+    const key=cc||"??";
+    if(!countries[key]) countries[key]={name,total:0,matched:0,cc:key};
+    countries[key].total++;
+    if(c._match?.type==="found") countries[key].matched++;
   }
-  let html='<h3>Eventi</h3>';
-  html+=`<div class="filter-item ${currentEvent==='all'?'active':''}" onclick="selectEvent('all')">
-    <span class="filter-icon">📋</span><span class="filter-name">Tutti i contatti</span>
+  let html='<h3>Paesi</h3>';
+  html+=`<div class="filter-item ${!currentCountryFilter?'active':''}" onclick="filterByCountry('')">
+    <span class="filter-icon">🌍</span><span class="filter-name">Tutti i paesi</span>
     <span class="filter-count has">${allCards.length}</span>
   </div>`;
-  for(const [ev,data] of Object.entries(events).sort((a,b)=>(b[1].date||"").localeCompare(a[1].date||""))){
-    const active=currentEvent===ev?"active":"";
-    html+=`<div class="filter-item ${active}" onclick="selectEvent(\`${esc(ev)}\`)">
-      <span class="filter-icon">📅</span>
+  const sorted=Object.values(countries).sort((a,b)=>b.total-a.total);
+  for(const data of sorted){
+    const active=currentCountryFilter===data.cc?"active":"";
+    html+=`<div class="filter-item ${active}" onclick="filterByCountry('${data.cc}')">
+      <span class="filter-icon">${ccFlag(data.cc)}</span>
       <div style="flex:1;min-width:0">
-        <span class="filter-name" style="display:block">${esc(ev)}</span>
-        <span class="filter-date">${fmtDate(data.date)} · ${data.matched}/${data.total} in WCA</span>
+        <span class="filter-name" style="display:block">${esc(data.name)}</span>
+        <span class="filter-date">${data.matched}/${data.total} in WCA</span>
       </div>
       <span class="filter-count has">${data.total}</span>
     </div>`;
@@ -493,22 +524,9 @@ function renderSidebar(){
   sb.innerHTML=html;
 }
 
-// ==================== EVENT TABS ====================
+// ==================== EVENT TABS (hidden — no event_name in DB) ====================
 function renderEventTabs(){
-  const tabs=document.getElementById("eventTabs");
-  const events={};
-  for(const c of allCards){
-    const ev=c.event_name||"Senza evento";
-    if(!events[ev]) events[ev]=0;
-    events[ev]++;
-  }
-  if(Object.keys(events).length<=1){ tabs.style.display="none"; return; }
-  tabs.style.display="flex";
-  let html=`<div class="event-tab ${currentEvent==='all'?'active':''}" onclick="selectEvent('all')">Tutti<span class="tab-count">${allCards.length}</span></div>`;
-  for(const [ev,cnt] of Object.entries(events)){
-    html+=`<div class="event-tab ${currentEvent===ev?'active':''}" onclick="selectEvent(\`${esc(ev)}\`)">${esc(ev)}<span class="tab-count">${cnt}</span></div>`;
-  }
-  tabs.innerHTML=html;
+  document.getElementById("eventTabs").style.display="none";
 }
 
 // ==================== RENDERING ====================
@@ -525,31 +543,111 @@ function sortCards(cards){
     case "company": return cards.sort((a,b)=>(a.company_name||"").localeCompare(b.company_name||""));
     case "name": return cards.sort((a,b)=>(a.contact_name||"").localeCompare(b.contact_name||""));
     case "country": return cards.sort((a,b)=>(a.country||a.country_code||"").localeCompare(b.country||b.country_code||""));
+    case "city": return cards.sort((a,b)=>(a.city||"").localeCompare(b.city||""));
     case "match": return cards.sort((a,b)=>{
       const order={"found":0,"partial":1,"not-found":2};
       return (order[a._match?.type]??2)-(order[b._match?.type]??2);
     });
-    case "date": return cards.sort((a,b)=>(b.contact_date||b.created_at||"").localeCompare(a.contact_date||a.created_at||""));
     default: return cards;
   }
 }
 function getFilteredCards(){
   let cards=[...allCards];
-  if(currentEvent!=="all") cards=cards.filter(c=>(c.event_name||"Senza evento")===currentEvent);
   const q=(document.getElementById("searchInput").value||"").toLowerCase();
   if(q) cards=cards.filter(c=>
     (c.company_name||"").toLowerCase().includes(q)||
     (c.contact_name||"").toLowerCase().includes(q)||
     (c.email||"").toLowerCase().includes(q)||
     (c.city||"").toLowerCase().includes(q)||
-    (c.event_name||"").toLowerCase().includes(q)||
+    (c.country||"").toLowerCase().includes(q)||
     (c._match?.partner?.company_name||"").toLowerCase().includes(q)
   );
   if(currentFilter!=="all") cards=cards.filter(c=>c._match?.type===currentFilter);
+  if(currentCountryFilter) cards=cards.filter(c=>(c.country_code||"").toUpperCase()===currentCountryFilter);
   cards=sortCards(cards);
   return cards;
 }
 
+// ==================== VIEW / SELECTION STATE ====================
+let currentView="list";
+let selectedIds=new Set();
+let currentCountryFilter="";
+
+function setView(v){
+  currentView=v;
+  document.getElementById("viewGrid").classList.toggle("active",v==="grid");
+  document.getElementById("viewList").classList.toggle("active",v==="list");
+  const lines=document.getElementById("cardLines");
+  lines.classList.toggle("list-view",v==="list");
+  renderPage();
+}
+function toggleSelect(id){
+  if(selectedIds.has(id)) selectedIds.delete(id); else selectedIds.add(id);
+  updateSelectionBar();
+  // Toggle visual
+  const el=document.querySelector(`.bc-card[data-id="${id}"]`);
+  if(el){ el.classList.toggle("selected",selectedIds.has(id)); el.querySelector(".card-check")?.classList.toggle("checked",selectedIds.has(id)); }
+}
+function selectAllVisible(){
+  const cards=getFilteredCards();
+  for(const c of cards) if(c.id) selectedIds.add(c.id);
+  renderPage();
+}
+function deselectAll(){
+  selectedIds.clear();
+  renderPage();
+}
+function updateSelectionBar(){
+  const bar=document.getElementById("selectionBar");
+  if(selectedIds.size>0){
+    bar.classList.add("visible");
+    document.getElementById("selCount").textContent=selectedIds.size+" selezionati";
+  } else { bar.classList.remove("visible"); }
+}
+async function deleteSelected(){
+  if(!selectedIds.size) return;
+  if(!confirm("Cancellare "+selectedIds.size+" contatti selezionati?")) return;
+  const ids=[...selectedIds];
+  // Delete in batches
+  for(let i=0;i<ids.length;i+=50){
+    const batch=ids.slice(i,i+50);
+    const filter=batch.map(id=>"id.eq."+id).join(",");
+    await fetch(`${SUPABASE_URL}/rest/v1/wca_business_cards?or=(${filter})`,{method:"DELETE",headers:SB_HEADERS}).catch(()=>{});
+  }
+  allCards=allCards.filter(c=>!selectedIds.has(c.id));
+  selectedIds.clear();
+  renderAll();
+}
+function filterByCountry(cc){
+  currentCountryFilter=currentCountryFilter===cc?"":cc;
+  renderFlagRow();
+  renderPage();
+}
+
+// ==================== FLAG ROW ====================
+function renderFlagRow(){
+  const row=document.getElementById("flagRow");
+  if(!allCards.length){ row.style.display="none"; return; }
+  row.style.display="flex";
+  // Count cards by country
+  const countries={};
+  for(const c of allCards){
+    const cc=(c.country_code||"").toUpperCase();
+    if(!cc||cc.length!==2) continue;
+    if(!countries[cc]) countries[cc]={count:0,name:c.country||cc};
+    countries[cc].count++;
+  }
+  const sorted=Object.entries(countries).sort((a,b)=>b[1].count-a[1].count);
+  let html="";
+  for(const [cc,data] of sorted){
+    const sel=currentCountryFilter===cc?"selected":"";
+    html+=`<div class="flag-chip ${sel}" onclick="filterByCountry('${cc}')" title="${esc(data.name)}">
+      <span class="flag-emoji">${ccFlag(cc)}</span>
+      <span class="flag-count">${data.count}</span>
+    </div>`;
+  }
+  row.innerHTML=html;
+}
 
 function renderPage(){
   const cards=getFilteredCards();
@@ -557,12 +655,14 @@ function renderPage(){
   const dropzone=document.getElementById("dropzone");
   const statsBar=document.getElementById("statsBar");
   const btnClear=document.getElementById("btnClear");
-
   const sortBar=document.getElementById("sortBar");
+  const flagRow=document.getElementById("flagRow");
+
   if(allCards.length===0){
-    dropzone.style.display="block"; lines.innerHTML=""; statsBar.style.display="none"; btnClear.style.display="none"; sortBar.style.display="none"; return;
+    dropzone.style.display="block"; lines.innerHTML=""; statsBar.style.display="none"; btnClear.style.display="none"; sortBar.style.display="none"; flagRow.style.display="none"; return;
   }
   dropzone.style.display="none"; statsBar.style.display="flex"; btnClear.style.display="inline-flex"; sortBar.style.display="flex";
+  lines.classList.toggle("list-view",currentView==="list");
 
   const total=allCards.length, matched=allCards.filter(c=>c._match?.type==="found").length,
     partial=allCards.filter(c=>c._match?.type==="partial").length;
@@ -579,29 +679,38 @@ function renderPage(){
   let html="";
   for(let i=0;i<cards.length;i++){
     const c=cards[i], m=c._match||{};
-    const flag=ccFlag(c.country_code||m.partner?.country_code||"");
+    const cc=c.country_code||m.partner?.country_code||"";
+    const flag=ccFlag(cc);
+    const countryName=c.country||(cc?cc.toUpperCase():"")||"";
+    const isSel=selectedIds.has(c.id);
 
     let matchHtml="";
     if(m.type==="found"){
-      matchHtml=`<span class="match-badge found">IN WCA</span>
-        <div class="match-sub" title="${esc(m.reason)}">${esc(m.partner?.company_name)} · ${esc(m.reason)}</div>`;
+      matchHtml=`<span class="match-badge found">✦ WCA</span>
+        <div class="match-sub" title="${esc(m.reason)}">${esc(m.partner?.company_name)}</div>`;
     } else if(m.type==="partial"){
-      matchHtml=`<span class="match-badge partial">PARZIALE</span>
-        <div class="match-sub" title="${esc(m.reason)}">${esc(m.partner?.company_name)} · ${m.score}pt</div>`;
+      matchHtml=`<span class="match-badge partial">~ PARZIALE</span>
+        <div class="match-sub" title="${esc(m.reason)}">${esc(m.partner?.company_name)}</div>`;
     } else {
-      matchHtml=`<span class="match-badge not-found">NON TROVATO</span>`;
+      matchHtml=`<span class="match-badge not-found">✗</span>`;
     }
 
     const fields=[];
-    if(c.email) fields.push(`<div class="card-field"><span class="f-icon" style="color:#818cf8">✉</span><span class="f-label">Email</span><a href="mailto:${esc(c.email)}" class="f-val" style="color:#818cf8">${esc(c.email)}</a></div>`);
-    if(c.phone) fields.push(`<div class="card-field"><span class="f-icon" style="color:#34d399">☎</span><span class="f-label">Tel</span><a href="tel:${esc(c.phone)}" class="f-val" style="color:#34d399">${esc(c.phone)}</a></div>`);
-    if(c.city||c.country) fields.push(`<div class="card-field"><span class="f-icon" style="color:#f59e0b">📍</span><span class="f-label">Luogo</span><span class="f-val">${esc([c.city,c.country].filter(Boolean).join(", "))}</span></div>`);
-    if(c.website) fields.push(`<div class="card-field"><span class="f-icon" style="color:#0ea5e9">🌐</span><span class="f-label">Web</span><a href="${esc(c.website.startsWith('http')?c.website:'https://'+c.website)}" target="_blank" class="f-val" style="color:#0ea5e9">${esc(c.website)}</a></div>`);
+    if(c.email) fields.push(`<div class="card-field"><span class="f-icon">✉</span><span class="f-label">Email</span><a href="mailto:${esc(c.email)}" class="f-val">${esc(c.email)}</a></div>`);
+    if(c.phone) fields.push(`<div class="card-field"><span class="f-icon">☏</span><span class="f-label">Tel</span><a href="tel:${esc(c.phone)}" class="f-val">${esc(c.phone)}</a></div>`);
+    if(c.city) fields.push(`<div class="card-field"><span class="f-icon">⌖</span><span class="f-label">Città</span><span class="f-val">${esc(c.city)}</span></div>`);
+    if(c.website) fields.push(`<div class="card-field"><span class="f-icon">◎</span><span class="f-label">Web</span><a href="${esc(c.website.startsWith('http')?c.website:'https://'+c.website)}" target="_blank" class="f-val">${esc(c.website)}</a></div>`);
 
-    html+=`<div class="bc-card" data-letter="${(c.company_name||"#")[0].toUpperCase()}">
+    html+=`<div class="bc-card${isSel?" selected":""}" data-id="${c.id||""}" data-letter="${(c.company_name||"#")[0].toUpperCase()}">
       <div class="card-top">
+        <button class="card-check${isSel?" checked":""}" onclick="toggleSelect('${c.id||""}')"></button>
         <span class="card-flag">${flag}</span>
-        <span class="card-company" title="${esc(c.company_name)}">${esc(c.company_name||"—")}</span>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="card-company" title="${esc(c.company_name)}">${esc(c.company_name||"—")}</span>
+          </div>
+          ${countryName?`<span class="card-country-name">${esc(countryName)}</span>`:""}
+        </div>
         <div class="card-match">${matchHtml}</div>
       </div>
       <div class="card-person">
@@ -610,12 +719,12 @@ function renderPage(){
       </div>
       <div class="card-fields">${fields.join("")}</div>
       <div class="card-bottom">
-        ${c.event_name?`<span class="card-event" title="${esc(c.event_name)}">${esc(c.event_name)}</span>`:`<span></span>`}
-        <span class="card-date">${fmtDate(c.contact_date||c.created_at)}</span>
+        <span></span>
+        <span class="card-date">${fmtDate(c.created_at)}</span>
       </div>
     </div>`;
   }
-  lines.innerHTML=html; lines.scrollTop=0; buildLetterIndex();
+  lines.innerHTML=html; lines.scrollTop=0; buildLetterIndex(); updateSelectionBar();
 }
 
 function updateStats(){
@@ -645,7 +754,6 @@ function scrollToLetter(letter){
 }
 
 // ==================== FILTERS ====================
-function selectEvent(ev){ currentEvent=ev; renderSidebar(); renderEventTabs(); renderPage(); }
 function onSearch(){ renderPage(); }
 function onFilterChange(){ currentFilter=document.getElementById("filterMatch").value; renderPage(); }
 
@@ -700,7 +808,8 @@ async function onFileSelected(file){
     sel.innerHTML='<option value="">-- Nuovo evento --</option>';
     const evNames=new Set();
     for(const e of allEvents) if(e.event_name) evNames.add(e.event_name);
-    for(const c of allCards) if(c.event_name) evNames.add(c.event_name);
+    // Extract event names from notes field (format: "Evento: xxx | ...")
+    for(const c of allCards){ const m=(c.notes||"").match(/Evento:\s*([^|]+)/); if(m) evNames.add(m[1].trim()); }
     for(const name of [...evNames].sort()) sel.innerHTML+=`<option value="${esc(name)}">${esc(name)}</option>`;
     document.getElementById("txtEventName").value="";
     document.getElementById("txtEventName").style.display="block";
@@ -742,11 +851,13 @@ async function confirmImport(){
     return !dbKeys.has(key);
   });
   if(!cards.length){ alert("Tutti i contatti sono già presenti nel database."); cancelImport(); return; }
-  // Add event info
+  // Store event info in notes (event_name/contact_date/upload_date don't exist in DB schema)
   for(const c of cards){
-    c.event_name=eventName||null;
-    c.contact_date=contactDate;
-    c.upload_date=uploadDate;
+    const meta=[];
+    if(eventName) meta.push("Evento: "+eventName);
+    if(contactDate) meta.push("Data: "+contactDate);
+    if(c.notes) meta.push(c.notes);
+    c.notes=meta.join(" | ");
   }
 
   try{
@@ -757,15 +868,6 @@ async function confirmImport(){
     if(r.ok){
       const saved=await r.json();
       for(const card of saved){ card._match=matchCard(card,allPartners); allCards.unshift(card); }
-      // Save event if new
-      if(eventName && !allEvents.some(e=>e.event_name===eventName)){
-        const ev={event_name:eventName, event_date:contactDate, created_at:uploadDate};
-        await fetch(`${SUPABASE_URL}/rest/v1/wca_bc_events`,{
-          method:"POST", headers:{...SB_HEADERS,"Prefer":"return=minimal"},
-          body:JSON.stringify(ev)
-        }).catch(()=>{});
-        allEvents.push(ev);
-      }
       cancelImport();
       renderAll();
     } else {
