@@ -34,19 +34,21 @@ async function getCachedCookies(domain) {
   } catch (e) { console.log("[auth] Cache read error: " + e.message); return null; }
 }
 
-async function saveCookiesToCache(cookies, domain) {
+async function saveCookiesToCache(cookies, domain, ssoCookies) {
   const id = domainToId(domain);
   try {
+    const data = { id, cookies, updated_at: new Date().toISOString() };
+    if (ssoCookies) data.sso_cookies = ssoCookies;
     await fetch(`${SUPABASE_URL}/rest/v1/wca_session`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json", "apikey": SUPABASE_KEY,
         "Authorization": `Bearer ${SUPABASE_KEY}`, "Prefer": "resolution=merge-duplicates",
       },
-      body: JSON.stringify({ id, cookies, updated_at: new Date().toISOString() }),
+      body: JSON.stringify(data),
       timeout: 5000,
     });
-    console.log(`[auth] Cookies salvati in cache domain=${domain||"wcaworld.com"} id=${id}`);
+    console.log(`[auth] Cookies salvati in cache domain=${domain||"wcaworld.com"} id=${id} sso=${!!ssoCookies}`);
   } catch (e) { console.log("[auth] Cache save error: " + e.message); }
 }
 
@@ -299,8 +301,9 @@ async function ssoLogin(username, password, targetBase) {
       console.log(`[auth] Warmup error: ${e.message}`);
     }
 
-    console.log(`[auth] SSO login complete on ${TARGET_DOMAIN}: cookieLen=${targetCookies.length} hasAuth=${targetCookies.includes(".ASPXAUTH")} hasToken=${!!wcaToken}`);
-    return { success: true, cookies: targetCookies, wcaToken, domain: TARGET_DOMAIN };
+    const ssoCookies = jar.get(SSO_DOMAIN);
+    console.log(`[auth] SSO login complete on ${TARGET_DOMAIN}: cookieLen=${targetCookies.length} hasAuth=${targetCookies.includes(".ASPXAUTH")} hasToken=${!!wcaToken} ssoCookieLen=${ssoCookies.length}`);
+    return { success: true, cookies: targetCookies, ssoCookies, wcaToken, domain: TARGET_DOMAIN };
   } catch (e) {
     console.log(`[auth] ssoLogin error: ${e.message}`);
     return { success: false, error: e.message };

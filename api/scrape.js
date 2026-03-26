@@ -14,16 +14,22 @@ const { BASE, UA, getCachedCookies, saveCookiesToCache, testCookies, ssoLogin } 
 const { extractProfile, NETWORK_DOMAINS, getNetworkBase, networkNameToDomains } = require("./utils/extract");
 
 // ═══ FETCH URL con gestione redirect manuale ═══
-async function tryFetchUrl(url, cookies, refererBase) {
+// ssoCookies: cookies per sso.api.wcaworld.com (necessari per CheckLoggedIn redirect)
+async function tryFetchUrl(url, cookies, refererBase, ssoCookies) {
   const baseForReferer = refererBase || BASE;
   let currentUrl = url;
   let redirectCount = 0;
   let resp;
+  let activeSsoCookies = ssoCookies || "";
 
   while (redirectCount < 5) {
+    // Usa cookies SSO quando il redirect va a sso.api.wcaworld.com
+    const isSSO = currentUrl.includes("sso.api.wcaworld.com");
+    const cookiesToSend = isSSO ? activeSsoCookies : cookies;
+
     resp = await fetch(currentUrl, {
       headers: {
-        "User-Agent": UA, "Cookie": cookies,
+        "User-Agent": UA, "Cookie": cookiesToSend,
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
         "Accept-Language": "en-US,en;q=0.9,it;q=0.8",
         "Referer": baseForReferer + "/Directory",
@@ -33,10 +39,13 @@ async function tryFetchUrl(url, cookies, refererBase) {
 
     const newCookies = (resp.headers.raw?.()?.["set-cookie"] || []).map(c => c.split(";")[0]);
     if (newCookies.length) {
-      const cookieMap = {};
-      for (const c of cookies.split("; ")) { const eq = c.indexOf("="); if (eq > 0) cookieMap[c.substring(0, eq)] = c; }
-      for (const c of newCookies) { const eq = c.indexOf("="); if (eq > 0) cookieMap[c.substring(0, eq)] = c; }
-      cookies = Object.values(cookieMap).join("; ");
+      // Aggiorna il set di cookies corretto (SSO vs network)
+      const targetMap = {};
+      const source = isSSO ? activeSsoCookies : cookies;
+      for (const c of source.split("; ")) { const eq = c.indexOf("="); if (eq > 0) targetMap[c.substring(0, eq)] = c; }
+      for (const c of newCookies) { const eq = c.indexOf("="); if (eq > 0) targetMap[c.substring(0, eq)] = c; }
+      if (isSSO) activeSsoCookies = Object.values(targetMap).join("; ");
+      else cookies = Object.values(targetMap).join("; ");
     }
 
     if (resp.status >= 300 && resp.status < 400) {
@@ -67,7 +76,7 @@ async function tryFetchUrl(url, cookies, refererBase) {
 }
 
 // ═══ FETCH + PARSE un singolo profilo ═══
-async function fetchProfile(wcaId, cookies, profileHref, networkDomain) {
+async function fetchProfile(wcaId, cookies, profileHref, networkDomain, ssoCookies) {
   const networkBase = getNetworkBase(networkDomain);
 
   const primaryUrls = [];
@@ -84,7 +93,7 @@ async function fetchProfile(wcaId, cookies, profileHref, networkDomain) {
   for (const url of primaryUrls) {
     try {
       console.log(`[scrape] Try ${wcaId} ${url.substring(0, 80)}`);
-      const result = await tryFetchUrl(url, cookies, networkBase);
+      const result = await tryFetchUrl(url, cookies, networkBase, ssoCookies);
       if (!result) continue;
       if (result.loginRedirect) {
         return { wca_id: wcaId, state: "login_redirect", debug: { url, finalUrl: result.finalUrl } };
@@ -105,6 +114,7 @@ async function fetchProfile(wcaId, cookies, profileHref, networkDomain) {
 async function getAuthCookies(domain) {
   const networkBase = getNetworkBase(domain);
   let cookies = await getCachedCookies(domain);
+  let ssoCookies = "";
   if (cookies) {
     const valid = await testCookies(cookies, networkBase);
     if (!valid) cookies = null;
@@ -114,9 +124,10 @@ async function getAuthCookies(domain) {
     const loginResult = await ssoLogin(null, null, networkBase);
     if (!loginResult.success) return { error: loginResult.error };
     cookies = loginResult.cookies;
-    await saveCookiesToCache(cookies, domain);
+    ssoCookies = loginResult.ssoCookies || "";
+    await saveCookiesToCache(cookies, domain, ssoCookies);
   }
-  return { cookies };
+  return { cookies, ssoCookies };
 }
 
 // ═══ HANDLER PRINCIPALE ═══
@@ -139,6 +150,7 @@ module.exports = async (req, res) => {
     const auth = await getAuthCookies(targetDomain);
     if (auth.error) return res.status(500).json({ success: false, error: auth.error });
     const cookies = auth.cookies;
+    const ssoCookies = auth.ssoCookies || "";
 
     const batch = wcaIds.slice(0, 1); // 1 solo profilo per request
     const memberMap = {};
@@ -148,7 +160,7 @@ module.exports = async (req, res) => {
 
     const results = [];
     for (const wcaId of batch) {
-      let profile = await fetchProfile(wcaId, cookies, memberMap[wcaId], networkDomain);
+      let profile = await fetchProfile(wcaId, cookies, memberMap[wcaId], networkDomain, ssoCookies);
 
       // ═══ AUTO-RETRY su network se wcaworld.com dà contatti personali vuoti ═══
       // Scatta quando NON ci sono contatti personali (nome+email+telefono)
@@ -168,7 +180,7 @@ module.exports = async (req, res) => {
             const retryAuth = await getAuthCookies(retryDomain);
             if (retryAuth.error) { console.log(`[scrape] Auto-retry SSO failed on ${retryDomain}`); continue; }
 
-            const retryProfile = await fetchProfile(wcaId, retryAuth.cookies, null, retryDomain);
+            const retryProfile = await fetchProfile(wcaId, retryAuth.cookies, null, retryDomain, retryAuth.ssoCookies);
             const retryHasContacts = retryProfile.contacts && retryProfile.contacts.length > 0;
             const retryHasEmail = !!retryProfile.email;
             console.log(`[scrape] Auto-retry ${retryDomain}: contacts=${retryProfile.contacts?.length || 0} email=${retryHasEmail}`);

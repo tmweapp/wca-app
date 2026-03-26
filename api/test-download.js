@@ -70,8 +70,9 @@ module.exports = async (req, res) => {
         });
       }
       cookies = loginResult.cookies;
-      await saveCookiesToCache(cookies, domain);
-      addLog(`SSO OK: cookieLen=${cookies.length} hasASPXAUTH=${cookies.includes(".ASPXAUTH")}`);
+      var ssoCookies = loginResult.ssoCookies || "";
+      await saveCookiesToCache(cookies, domain, ssoCookies);
+      addLog(`SSO OK: cookieLen=${cookies.length} hasASPXAUTH=${cookies.includes(".ASPXAUTH")} ssoCookieLen=${ssoCookies.length}`);
     }
 
     // ═══ STEP 2: FETCH PROFILO dal network ═══
@@ -82,12 +83,17 @@ module.exports = async (req, res) => {
     let redirectCount = 0;
     let resp;
 
-    // Redirect manuale per preservare cookies
+    // Redirect manuale per preservare cookies (SSO-aware)
+    if (!ssoCookies) var ssoCookies = "";
     while (redirectCount < 5) {
+      // Usa cookies SSO quando redirect va a sso.api.wcaworld.com
+      const isSSO = currentUrl.includes("sso.api.wcaworld.com");
+      const cookiesToSend = isSSO ? ssoCookies : cookies;
+
       resp = await fetch(currentUrl, {
         headers: {
           "User-Agent": UA,
-          "Cookie": cookies,
+          "Cookie": cookiesToSend,
           "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
           "Referer": `${networkBase}/Directory`,
         },
@@ -95,13 +101,15 @@ module.exports = async (req, res) => {
         timeout: 15000,
       });
 
-      // Aggiorna cookies con nuovi set-cookie
+      // Aggiorna cookies del dominio corretto
       const newCookies = (resp.headers.raw?.()?.["set-cookie"] || []).map(c => c.split(";")[0]);
       if (newCookies.length) {
+        const source = isSSO ? ssoCookies : cookies;
         const cookieMap = {};
-        for (const c of cookies.split("; ")) { const eq = c.indexOf("="); if (eq > 0) cookieMap[c.substring(0, eq)] = c; }
+        for (const c of source.split("; ")) { const eq = c.indexOf("="); if (eq > 0) cookieMap[c.substring(0, eq)] = c; }
         for (const c of newCookies) { const eq = c.indexOf("="); if (eq > 0) cookieMap[c.substring(0, eq)] = c; }
-        cookies = Object.values(cookieMap).join("; ");
+        if (isSSO) ssoCookies = Object.values(cookieMap).join("; ");
+        else cookies = Object.values(cookieMap).join("; ");
       }
 
       if (resp.status >= 300 && resp.status < 400) {
