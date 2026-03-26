@@ -357,6 +357,7 @@ body{font-family:"SF Pro Display","Geist",'Inter',system-ui,sans-serif;backgroun
       <span class="stat-chip partial-stat" id="chipPartial">0 parziali</span>
       <span class="stat-chip unmatched" id="chipUnmatched">0 non trovati</span>
       <span class="stat-chip" id="chipNotes" style="background:rgba(165,180,252,0.1);color:#a5b4fc;cursor:pointer" onclick="toggleNotesFilter()" title="Filtra contatti con note">📝 0 con note</span>
+      <span class="stat-chip" id="chipCountries" style="margin-left:auto;background:linear-gradient(135deg,rgba(99,102,241,0.15),rgba(165,180,252,0.1));color:#a5b4fc;font-weight:700;letter-spacing:.3px;border:1px solid rgba(165,180,252,0.2)">🌍 0 paesi</span>
     </div>
 
     <!-- FLAG CAROUSEL -->
@@ -883,6 +884,8 @@ function renderPage(){
   const chipN=document.getElementById("chipNotes");
   chipN.textContent="📝 "+withNotes+" con note";
   chipN.style.outline=notesFilterActive?"2px solid rgba(165,180,252,0.5)":"none";
+  const countrySet=new Set(allCards.map(c=>(c.country_code||"").toUpperCase()).filter(c=>c&&c.length===2));
+  document.getElementById("chipCountries").textContent="🌍 "+countrySet.size+" paesi";
   document.getElementById("pageSubtitle").textContent=cards.length+" contatti"+(cards.length!==total?" (filtrati)":"");
 
   if(!cards.length){
