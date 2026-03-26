@@ -161,31 +161,43 @@ body {
 }
 .login-icon-btn.on:hover { background: rgba(16,185,129,0.3); }
 
-/* === COMMAND PANEL (right side) === */
-.cmd-panel {
+/* === COMMAND BAR (full width row) === */
+.cmd-bar {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 8px;
-  min-width: 200px;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: rgba(255,255,255,0.025);
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.06);
+  margin-bottom: 14px;
+  flex-wrap: wrap;
 }
-.cmd-row {
+.cmd-bar .cmd-status {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex: 1;
+  min-width: 180px;
+}
+.cmd-bar .cmd-buttons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 .cmd-btn {
   display: inline-flex; align-items: center; gap: 6px;
-  padding: 10px 20px;
+  padding: 9px 18px;
   border-radius: 10px;
   border: 1px solid transparent;
   font-weight: 600;
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   cursor: pointer;
   transition: all 0.25s;
   white-space: nowrap;
 }
-.cmd-btn svg { width: 16px; height: 16px; flex-shrink: 0; }
+.cmd-btn svg { width: 15px; height: 15px; flex-shrink: 0; }
 .cmd-btn.start {
   background: linear-gradient(135deg, #10b981, #059669);
   color: white; border-color: rgba(16,185,129,0.4);
@@ -211,14 +223,11 @@ body {
 }
 .cmd-btn.resume:hover { background: rgba(99,102,241,0.25); }
 
-/* === CONFIG PANEL (left) === */
-.config-panel {
-  flex: 1; min-width: 0;
-}
+/* === CONFIG SECTION === */
 .config-section {
   margin-bottom: 12px;
 }
-.config-section label {
+.config-section > label {
   display: block;
   font-size: 0.68rem;
   text-transform: uppercase;
@@ -227,11 +236,29 @@ body {
   margin-bottom: 6px;
   font-weight: 600;
 }
-/* === MAIN LAYOUT === */
-.main-layout {
+
+/* === SEARCH ROW (compact) === */
+.search-row {
   display: flex;
-  gap: 20px;
-  align-items: flex-start;
+  gap: 10px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.search-row .field-search {
+  flex: 0 1 320px;
+  min-width: 200px;
+}
+.search-row .field-search-by {
+  flex: 0 0 auto;
+  min-width: 120px;
+}
+.search-row .field-mode {
+  flex: 0 0 auto;
+}
+.search-row .field-country {
+  flex: 0 1 280px;
+  min-width: 180px;
 }
 .header-flags-row {
   display: flex;
@@ -626,6 +653,90 @@ details summary:hover {
   cursor: pointer;
 }
 
+/* === COUNTRY POPUP === */
+.country-popup-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(6px);
+  z-index: 10000;
+  align-items: center;
+  justify-content: center;
+}
+.country-popup-overlay.open { display: flex; }
+.country-popup {
+  background: rgba(26,26,46,0.98);
+  border: 1px solid rgba(99,102,241,0.25);
+  border-radius: 16px;
+  padding: 20px 24px;
+  width: 90%;
+  max-width: 520px;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.6), 0 0 60px rgba(99,102,241,0.1);
+}
+.country-popup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+.country-popup-header h3 {
+  font-size: .95rem;
+  color: var(--text-primary);
+  font-weight: 700;
+  margin: 0;
+}
+
+/* === NETWORK POPUP === */
+.network-popup-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(6px);
+  z-index: 10000;
+  align-items: center;
+  justify-content: center;
+}
+.network-popup-overlay.open { display: flex; }
+.network-popup {
+  background: rgba(26,26,46,0.98);
+  border: 1px solid rgba(99,102,241,0.25);
+  border-radius: 16px;
+  padding: 20px 24px;
+  width: 90%;
+  max-width: 720px;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.6), 0 0 60px rgba(99,102,241,0.1);
+}
+.network-popup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+.network-popup-header h3 {
+  font-size: .95rem;
+  color: var(--text-primary);
+  font-weight: 700;
+  margin: 0;
+}
+.network-popup-close {
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.05);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.1rem;
+  transition: all 0.2s;
+}
+.network-popup-close:hover { background: rgba(239,68,68,0.15); color: #fca5a5; }
+
 /* ==================== TABS ==================== */
 .tabs-section {
   margin-bottom: 16px;
@@ -960,151 +1071,140 @@ tr:hover td {
 <span id="loginBadge" style="display:none">NON CONNESSO</span>
 
 <div class="container">
-  <!-- ════════ MAIN CARD ════════ -->
+  <!-- ════════ COMMAND BAR — download status, network logo, buttons ════════ -->
+  <div class="cmd-bar">
+    <div class="cmd-status">
+      <div class="status-dot off" id="statusDot"></div>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span id="statusText" style="font-size:.8rem;color:var(--text-secondary)">Pronto</span>
+          <span id="progressText" style="font-size:.72rem;color:var(--text-muted)">0/0</span>
+        </div>
+        <div class="progress-bar" style="margin-top:4px"><div class="progress-fill" id="progressFill"></div></div>
+      </div>
+      <!-- Activity ticker inline -->
+      <div id="activityBar" style="display:none;font-size:.75rem;font-family:'JetBrains Mono',monospace;color:var(--text-secondary);align-items:center;gap:6px;margin-left:8px;flex-shrink:1;min-width:0">
+        <span id="activityIcon" style="font-size:.9rem">⏳</span>
+        <span id="activityText" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:260px">In attesa...</span>
+        <span id="activityTimer" style="color:var(--text-muted);font-size:.72rem;white-space:nowrap"></span>
+      </div>
+    </div>
+    <!-- Network badge -->
+    <div id="activeNetworkBadge" style="display:none;flex-shrink:0;text-align:center;margin:0 4px">
+      <img id="activeNetworkLogo" src="" alt="" style="height:28px;object-fit:contain;display:block;margin:0 auto 2px" onerror="this.style.display='none'">
+      <div id="activeNetworkName" style="font-size:.6rem;color:var(--text-muted);max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
+    </div>
+    <!-- Buttons -->
+    <div class="cmd-buttons">
+      <button class="cmd-btn start" id="btnStart" onclick="startScraping()" disabled data-tip="Avvia lo scraping">
+        <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        Avvia
+      </button>
+      <button class="cmd-btn resume" id="btnResume" onclick="resumeScraping()" style="display:none" data-tip="Riprendi dal punto interrotto">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/><line x1="19" y1="3" x2="19" y2="21"/></svg>
+        Continua
+      </button>
+      <button class="cmd-btn secondary" id="btnStartBg" onclick="startBackgroundJob()" data-tip="Esegui in background">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        Background
+      </button>
+      <button class="cmd-btn stop" id="btnStop" onclick="stopScraping()" disabled data-tip="Ferma lo scraping">
+        <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+        Stop
+      </button>
+    </div>
+  </div>
+
+  <!-- ════════ CONFIG CARD ════════ -->
   <div class="card" style="position:relative;z-index:100">
-    <div class="main-layout">
 
-      <!-- ═══ LEFT: CONFIGURAZIONE ═══ -->
-      <div class="config-panel">
-        <!-- SEARCH -->
-        <div class="config-section" id="fieldSearch">
-          <label>Cerca</label>
-          <div style="display:flex;gap:8px">
-            <input type="text" id="txtSearch" placeholder="Nome azienda o ID" style="flex:1">
-            <select id="selSearchBy" style="width:auto;min-width:100px">
-              <option value="">Paese</option>
-              <option value="company_name">Nome azienda</option>
-              <option value="id_number">ID WCA</option>
-            </select>
-          </div>
-        </div>
-
-        <!-- MODE SELECTOR -->
-        <div class="config-section">
-          <label>Modalità</label>
-          <div class="mode-selector">
-            <button class="btn btn-sm btn-secondary active" data-mode="discover" onclick="setMode('discover',this)" data-tip="Scopri automaticamente tutti i partner di un paese su ogni network">Discover</button>
-            <button class="btn btn-sm btn-secondary" data-mode="network" onclick="setMode('network',this)" data-tip="Scarica i partner da un singolo network specifico">Per Network</button>
-            <button class="btn btn-sm btn-secondary" data-mode="range" onclick="setMode('range',this)" data-tip="Scarica profili per intervallo numerico di ID WCA">Range ID</button>
-          </div>
-        </div>
-
-        <!-- COUNTRIES -->
-        <div class="config-section">
-          <label>Paesi</label>
-          <div id="countrySelector" style="position:relative;z-index:999">
-            <div id="countryDisplay" onclick="toggleCountryDropdown()" style="background:var(--bg-input);border:1px solid var(--border-color);color:var(--text-primary);padding:10px 12px;border-radius:10px;font-size:.85rem;cursor:pointer;min-height:40px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;transition:all 0.2s">
-              <span style="color:var(--text-muted)">Seleziona paesi...</span>
-            </div>
-            <div id="countryDropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:rgba(18,18,30,0.98);border:1px solid rgba(99,102,241,0.2);border-radius:0 0 10px 10px;max-height:300px;overflow-y:auto;z-index:9999;box-shadow:0 12px 40px rgba(0,0,0,0.5);backdrop-filter:blur(20px)">
-              <div style="padding:8px;border-bottom:1px solid var(--border-color);display:flex;gap:6px">
-                <input type="text" id="countryFilter" placeholder="Filtra..." oninput="filterCountries()" style="flex:1;background:var(--bg-input);border:1px solid var(--border-color);color:var(--text-primary);padding:8px;border-radius:8px;font-size:.8rem">
-                <button class="btn btn-sm btn-secondary" onclick="clearCountries()">Reset</button>
-              </div>
-              <div id="countryList"></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- RANGE (hidden) -->
-        <div class="config-section hidden" id="fieldRangeFrom" style="display:none">
-          <label>Range ID</label>
-          <div style="display:flex;gap:8px;align-items:center">
-            <input type="number" id="txtRangeFrom" value="1" min="1" placeholder="Da" style="width:100px">
-            <span style="color:var(--text-muted)">→</span>
-            <input type="number" id="txtRangeTo" value="500" min="1" placeholder="A" style="width:100px">
-          </div>
-        </div>
-        <div class="hidden" id="fieldRangeTo" style="display:none"></div>
-
-        <!-- OPTIONS ROW -->
-        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:4px">
-          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;white-space:nowrap;font-size:.78rem;color:var(--text-secondary)">
-            <input type="checkbox" id="chkUpdateAddress" style="accent-color:var(--accent)"> Aggiorna esistenti
-          </label>
-          <button class="btn btn-danger btn-sm" onclick="resetCountryAndRestart()" data-tip="Cancella la cache locale del paese selezionato e riesegui lo scraping da zero" style="font-size:.7rem;padding:4px 10px">Reset Paese</button>
-          <button class="btn btn-sm btn-secondary" onclick="testDownloadProfile()" id="btnTestDL" data-tip="Testa il download di un singolo profilo" style="font-size:.7rem;padding:4px 10px">Test Profilo</button>
-          <button class="btn btn-sm btn-secondary" onclick="testAllNetworks()" id="btnTestNets" data-tip="Verifica accesso su tutti i network" style="font-size:.7rem;padding:4px 10px">Test Network</button>
-          <span id="netTestStatus" style="font-size:.72rem;color:var(--text-secondary)"></span>
-        </div>
-
-        <!-- Network mode panel -->
-        <div id="networkModePanel" style="display:none;margin-top:12px;padding:14px;border-radius:10px;background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.15)">
-          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px">
-            <p style="font-size:.78rem;color:#fbbf24;margin:0;display:flex;align-items:center;gap:8px;flex:1;font-weight:600">
-              <svg width="16" height="16" fill="none" stroke="#fbbf24" stroke-width="2" viewBox="0 0 24 24"><path d="M12 9v2m0 4h.01M10.29 3.86l-8.6 14.86A1 1 0 002.56 20h18.88a1 1 0 00.87-1.28l-8.6-14.86a1 1 0 00-1.72 0z"/></svg>
-              Seleziona almeno un network qui sotto.
-            </p>
-            <span id="networkSelCount" style="font-size:.72rem;color:var(--text-muted);padding:4px 10px;border-radius:6px;background:rgba(255,255,255,0.04)">0 selezionati</span>
-          </div>
-          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.78rem;color:#c7d2fe;padding:7px 14px;border-radius:8px;background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.2);white-space:nowrap;transition:all .2s;user-select:none" data-tip="Scarica TUTTI i paesi A→Z per i network selezionati">
-              <input type="checkbox" id="chkAllCountries" style="accent-color:#6366f1" onchange="toggleAllCountriesMode()">
-              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
-              Tutti i Paesi
-            </label>
-            <span id="allCountriesHint" style="display:none;font-size:.72rem;color:#a5b4fc;line-height:1.4;max-width:400px">Scaricherà ogni paese in ordine alfabetico.</span>
-          </div>
-        </div>
-
-        <!-- Networks grid -->
-        <details style="margin-top:12px">
-          <summary style="cursor:pointer;color:var(--text-secondary);font-size:.85rem;font-weight:600;padding:6px;border-radius:8px;transition:all 0.2s;user-select:none">Seleziona Network</summary>
-          <div class="networks-grid" style="margin-top:8px" id="networksGrid"></div>
-        </details>
+    <!-- ROW 1: Search + Search By + Mode -->
+    <div class="search-row">
+      <div class="field-search field" id="fieldSearch">
+        <label>Cerca</label>
+        <input type="text" id="txtSearch" placeholder="Nome azienda o ID">
       </div>
-
-      <!-- ═══ RIGHT: COMMAND PANEL ═══ -->
-      <div class="cmd-panel">
-        <!-- STATUS MONITOR -->
-        <div style="width:100%;text-align:right">
-          <div style="display:flex;align-items:center;gap:8px;justify-content:flex-end">
-            <div class="status-dot off" id="statusDot"></div>
-            <span id="statusText" style="font-size:.78rem;color:var(--text-secondary);text-align:right">Pronto</span>
-          </div>
-          <div class="progress-bar" style="margin-top:6px"><div class="progress-fill" id="progressFill"></div></div>
-          <span id="progressText" style="font-size:.7rem;color:var(--text-muted)">0/0</span>
+      <div class="field-search-by field">
+        <label>Tipo</label>
+        <select id="selSearchBy">
+          <option value="">Paese</option>
+          <option value="company_name">Nome</option>
+          <option value="id_number">ID WCA</option>
+        </select>
+      </div>
+      <div class="field-mode">
+        <label style="display:block;font-size:.68rem;text-transform:uppercase;letter-spacing:.8px;color:var(--text-muted);margin-bottom:6px;font-weight:600">Modalità</label>
+        <div class="mode-selector">
+          <button class="btn btn-sm btn-secondary active" data-mode="discover" onclick="setMode('discover',this)" data-tip="Scopri automaticamente tutti i partner di un paese su ogni network">Discover</button>
+          <button class="btn btn-sm btn-secondary" data-mode="network" onclick="setMode('network',this)" data-tip="Scarica i partner da un singolo network specifico">Per Network</button>
+          <button class="btn btn-sm btn-secondary" data-mode="range" onclick="setMode('range',this)" data-tip="Scarica profili per intervallo numerico di ID WCA">Range ID</button>
         </div>
+      </div>
+    </div>
 
-        <!-- ACTIVITY TICKER -->
-        <div id="activityBar" style="display:none;width:100%;font-size:.75rem;font-family:'JetBrains Mono',monospace;color:var(--text-secondary);text-align:right">
-          <div style="display:flex;align-items:center;gap:8px;justify-content:flex-end">
-            <span id="activityIcon" style="font-size:1rem">⏳</span>
-            <span id="activityText" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px">In attesa...</span>
-            <span id="activityTimer" style="color:var(--text-muted);font-size:.72rem;white-space:nowrap"></span>
-          </div>
-        </div>
-
-        <!-- NETWORK BADGE + START BUTTON -->
-        <div class="cmd-row">
-          <div id="activeNetworkBadge" style="display:none;flex-shrink:0;text-align:center">
-            <img id="activeNetworkLogo" src="" alt="" style="height:30px;min-height:30px;object-fit:contain;display:block;margin:0 auto 3px" onerror="this.style.display='none'">
-            <div id="activeNetworkName" style="font-size:.58rem;color:var(--text-muted);max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
-          </div>
-          <button class="cmd-btn start" id="btnStart" onclick="startScraping()" disabled data-tip="Avvia lo scraping">
-            <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-            Avvia
-          </button>
-        </div>
-
-        <!-- SECONDARY ACTIONS -->
-        <div class="cmd-row" id="cmdSecondary">
-          <button class="cmd-btn resume" id="btnResume" onclick="resumeScraping()" style="display:none" data-tip="Riprendi dal punto interrotto">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/><line x1="19" y1="3" x2="19" y2="21"/></svg>
-            Continua
-          </button>
-          <button class="cmd-btn secondary" id="btnStartBg" onclick="startBackgroundJob()" data-tip="Esegui in background">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-            Background
-          </button>
-          <button class="cmd-btn stop" id="btnStop" onclick="stopScraping()" disabled data-tip="Ferma lo scraping">
-            <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
-            Stop
+    <!-- ROW 2: Country + Range + Options -->
+    <div style="display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap;margin-bottom:10px">
+      <!-- Country selector trigger -->
+      <div style="display:flex;align-items:flex-end;gap:6px">
+        <div>
+          <label style="display:block;font-size:.68rem;text-transform:uppercase;letter-spacing:.8px;color:var(--text-muted);margin-bottom:6px;font-weight:600">Paesi</label>
+          <button class="btn btn-sm btn-secondary" onclick="openCountryPopup()" style="display:flex;align-items:center;gap:6px;padding:8px 14px">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            <span id="countrySelLabel" style="font-size:.78rem">Seleziona...</span>
+            <span id="countrySelBadge" style="font-size:.68rem;padding:2px 6px;border-radius:4px;background:rgba(99,102,241,0.15);color:#a5b4fc"></span>
           </button>
         </div>
       </div>
 
-    </div><!-- /main-layout -->
+      <!-- Range (hidden) -->
+      <div class="config-section hidden" id="fieldRangeFrom" style="display:none;margin-bottom:0">
+        <label>Range ID</label>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="number" id="txtRangeFrom" value="1" min="1" placeholder="Da" style="width:90px">
+          <span style="color:var(--text-muted)">→</span>
+          <input type="number" id="txtRangeTo" value="500" min="1" placeholder="A" style="width:90px">
+        </div>
+      </div>
+      <div class="hidden" id="fieldRangeTo" style="display:none"></div>
+
+      <!-- Options -->
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;align-self:flex-end;padding-bottom:2px">
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;white-space:nowrap;font-size:.76rem;color:var(--text-secondary)">
+          <input type="checkbox" id="chkUpdateAddress" style="accent-color:var(--accent)"> Aggiorna
+        </label>
+        <button class="btn btn-danger btn-sm" onclick="resetCountryAndRestart()" data-tip="Cancella la cache locale del paese selezionato" style="font-size:.68rem;padding:3px 8px">Reset</button>
+        <button class="btn btn-sm btn-secondary" onclick="testDownloadProfile()" id="btnTestDL" data-tip="Testa il download di un singolo profilo" style="font-size:.68rem;padding:3px 8px">Test</button>
+        <button class="btn btn-sm btn-secondary" onclick="testAllNetworks()" id="btnTestNets" data-tip="Verifica accesso su tutti i network" style="font-size:.68rem;padding:3px 8px">Test Net</button>
+        <span id="netTestStatus" style="font-size:.7rem;color:var(--text-secondary)"></span>
+      </div>
+    </div>
+
+    <!-- Network mode panel -->
+    <div id="networkModePanel" style="display:none;padding:12px;border-radius:10px;background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.15);margin-bottom:10px">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px">
+        <p style="font-size:.78rem;color:#fbbf24;margin:0;display:flex;align-items:center;gap:8px;flex:1;font-weight:600">
+          <svg width="16" height="16" fill="none" stroke="#fbbf24" stroke-width="2" viewBox="0 0 24 24"><path d="M12 9v2m0 4h.01M10.29 3.86l-8.6 14.86A1 1 0 002.56 20h18.88a1 1 0 00.87-1.28l-8.6-14.86a1 1 0 00-1.72 0z"/></svg>
+          Seleziona almeno un network qui sotto.
+        </p>
+        <span id="networkSelCountInline" style="font-size:.72rem;color:var(--text-muted);padding:4px 10px;border-radius:6px;background:rgba(255,255,255,0.04)">0 selezionati</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.78rem;color:#c7d2fe;padding:7px 14px;border-radius:8px;background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.2);white-space:nowrap;transition:all .2s;user-select:none" data-tip="Scarica TUTTI i paesi A→Z per i network selezionati">
+          <input type="checkbox" id="chkAllCountries" style="accent-color:#6366f1" onchange="toggleAllCountriesMode()">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+          Tutti i Paesi
+        </label>
+        <span id="allCountriesHint" style="display:none;font-size:.72rem;color:#a5b4fc;line-height:1.4;max-width:400px">Scaricherà ogni paese in ordine alfabetico.</span>
+      </div>
+    </div>
+
+    <!-- Networks trigger button -->
+    <button class="btn btn-sm btn-secondary" onclick="openNetworkPopup()" style="display:flex;align-items:center;gap:6px">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+      Seleziona Network
+      <span id="networkSelBadge" style="font-size:.68rem;padding:2px 6px;border-radius:4px;background:rgba(99,102,241,0.15);color:#a5b4fc"></span>
+    </button>
+
   </div>
 
   <!-- BACKGROUND JOB PANEL -->
@@ -1340,10 +1440,16 @@ async function initCountrySelector(){
   }
   list.innerHTML = html;
 }
-function toggleCountryDropdown(){
-  const dd = document.getElementById("countryDropdown");
-  dd.style.display = dd.style.display === "none" ? "block" : "none";
+function openCountryPopup(){
+  document.getElementById("countryPopupOverlay").classList.add("open");
+  const f = document.getElementById("countryFilter");
+  if(f){ f.value = ""; filterCountries(); }
+  setTimeout(() => { if(f) f.focus(); }, 100);
 }
+function closeCountryPopup(){
+  document.getElementById("countryPopupOverlay").classList.remove("open");
+}
+function toggleCountryDropdown(){ openCountryPopup(); }
 function filterCountries(){
   const q = document.getElementById("countryFilter").value.toLowerCase();
   document.querySelectorAll("#countryList label").forEach(l => {
@@ -1363,14 +1469,15 @@ function clearCountries(){
   updateCountryDisplay();
 }
 function updateCountryDisplay(){
-  const disp = document.getElementById("countryDisplay");
-  if(selectedCountries.length === 0){
-    disp.innerHTML = '<span style="color:#64748b">Seleziona paesi...</span>';
-  } else {
-    disp.innerHTML = selectedCountries.map(c =>
-      `<span style="background:rgba(99,102,241,0.2);color:#a5b4fc;padding:2px 8px;border-radius:4px;font-size:.75rem;display:inline-flex;align-items:center;gap:4px;border:1px solid rgba(99,102,241,0.3)">${countryFlag(c.code)} ${c.name} <span onclick="event.stopPropagation();removeCountry('${c.code}')" style="cursor:pointer;opacity:.7">×</span></span>`
-    ).join("");
-  }
+  const cnt = selectedCountries.length;
+  // Update popup count
+  const popCnt = document.getElementById("countrySelCount");
+  if(popCnt) popCnt.textContent = cnt + " selezionati";
+  // Update inline badge on trigger button
+  const badge = document.getElementById("countrySelBadge");
+  if(badge) badge.textContent = cnt > 0 ? cnt : "";
+  const lbl = document.getElementById("countrySelLabel");
+  if(lbl) lbl.textContent = cnt === 0 ? "Seleziona..." : selectedCountries.map(c => c.name).join(", ").substring(0,30) + (selectedCountries.map(c => c.name).join(", ").length > 30 ? "…" : "");
 }
 function removeCountry(code){
   selectedCountries = selectedCountries.filter(c => c.code !== code);
@@ -1412,10 +1519,7 @@ function renderFlagChips(){
     </div>`;
   }).join("");
 }
-// Click fuori chiude dropdown
-document.addEventListener("click", e => {
-  if(!e.target.closest("#countrySelector")) document.getElementById("countryDropdown").style.display = "none";
-});
+// Click fuori gestito dal popup overlay onclick
 
 initCountrySelector();
 
@@ -1558,24 +1662,13 @@ function setMode(mode, btn){
   const searchEl = document.getElementById("fieldSearch");
   if(searchEl) searchEl.style.display = (isRange || isNetwork) ? "none" : "block";
   document.getElementById("networkModePanel").style.display = isNetwork ? "block" : "none";
-  // In Per Network mode, auto-expand the network selector details
-  const netDetails = document.querySelector("details:has(#networksGrid)");
-  if(netDetails){
-    if(isNetwork){
-      netDetails.open = true;
-      netDetails.style.border = "1.5px solid rgba(99,102,241,0.3)";
-      netDetails.style.borderRadius = "10px";
-      netDetails.style.padding = "8px";
-      netDetails.style.background = "rgba(99,102,241,0.04)";
-    } else {
-      netDetails.style.border = "";
-      netDetails.style.borderRadius = "";
-      netDetails.style.padding = "";
-      netDetails.style.background = "";
-      // Reset all-countries checkbox when leaving network mode
-      const chk = document.getElementById("chkAllCountries");
-      if(chk && chk.checked){ chk.checked = false; toggleAllCountriesMode(); }
-    }
+  // In Per Network mode, auto-open the network popup
+  if(isNetwork){
+    openNetworkPopup();
+  } else {
+    closeNetworkPopup();
+    const chk = document.getElementById("chkAllCountries");
+    if(chk && chk.checked){ chk.checked = false; toggleAllCountriesMode(); }
   }
 }
 
@@ -1598,26 +1691,27 @@ function getSelectedNetworkObjects(){
 
 function toggleAllCountriesMode(){
   const chk = document.getElementById("chkAllCountries");
-  const countrySelector = document.getElementById("countrySelector");
   const hint = document.getElementById("allCountriesHint");
-  if(chk.checked){
-    countrySelector.style.opacity = "0.35";
-    countrySelector.style.pointerEvents = "none";
-    if(hint) hint.style.display = "inline";
-  } else {
-    countrySelector.style.opacity = "1";
-    countrySelector.style.pointerEvents = "auto";
-    if(hint) hint.style.display = "none";
-  }
+  if(hint) hint.style.display = chk.checked ? "inline" : "none";
 }
 function updateNetworkSelCount(){
   const cnt = document.querySelectorAll("#networksGrid input[type=checkbox]:checked").length;
+  // Popup count
   const el = document.getElementById("networkSelCount");
   if(el){
     el.textContent = cnt > 0 ? cnt + " selezionati" : "0 selezionati";
     el.style.color = cnt > 0 ? "#6ee7b7" : "var(--text-muted)";
     el.style.background = cnt > 0 ? "rgba(16,185,129,0.12)" : "rgba(255,255,255,0.04)";
   }
+  // Inline count in networkModePanel
+  const inl = document.getElementById("networkSelCountInline");
+  if(inl){
+    inl.textContent = cnt > 0 ? cnt + " selezionati" : "0 selezionati";
+    inl.style.color = cnt > 0 ? "#6ee7b7" : "var(--text-muted)";
+  }
+  // Badge on trigger button
+  const badge = document.getElementById("networkSelBadge");
+  if(badge) badge.textContent = cnt > 0 ? cnt + " sel." : "";
 }
 // Attacca listener ai checkbox network dopo init
 function attachNetworkCountListeners(){
@@ -1657,9 +1751,8 @@ async function scrapeByNetwork(){
   // Obbliga selezione di almeno un network
   const selectedNets = getSelectedNetworkObjects();
   if(selectedNets.length === 0){
-    alert("Seleziona almeno un network dalla sezione 'Seleziona Network'!");
-    const netDetails = document.querySelector("details:has(#networksGrid)");
-    if(netDetails) netDetails.open = true;
+    alert("Seleziona almeno un network!");
+    openNetworkPopup();
     // Ripristina stato UI
     scraping = false;
     document.getElementById("btnStart").disabled = false;
@@ -1846,7 +1939,7 @@ function hideActiveNetwork(){
 let activityTimerInterval = null;
 function showActivity(icon, text){
   const bar = document.getElementById("activityBar");
-  bar.style.display = "block";
+  bar.style.display = "flex";
   document.getElementById("activityIcon").textContent = icon;
   document.getElementById("activityText").textContent = text;
   document.getElementById("activityTimer").textContent = "";
@@ -1858,7 +1951,7 @@ function hideActivity(){
 }
 function showCountdown(icon, text, seconds){
   const bar = document.getElementById("activityBar");
-  bar.style.display = "block";
+  bar.style.display = "flex";
   document.getElementById("activityIcon").textContent = icon;
   document.getElementById("activityText").textContent = text;
   const timerEl = document.getElementById("activityTimer");
@@ -1933,10 +2026,9 @@ async function startScraping(){
     // Discover mode: verifica che almeno un network sia selezionato
     const discoverSelNames = getSelectedNetworks();
     if(discoverSelNames.length === 0){
-      log("⚠ Nessun network selezionato! Seleziona almeno un network dalla griglia.","err");
-      alert("Seleziona almeno un network dalla sezione 'Seleziona Network'!");
-      const nd = document.querySelector("details:has(#networksGrid)");
-      if(nd) nd.open = true;
+      log("⚠ Nessun network selezionato!","err");
+      alert("Seleziona almeno un network!");
+      openNetworkPopup();
       scraping = false;
       document.getElementById("btnStart").disabled = false;
       document.getElementById("btnStop").disabled = true;
@@ -3124,8 +3216,54 @@ loadHeaderCounts();
 setInterval(()=>{ if(scraping || bgJobId) loadHeaderCounts(); }, 30000);
 
 // === THEME (Command Center — fixed) ===
-function setTheme(t) { /* no-op: tema fisso Command Center */ }
+function setTheme(t) { /* no-op */ }
 
+// === NETWORK POPUP ===
+function openNetworkPopup(){
+  document.getElementById("networkPopupOverlay").classList.add("open");
+}
+function closeNetworkPopup(){
+  document.getElementById("networkPopupOverlay").classList.remove("open");
+  updateNetworkSelBadge();
+}
+function updateNetworkSelBadge(){
+  const cnt = document.querySelectorAll("#networksGrid input[type=checkbox]:checked").length;
+  const badge = document.getElementById("networkSelBadge");
+  if(badge) badge.textContent = cnt > 0 ? cnt + " sel." : "";
+}
 </script>
+
+<!-- COUNTRY POPUP -->
+<div class="country-popup-overlay" id="countryPopupOverlay" onclick="if(event.target===this)closeCountryPopup()">
+  <div class="country-popup">
+    <div class="country-popup-header">
+      <h3>Seleziona Paesi</h3>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span id="countrySelCount" style="font-size:.72rem;color:var(--text-muted);padding:4px 10px;border-radius:6px;background:rgba(255,255,255,0.04)">0 selezionati</span>
+        <button class="network-popup-close" onclick="closeCountryPopup()">✕</button>
+      </div>
+    </div>
+    <div style="padding:0 0 10px 0;display:flex;gap:6px">
+      <input type="text" id="countryFilter" placeholder="Filtra paese..." oninput="filterCountries()" style="flex:1;background:var(--bg-input);border:1px solid var(--border-color);color:var(--text-primary);padding:8px 12px;border-radius:8px;font-size:.82rem">
+      <button class="btn btn-sm btn-secondary" onclick="clearCountries()">Reset</button>
+    </div>
+    <div id="countryList" style="max-height:50vh;overflow-y:auto"></div>
+  </div>
+</div>
+
+<!-- NETWORK POPUP -->
+<div class="network-popup-overlay" id="networkPopupOverlay" onclick="if(event.target===this)closeNetworkPopup()">
+  <div class="network-popup">
+    <div class="network-popup-header">
+      <h3>Seleziona Network</h3>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span id="networkSelCount" style="font-size:.72rem;color:var(--text-muted);padding:4px 10px;border-radius:6px;background:rgba(255,255,255,0.04)">0 selezionati</span>
+        <button class="network-popup-close" onclick="closeNetworkPopup()">✕</button>
+      </div>
+    </div>
+    <div class="networks-grid" id="networksGrid"></div>
+  </div>
+</div>
+
 </body>
 </html>

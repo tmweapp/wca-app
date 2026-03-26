@@ -38,11 +38,11 @@ module.exports = async (req, res) => {
     };
 
     console.log(`[save] Saving wca_id=${profile.wca_id} company="${profile.company_name}"`);
-    const resp = await fetch(`${SUPABASE_URL}/rest/v1/wca_partners`, {
+    const resp = await fetch(`${SUPABASE_URL}/rest/v1/wca_partners?on_conflict=wca_id`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json", "apikey": SUPABASE_KEY,
-        "Authorization": `Bearer ${SUPABASE_KEY}`, "Prefer": "resolution=merge-duplicates",
+        "Authorization": `Bearer ${SUPABASE_KEY}`, "Prefer": "resolution=merge-duplicates,return=minimal",
       },
       body: JSON.stringify(row),
     });
