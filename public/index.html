@@ -161,30 +161,16 @@ body {
 }
 .login-icon-btn.on:hover { background: rgba(16,185,129,0.3); }
 
-/* === COMMAND BAR (full width row) === */
+/* === COMMAND BAR (full width, stacked rows) === */
 .cmd-bar {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 16px;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 16px;
   background: rgba(255,255,255,0.025);
   border-radius: 10px;
   border: 1px solid rgba(255,255,255,0.06);
   margin-bottom: 14px;
-  flex-wrap: wrap;
-}
-.cmd-bar .cmd-status {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex: 1;
-  min-width: 180px;
-}
-.cmd-bar .cmd-buttons {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
 }
 .cmd-btn {
   display: inline-flex; align-items: center; gap: 6px;
@@ -1044,6 +1030,60 @@ tr:hover td {
 .hidden {
   display: none;
 }
+
+/* ==================== RESPONSIVE ==================== */
+@media (max-width: 768px) {
+  .header { padding: 8px 12px 0 12px; }
+  .header-top { gap: 8px; }
+  .header h1 { font-size: 1rem; }
+  .header-stats { gap: 4px; }
+  .header-stat { font-size: .6rem; padding: 3px 8px; }
+  .header-actions { gap: 4px; }
+  .header-actions .btn { font-size: .65rem; padding: 4px 8px; }
+  .header-flags-row { gap: 4px; padding: 6px 0; }
+  .flag-chip { padding: 3px 4px; }
+  .flag-chip .flag-emoji { font-size: 1.5rem; }
+  .flag-chip .flag-count { font-size: .58rem; padding: 1px 4px; }
+  .container { padding: 10px; }
+  .card { padding: 12px; margin-bottom: 10px; }
+  .cmd-bar { padding: 8px 10px !important; }
+  .cmd-btn { padding: 7px 12px; font-size: .72rem; }
+  .cmd-btn svg { width: 13px; height: 13px; }
+  .search-row { gap: 8px; }
+  .search-row .field-search { flex: 1 1 100%; }
+  .search-row .field-search-by { flex: 0 1 auto; }
+  .search-row .field-mode { flex: 1 1 100%; }
+  .mode-selector { flex-wrap: wrap; }
+  .mode-selector .btn { font-size: .7rem; padding: 6px 10px; }
+  .field input, .field select { padding: 8px 10px; font-size: .78rem; }
+  .networks-grid { grid-template-columns: 1fr; }
+  .scraped-tabs-bar { gap: 4px; }
+  .scraped-tab { padding: 6px 8px; max-width: 160px; }
+  .scraped-tab .tab-name { font-size: .68rem; max-width: 90px; }
+  .profile-preview { padding: 10px; }
+  .profile-preview .info-grid { grid-template-columns: 100px 1fr; font-size: .75rem; }
+  .log-area { font-size: .65rem; padding: 8px; max-height: 120px; }
+  .btn { padding: 7px 12px; font-size: .72rem; }
+  .btn-sm { padding: 4px 10px; font-size: .68rem; }
+  table { font-size: .7rem; }
+  th { font-size: .6rem; padding: 6px; }
+  td { padding: 5px 6px; }
+  [data-tip]::after { min-width: 140px; font-size: .72rem; padding: 8px 10px; }
+}
+
+@media (max-width: 480px) {
+  .header h1 { font-size: .88rem; }
+  .header-top { flex-wrap: wrap; }
+  .header-stats { order: 3; width: 100%; }
+  .header-actions { order: 2; }
+  .container { padding: 6px; }
+  .card { padding: 8px; border-radius: 8px; }
+  .cmd-btn { padding: 6px 10px; font-size: .68rem; }
+  .search-row .field-search-by { flex: 1 1 100%; }
+  .flag-chip .flag-emoji { font-size: 1.2rem; }
+  .profile-preview .info-grid { grid-template-columns: 1fr; }
+  .profile-preview .info-grid .lbl { font-weight: 700; color: var(--text-secondary); }
+}
 </style>
 </head>
 <body>
@@ -1071,44 +1111,50 @@ tr:hover td {
 <span id="loginBadge" style="display:none">NON CONNESSO</span>
 
 <div class="container">
-  <!-- ════════ COMMAND BAR — download status, network logo, buttons ════════ -->
-  <div class="cmd-bar">
-    <div class="cmd-status">
+  <!-- ════════ COMMAND BAR — riga 1: status + progresso ════════ -->
+  <div class="cmd-bar" style="flex-direction:column;gap:8px;padding:10px 16px">
+    <!-- ROW A: Status + Bandiera Paese + Logo Network + Activity -->
+    <div style="display:flex;align-items:center;gap:10px;width:100%;flex-wrap:wrap">
       <div class="status-dot off" id="statusDot"></div>
-      <div style="flex:1;min-width:0">
-        <div style="display:flex;align-items:center;gap:8px">
-          <span id="statusText" style="font-size:.8rem;color:var(--text-secondary)">Pronto</span>
-          <span id="progressText" style="font-size:.72rem;color:var(--text-muted)">0/0</span>
-        </div>
-        <div class="progress-bar" style="margin-top:4px"><div class="progress-fill" id="progressFill"></div></div>
+      <!-- Bandiera + Nome paese attivo -->
+      <div id="activeCountryBadge" style="display:none;flex-shrink:0;align-items:center;gap:5px">
+        <span id="activeCountryFlag" style="font-size:1.3rem;line-height:1"></span>
+        <span id="activeCountryName" style="font-size:.78rem;color:var(--text-primary);font-weight:600;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
       </div>
-      <!-- Activity ticker inline -->
-      <div id="activityBar" style="display:none;font-size:.75rem;font-family:'JetBrains Mono',monospace;color:var(--text-secondary);align-items:center;gap:6px;margin-left:8px;flex-shrink:1;min-width:0">
-        <span id="activityIcon" style="font-size:.9rem">⏳</span>
-        <span id="activityText" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:260px">In attesa...</span>
-        <span id="activityTimer" style="color:var(--text-muted);font-size:.72rem;white-space:nowrap"></span>
+      <!-- Logo Network -->
+      <div id="activeNetworkBadge" style="display:none;flex-shrink:0;align-items:center;gap:5px">
+        <img id="activeNetworkLogo" src="" alt="" style="height:22px;object-fit:contain" onerror="this.style.display='none'">
+        <span id="activeNetworkName" style="font-size:.72rem;color:var(--text-muted);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+      </div>
+      <!-- Status text -->
+      <span id="statusText" style="font-size:.78rem;color:var(--text-secondary);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Pronto</span>
+      <!-- Activity ticker -->
+      <div id="activityBar" style="display:none;font-size:.72rem;font-family:'JetBrains Mono',monospace;color:var(--text-secondary);align-items:center;gap:5px;flex-shrink:0">
+        <span id="activityIcon" style="font-size:.85rem">⏳</span>
+        <span id="activityText" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px">In attesa...</span>
+        <span id="activityTimer" style="color:var(--text-muted);font-size:.68rem;white-space:nowrap"></span>
       </div>
     </div>
-    <!-- Network badge -->
-    <div id="activeNetworkBadge" style="display:none;flex-shrink:0;text-align:center;margin:0 4px">
-      <img id="activeNetworkLogo" src="" alt="" style="height:28px;object-fit:contain;display:block;margin:0 auto 2px" onerror="this.style.display='none'">
-      <div id="activeNetworkName" style="font-size:.6rem;color:var(--text-muted);max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
+    <!-- ROW B: Progress bar -->
+    <div style="display:flex;align-items:center;gap:8px;width:100%">
+      <div class="progress-bar" style="flex:1"><div class="progress-fill" id="progressFill"></div></div>
+      <span id="progressText" style="font-size:.68rem;color:var(--text-muted);white-space:nowrap;min-width:36px;text-align:right">0/0</span>
     </div>
-    <!-- Buttons -->
-    <div class="cmd-buttons">
-      <button class="cmd-btn start" id="btnStart" onclick="startScraping()" disabled data-tip="Avvia lo scraping">
+    <!-- ROW C: Buttons — allineati ordinatamente -->
+    <div style="display:flex;align-items:center;gap:8px;width:100%;flex-wrap:wrap">
+      <button class="cmd-btn start" id="btnStart" onclick="startScraping()" disabled>
         <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="5 3 19 12 5 21 5 3"/></svg>
         Avvia
       </button>
-      <button class="cmd-btn resume" id="btnResume" onclick="resumeScraping()" style="display:none" data-tip="Riprendi dal punto interrotto">
+      <button class="cmd-btn resume" id="btnResume" onclick="resumeScraping()" style="display:none">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/><line x1="19" y1="3" x2="19" y2="21"/></svg>
         Continua
       </button>
-      <button class="cmd-btn secondary" id="btnStartBg" onclick="startBackgroundJob()" data-tip="Esegui in background">
+      <button class="cmd-btn secondary" id="btnStartBg" onclick="startBackgroundJob()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
         Background
       </button>
-      <button class="cmd-btn stop" id="btnStop" onclick="stopScraping()" disabled data-tip="Ferma lo scraping">
+      <button class="cmd-btn stop" id="btnStop" onclick="stopScraping()" disabled>
         <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
         Stop
       </button>
@@ -1144,16 +1190,16 @@ tr:hover td {
 
     <!-- ROW 2: Country + Range + Options -->
     <div style="display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap;margin-bottom:10px">
-      <!-- Country selector trigger -->
-      <div style="display:flex;align-items:flex-end;gap:6px">
-        <div>
-          <label style="display:block;font-size:.68rem;text-transform:uppercase;letter-spacing:.8px;color:var(--text-muted);margin-bottom:6px;font-weight:600">Paesi</label>
-          <button class="btn btn-sm btn-secondary" onclick="openCountryPopup()" style="display:flex;align-items:center;gap:6px;padding:8px 14px">
-            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-            <span id="countrySelLabel" style="font-size:.78rem">Seleziona...</span>
-            <span id="countrySelBadge" style="font-size:.68rem;padding:2px 6px;border-radius:4px;background:rgba(99,102,241,0.15);color:#a5b4fc"></span>
-          </button>
-        </div>
+      <!-- Country + Network icon buttons -->
+      <div style="display:flex;gap:6px;align-self:flex-end">
+        <button onclick="openCountryPopup()" style="position:relative;width:36px;height:36px;border-radius:10px;border:1px solid rgba(99,102,241,0.25);background:rgba(99,102,241,0.12);color:#a5b4fc;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s" data-tip="Seleziona paesi">
+          <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          <span id="countrySelBadge" style="position:absolute;top:-5px;right:-5px;font-size:.58rem;min-width:16px;height:16px;line-height:16px;text-align:center;padding:0 3px;border-radius:8px;background:#6366f1;color:white;font-weight:700;display:none"></span>
+        </button>
+        <button onclick="openNetworkPopup()" style="position:relative;width:36px;height:36px;border-radius:10px;border:1px solid rgba(99,102,241,0.25);background:rgba(99,102,241,0.12);color:#a5b4fc;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s" data-tip="Seleziona network">
+          <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+          <span id="networkSelBadge" style="position:absolute;top:-5px;right:-5px;font-size:.58rem;min-width:16px;height:16px;line-height:16px;text-align:center;padding:0 3px;border-radius:8px;background:#6366f1;color:white;font-weight:700;display:none"></span>
+        </button>
       </div>
 
       <!-- Range (hidden) -->
@@ -1198,12 +1244,7 @@ tr:hover td {
       </div>
     </div>
 
-    <!-- Networks trigger button -->
-    <button class="btn btn-sm btn-secondary" onclick="openNetworkPopup()" style="display:flex;align-items:center;gap:6px">
-      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
-      Seleziona Network
-      <span id="networkSelBadge" style="font-size:.68rem;padding:2px 6px;border-radius:4px;background:rgba(99,102,241,0.15);color:#a5b4fc"></span>
-    </button>
+    <!-- Networks trigger icon (inside options row) -->
 
   </div>
 
@@ -1473,11 +1514,12 @@ function updateCountryDisplay(){
   // Update popup count
   const popCnt = document.getElementById("countrySelCount");
   if(popCnt) popCnt.textContent = cnt + " selezionati";
-  // Update inline badge on trigger button
+  // Update icon badge
   const badge = document.getElementById("countrySelBadge");
-  if(badge) badge.textContent = cnt > 0 ? cnt : "";
-  const lbl = document.getElementById("countrySelLabel");
-  if(lbl) lbl.textContent = cnt === 0 ? "Seleziona..." : selectedCountries.map(c => c.name).join(", ").substring(0,30) + (selectedCountries.map(c => c.name).join(", ").length > 30 ? "…" : "");
+  if(badge){
+    if(cnt > 0){ badge.textContent = cnt; badge.style.display = "block"; }
+    else { badge.style.display = "none"; }
+  }
 }
 function removeCountry(code){
   selectedCountries = selectedCountries.filter(c => c.code !== code);
@@ -1709,9 +1751,12 @@ function updateNetworkSelCount(){
     inl.textContent = cnt > 0 ? cnt + " selezionati" : "0 selezionati";
     inl.style.color = cnt > 0 ? "#6ee7b7" : "var(--text-muted)";
   }
-  // Badge on trigger button
+  // Badge on trigger icon button
   const badge = document.getElementById("networkSelBadge");
-  if(badge) badge.textContent = cnt > 0 ? cnt + " sel." : "";
+  if(badge){
+    if(cnt > 0){ badge.textContent = cnt; badge.style.display = "block"; }
+    else { badge.style.display = "none"; }
+  }
 }
 // Attacca listener ai checkbox network dopo init
 function attachNetworkCountListeners(){
@@ -1774,16 +1819,17 @@ async function scrapeByNetwork(){
   for(let ci = 0; ci < countries.length && scraping; ci++){
     const c = countries[ci];
     log(`═══ [${networkName}] PAESE ${ci+1}/${countries.length}: ${c.name} (${c.code}) ═══`,"ok");
+    setActiveCountry(c.code, c.name);
     setStatus(`[${networkName}] ${c.name}: discover in corso...`, true);
 
     // FASE 1: Discover su QUESTO network per QUESTO paese
-    showActivity("🌐", `Discover ${c.name} su ${networkName}...`);
+    showActivity("🔍", `Discover ${c.name} su ${networkName}...`);
     let members = [];
     try {
       const delay = ci > 0 ? getNextDelay() : 0;
       if(delay > 0){
         log(`⏱ Pausa ${(delay/1000).toFixed(0)}s...`);
-        await sleepWithActivity("🌐", `Pausa prima di ${c.name}`, delay);
+        await sleepWithActivity("⏳", `Pausa prima di ${c.name}`, delay);
       }
       if(!scraping) break;
 
@@ -1885,7 +1931,7 @@ async function scrapeByNetwork(){
     // Pausa tra paesi
     if(ci + 1 < countries.length && scraping){
       log(`⏸ Pausa ${COUNTRY_PAUSE}s prima del prossimo paese...`);
-      await sleepWithActivity("🌍", `Pausa tra paesi — prossimo: ${countries[ci+1].name}`, COUNTRY_PAUSE * 1000);
+      await sleepWithActivity("⏳", `Pausa tra paesi — prossimo: ${countries[ci+1].name}`, COUNTRY_PAUSE * 1000);
     }
   } // fine loop paesi
 
@@ -1893,7 +1939,7 @@ async function scrapeByNetwork(){
   if(ni + 1 < networksToScrape.length && scraping){
     const nextNet = networksToScrape[ni+1].name;
     log(`⏸ Pausa ${COUNTRY_PAUSE}s prima del prossimo network: ${nextNet}...`);
-    await sleepWithActivity("🌐", `Prossimo network: ${nextNet}`, COUNTRY_PAUSE * 1000);
+    await sleepWithActivity("⏳", `Prossimo network: ${nextNet}`, COUNTRY_PAUSE * 1000);
   }
   } // fine loop network
 }
@@ -1909,27 +1955,31 @@ function setProgress(current, total){
   document.getElementById("progressText").textContent = `${current}/${total}`;
 }
 
-// === NETWORK BADGE — mostra logo e nome del network attivo a destra ===
+// === COUNTRY BADGE — bandiera + nome paese attivo ===
+function setActiveCountry(code, name){
+  const badge = document.getElementById("activeCountryBadge");
+  if(!code && !name){ badge.style.display = "none"; return; }
+  document.getElementById("activeCountryFlag").textContent = countryFlag(code);
+  document.getElementById("activeCountryName").textContent = name || code;
+  badge.style.display = "flex";
+}
+function hideActiveCountry(){
+  document.getElementById("activeCountryBadge").style.display = "none";
+}
+// === NETWORK BADGE — logo + nome network attivo ===
 function setActiveNetwork(networkDomain, networkName){
   const badge = document.getElementById("activeNetworkBadge");
   const logo = document.getElementById("activeNetworkLogo");
   const nameEl = document.getElementById("activeNetworkName");
-  if(!networkDomain && !networkName){
-    badge.style.display = "none";
-    return;
-  }
-  // Cerca il logo reale da ALL_NETWORKS, fallback a Google favicon
+  if(!networkDomain && !networkName){ badge.style.display = "none"; return; }
   const net = ALL_NETWORKS.find(n => n.domain === networkDomain || n.name === networkName);
   const domain = networkDomain || "wcaworld.com";
-  if(net && net.logo){
-    logo.src = net.logo;
-  } else {
-    logo.src = `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
-  }
+  if(net && net.logo){ logo.src = net.logo; }
+  else { logo.src = `https://www.google.com/s2/favicons?domain=${domain}&sz=64`; }
   logo.alt = networkName || domain;
   logo.style.display = "block";
   nameEl.textContent = networkName || domain;
-  badge.style.display = "block";
+  badge.style.display = "flex";
 }
 function hideActiveNetwork(){
   document.getElementById("activeNetworkBadge").style.display = "none";
@@ -2071,7 +2121,7 @@ async function startScraping(){
 
       if(ci + 1 < countries.length && scraping){
         log(`⏸ Pausa ${COUNTRY_PAUSE}s prima del prossimo paese...`);
-        await sleepWithActivity("🌍", `Pausa tra paesi — prossimo: ${countries[ci+1].name}`, COUNTRY_PAUSE * 1000);
+        await sleepWithActivity("⏳", `Pausa tra paesi — prossimo: ${countries[ci+1].name}`, COUNTRY_PAUSE * 1000);
       }
     }
 
@@ -2085,6 +2135,7 @@ async function startScraping(){
 
   scraping = false;
   hideActiveNetwork();
+  hideActiveCountry();
   document.getElementById("btnStart").disabled = false;
   document.getElementById("btnStop").disabled = true;
   document.body.classList.remove("scraping-active");
@@ -2098,6 +2149,7 @@ function stopScraping(){
   scraping = false;
   hideActivity();
   hideActiveNetwork();
+  hideActiveCountry();
   document.getElementById("btnStop").disabled = true;
   document.getElementById("btnStart").disabled = false;
   document.body.classList.remove("scraping-active");
@@ -2200,6 +2252,7 @@ async function resumeScraping(jobCode){
   const done = members.length - toDownload.length;
 
   currentScrapingCountry = countryCode;
+  setActiveCountry(countryCode, countryName);
   discoveredMembers = members;
   updateResultsTable();
   document.getElementById("resultsCard").style.display = "block";
@@ -2334,6 +2387,7 @@ const discoverCache = {};
 
 async function scrapeDiscoverCountry(country, countryName, updateAddress = false){
   currentScrapingCountry = country;
+  setActiveCountry(country, countryName);
   const MAX_TABS = 50;
   const MAX_RETRIES = 2;
   let consecutiveFailures = 0;
@@ -2414,14 +2468,14 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
     if(ni > 0){
       const delay = getNextDelay();
       log(`⏱ Pausa ${(delay/1000).toFixed(0)}s prima di ${network.name}...`);
-      await sleepWithActivity("🌐", `Pausa — prossimo network: ${network.name}`, delay);
+      await sleepWithActivity("⏳", `Pausa — prossimo network: ${network.name}`, delay);
     }
     if(!scraping) break;
 
     // --- DISCOVER su questo network ---
     setActiveNetwork(network.domain, network.name);
     setStatus(`${countryName} [${ni+1}/${ACTIVE_NETWORKS.length}] ${network.name}: discover...`, true);
-    showActivity("🌐", `Discover ${countryName} su ${network.name}...`);
+    showActivity("🔍", `Discover ${countryName} su ${network.name}...`);
     setProgress(ni+1, ACTIVE_NETWORKS.length);
 
     let members = [];
@@ -3229,7 +3283,10 @@ function closeNetworkPopup(){
 function updateNetworkSelBadge(){
   const cnt = document.querySelectorAll("#networksGrid input[type=checkbox]:checked").length;
   const badge = document.getElementById("networkSelBadge");
-  if(badge) badge.textContent = cnt > 0 ? cnt + " sel." : "";
+  if(badge){
+    if(cnt > 0){ badge.textContent = cnt; badge.style.display = "block"; }
+    else { badge.style.display = "none"; }
+  }
 }
 </script>
 
