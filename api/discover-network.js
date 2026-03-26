@@ -24,15 +24,20 @@ module.exports = async (req, res) => {
 
     const { base: baseUrl, siteId } = networkInfo;
 
-    // Auth SSO sul network
-    let cookies = await getCachedCookies(networkDomain);
-    if (cookies) { const valid = await testCookies(cookies, baseUrl); if (!valid) cookies = null; }
+    // Auth SSO sul network — getCachedCookies ritorna { cookies, ssoCookies } o null
+    let cookies = null;
+    const cached = await getCachedCookies(networkDomain);
+    if (cached) {
+      cookies = cached.cookies;
+      const valid = await testCookies(cookies, baseUrl);
+      if (!valid) cookies = null;
+    }
     if (!cookies) {
       console.log(`[discover-network] SSO login su ${baseUrl}...`);
       const loginResult = await ssoLogin(null, null, baseUrl);
       if (!loginResult.success) return res.status(500).json({ error: `SSO login fallito su ${networkDomain}: ` + loginResult.error });
       cookies = loginResult.cookies;
-      await saveCookiesToCache(cookies, networkDomain);
+      await saveCookiesToCache(cookies, networkDomain, loginResult.ssoCookies || "");
     }
 
     // Query string per directory

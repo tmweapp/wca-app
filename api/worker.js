@@ -16,11 +16,12 @@ function getDelay(idx) {
 }
 
 async function getValidCookies() {
-  let cookies = await getCachedCookies();
-  if (cookies && await testCookies(cookies)) return cookies;
+  // getCachedCookies ritorna { cookies, ssoCookies } o null
+  const cached = await getCachedCookies();
+  if (cached && await testCookies(cached.cookies)) return cached.cookies;
   const result = await ssoLogin();
   if (result && result.success && result.cookies) {
-    await saveCookiesToCache(result.cookies);
+    await saveCookiesToCache(result.cookies, undefined, result.ssoCookies || "");
     return result.cookies;
   }
   return null;

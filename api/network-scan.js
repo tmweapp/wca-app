@@ -141,14 +141,19 @@ module.exports = async (req, res) => {
     const { country, delayIndex = 0 } = req.body || {};
     if (!country) return res.status(400).json({ error: "country (ISO2) richiesto, es: ES, MT, IT" });
 
-    // 1. Auth
-    let cookies = await getCachedCookies();
-    if (cookies) { const valid = await testCookies(cookies); if (!valid) cookies = null; }
+    // 1. Auth — getCachedCookies ritorna { cookies, ssoCookies } o null
+    let cookies = null;
+    const cached = await getCachedCookies();
+    if (cached) {
+      cookies = cached.cookies;
+      const valid = await testCookies(cookies);
+      if (!valid) cookies = null;
+    }
     if (!cookies) {
       const loginResult = await ssoLogin();
       if (!loginResult.success) return res.status(500).json({ error: "SSO login fallito" });
       cookies = loginResult.cookies;
-      await saveCookiesToCache(cookies);
+      await saveCookiesToCache(cookies, undefined, loginResult.ssoCookies || "");
     }
 
     // 2. Discover su tutti i network — sequenziale con DELAY_PATTERN

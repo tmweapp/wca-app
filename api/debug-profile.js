@@ -33,14 +33,19 @@ module.exports = async (req, res) => {
     // 1. Auth
     let cookies = null;
     if (!forceLogin) {
-      cookies = await getCachedCookies();
-      if (cookies) { const valid = await testCookies(cookies); if (!valid) cookies = null; }
+      // getCachedCookies ritorna { cookies, ssoCookies } o null
+      const cached = await getCachedCookies();
+      if (cached) {
+        cookies = cached.cookies;
+        const valid = await testCookies(cookies);
+        if (!valid) cookies = null;
+      }
     }
     if (!cookies) {
       const loginResult = await ssoLogin();
       if (!loginResult.success) return res.json({ success: false, error: "Login failed: " + loginResult.error });
       cookies = loginResult.cookies;
-      await saveCookiesToCache(cookies);
+      await saveCookiesToCache(cookies, undefined, loginResult.ssoCookies || "");
     }
 
     const hasAuth = cookies.includes(".ASPXAUTH");
