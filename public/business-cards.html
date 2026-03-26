@@ -119,6 +119,9 @@ body{font-family:"SF Pro Display","Geist",'Inter',system-ui,sans-serif;backgroun
 .bc-card .notes-btn{background:none;border:none;cursor:pointer;font-size:.85rem;padding:2px;opacity:.5;transition:opacity .2s;filter:grayscale(.5)}
 .bc-card .notes-btn:hover{opacity:1}
 .bc-card .notes-btn.has-notes{opacity:.85;filter:none}
+.bc-card.has-notes-card{border-left:3px solid rgba(165,180,252,0.45)}
+.bc-card.has-notes-card .notes-indicator{display:inline-flex;align-items:center;gap:4px;font-size:.58rem;color:#a5b4fc;background:rgba(165,180,252,0.1);padding:2px 8px;border-radius:6px;font-weight:600;margin-left:8px;white-space:nowrap}
+.notes-indicator{display:none}
 .notes-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:500;align-items:center;justify-content:center}
 .notes-overlay.open{display:flex}
 .notes-modal{background:#1a1a2e;border:1px solid rgba(165,180,252,0.2);border-radius:16px;padding:20px;width:90%;max-width:440px;box-shadow:0 20px 60px rgba(0,0,0,0.5)}
@@ -180,13 +183,91 @@ body{font-family:"SF Pro Display","Geist",'Inter',system-ui,sans-serif;backgroun
 
 .empty-page{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;color:var(--text-muted);font-size:.9rem;gap:8px}
 
+/* ==================== MOBILE RESPONSIVE ==================== */
 @media(max-width:768px){
-  .filter-sidebar{width:60px}
-  .filter-name,.filter-count,.filter-date{display:none}
-  .bc-card .card-fields{display:none}
-  .card-lines{grid-template-columns:1fr}
-  .event-tabs{padding:0 10px}
-  .event-tab{padding:8px 12px;font-size:.7rem}
+  /* TOPBAR: stack vertically */
+  .topbar{padding:8px 12px;gap:8px}
+  .topbar h1{font-size:.95rem;order:-1;width:100%}
+  .topbar input[type="text"],.topbar select{min-width:0!important;flex:1;font-size:.75rem;padding:6px 10px}
+  .topbar .stats{margin-left:0;width:100%;justify-content:space-between;font-size:.65rem}
+  /* AI KEY: full width */
+  .topbar>div:has(#aiKeyInput){width:100%;order:5}
+  #aiKeyInput{width:100%!important;font-size:.72rem}
+
+  /* SIDEBAR: collapse to bottom sheet or hide */
+  .main-wrap{flex-direction:column}
+  .filter-sidebar{width:100%;max-height:0;overflow:hidden;border-right:none;border-bottom:1px solid rgba(255,255,255,0.07);transition:max-height .3s;order:2}
+  .filter-sidebar.mobile-open{max-height:50vh;overflow-y:auto}
+  .filter-sidebar h3{padding:10px 14px 6px}
+  .filter-item{padding:6px 12px}
+
+  /* PAGE AREA: full width */
+  .page-area{width:100%;order:1}
+  .page-header{padding:10px 14px;gap:8px;flex-wrap:wrap}
+  .page-header .page-icon{font-size:1.5rem}
+  .page-header .page-title{font-size:1rem}
+  .page-header .page-subtitle{font-size:.68rem}
+  .page-header>div:last-child{width:100%;justify-content:stretch}
+  .page-header .btn{flex:1;justify-content:center;font-size:.72rem;padding:8px 10px}
+
+  /* IMPORT FORM: stack */
+  .import-form{padding:12px 14px;flex-direction:column;gap:10px}
+  .import-form label{width:100%}
+  .import-form select,.import-form input{width:100%!important;min-width:0!important}
+
+  /* FLAG CAROUSEL */
+  .flag-carousel-wrap{padding:0}
+  .flag-search-wrap{padding:6px 14px 2px}
+  .flag-search-wrap input{width:100%;font-size:.75rem}
+  .flag-track{padding:0 14px;gap:4px}
+  .flag-chip{padding:4px 5px;min-width:44px}
+  .flag-chip .flag-emoji{font-size:1.4rem}
+  .flag-chip .flag-label{font-size:.42rem;max-width:44px}
+  .flag-chip .flag-count{font-size:.52rem;padding:0 4px}
+  .flag-dropdown{left:14px;width:calc(100% - 28px)}
+
+  /* STATS BAR */
+  .stats-bar{padding:6px 14px;gap:6px}
+  .stat-chip{font-size:.65rem;padding:3px 10px}
+
+  /* SORT BAR */
+  .sort-bar{padding:6px 14px;gap:4px}
+  .sort-btn{font-size:.62rem;padding:3px 8px}
+
+  /* SELECTION BAR */
+  .selection-bar{padding:6px 14px;gap:8px}
+  .selection-bar .btn{font-size:.65rem;padding:5px 10px}
+
+  /* CARDS: single column, show fields */
+  .card-lines{grid-template-columns:1fr;padding:10px 12px;gap:10px}
+  .bc-card{padding:12px 14px;border-radius:12px}
+  .bc-card .card-top{gap:8px;margin-bottom:8px}
+  .bc-card .card-check{width:16px;height:16px}
+  .bc-card .card-flag{font-size:1.3rem}
+  .bc-card .card-company{font-size:.85rem}
+  .bc-card .card-country-name{font-size:.55rem}
+  .bc-card .card-fields{display:flex!important;flex-direction:column;gap:2px}
+  .bc-card .card-field{font-size:.68rem}
+  .bc-card .card-field .f-icon{font-size:.68rem}
+  .bc-card .person-name{font-size:.76rem}
+  .bc-card .person-role{font-size:.62rem}
+  .match-badge{font-size:.58rem;padding:2px 8px}
+  .match-sub{font-size:.5rem;max-width:120px}
+
+  /* LETTER INDEX: hide on mobile */
+  .letter-index{display:none}
+
+  /* DROPZONE */
+  .dropzone{margin:12px 14px;padding:24px 14px}
+
+  /* NOTES MODAL */
+  .notes-modal{width:95%;padding:16px}
+
+  /* SIDEBAR TOGGLE (mobile) */
+  .mobile-sidebar-toggle{display:flex!important}
+}
+@media(min-width:769px){
+  .mobile-sidebar-toggle{display:none!important}
 }
 </style>
 </head>
@@ -219,8 +300,9 @@ body{font-family:"SF Pro Display","Geist",'Inter',system-ui,sans-serif;backgroun
 </div>
 
 <div class="main-wrap">
+  <button class="btn btn-back mobile-sidebar-toggle" id="sidebarToggle" onclick="toggleMobileSidebar()" style="display:none;position:fixed;bottom:16px;left:16px;z-index:300;border-radius:50%;width:44px;height:44px;justify-content:center;background:rgba(99,102,241,0.2);border:1px solid rgba(165,180,252,0.3);font-size:1.1rem;box-shadow:0 4px 20px rgba(0,0,0,0.4)">🌍</button>
   <div class="filter-sidebar" id="filterSidebar">
-    <h3>Eventi</h3>
+    <h3>Paesi</h3>
   </div>
 
   <div class="page-area" id="pageArea">
@@ -271,6 +353,7 @@ body{font-family:"SF Pro Display","Geist",'Inter',system-ui,sans-serif;backgroun
       <span class="stat-chip matched" id="chipMatched">0 in WCA</span>
       <span class="stat-chip partial-stat" id="chipPartial">0 parziali</span>
       <span class="stat-chip unmatched" id="chipUnmatched">0 non trovati</span>
+      <span class="stat-chip" id="chipNotes" style="background:rgba(165,180,252,0.1);color:#a5b4fc;cursor:pointer" onclick="toggleNotesFilter()" title="Filtra contatti con note">📝 0 con note</span>
     </div>
 
     <!-- FLAG CAROUSEL -->
@@ -293,6 +376,7 @@ body{font-family:"SF Pro Display","Geist",'Inter',system-ui,sans-serif;backgroun
       <button class="sort-btn" onclick="setSort('country')" id="sortCountry">Paese</button>
       <button class="sort-btn" onclick="setSort('city')" id="sortCity">Città</button>
       <button class="sort-btn" onclick="setSort('match')" id="sortMatch">Match</button>
+      <button class="sort-btn" onclick="toggleNotesFilter()" id="filterNotes" title="Mostra solo contatti con note">📝 Con note</button>
       <span style="margin-left:auto;display:flex;gap:4px">
         <button class="sort-btn" onclick="setView('grid')" id="viewGrid" title="Griglia">▦</button>
         <button class="sort-btn active" onclick="setView('list')" id="viewList" title="Elenco">☰</button>
@@ -615,6 +699,7 @@ function getFilteredCards(){
   );
   if(currentFilter!=="all") cards=cards.filter(c=>c._match?.type===currentFilter);
   if(currentCountryFilter) cards=cards.filter(c=>(c.country_code||"").toUpperCase()===currentCountryFilter);
+  if(notesFilterActive) cards=cards.filter(c=>(c.notes||"").trim());
   cards=sortCards(cards);
   return cards;
 }
@@ -623,6 +708,13 @@ function getFilteredCards(){
 let currentView="list";
 let selectedIds=new Set();
 let currentCountryFilter="";
+let notesFilterActive=false;
+
+function toggleNotesFilter(){
+  notesFilterActive=!notesFilterActive;
+  document.getElementById("filterNotes").classList.toggle("active",notesFilterActive);
+  renderPage();
+}
 
 function setView(v){
   currentView=v;
@@ -784,6 +876,10 @@ function renderPage(){
   document.getElementById("chipMatched").textContent=matched+" in WCA";
   document.getElementById("chipPartial").textContent=partial+" parziali";
   document.getElementById("chipUnmatched").textContent=(total-matched-partial)+" non trovati";
+  const withNotes=allCards.filter(c=>(c.notes||"").trim()).length;
+  const chipN=document.getElementById("chipNotes");
+  chipN.textContent="📝 "+withNotes+" con note";
+  chipN.style.outline=notesFilterActive?"2px solid rgba(165,180,252,0.5)":"none";
   document.getElementById("pageSubtitle").textContent=cards.length+" contatti"+(cards.length!==total?" (filtrati)":"");
 
   if(!cards.length){
@@ -822,7 +918,7 @@ function renderPage(){
     const hasNotes=!!(c.notes||"").trim();
     const notesBtnCls=hasNotes?"notes-btn has-notes":"notes-btn";
 
-    html+=`<div class="bc-card${isSel?" selected":""}" data-id="${c.id||""}" data-letter="${(c.company_name||"#")[0].toUpperCase()}">
+    html+=`<div class="bc-card${isSel?" selected":""}${hasNotes?" has-notes-card":""}" data-id="${c.id||""}" data-letter="${(c.company_name||"#")[0].toUpperCase()}">
       <div class="card-top">
         <button class="card-check${isSel?" checked":""}" onclick="toggleSelect('${c.id||""}')"></button>
         <span class="card-flag">${flag}</span>
@@ -841,6 +937,7 @@ function renderPage(){
       <div class="card-fields">${fields.join("")}</div>
       <div class="card-bottom">
         <button class="${notesBtnCls}" onclick="openNotes('${c.id||""}')" title="${hasNotes?"Visualizza/modifica note":"Aggiungi note"}">📝</button>
+        <span class="notes-indicator">📝 Note</span>
         <span class="card-date">${fmtDate(c.created_at)}</span>
       </div>
     </div>`;
@@ -876,6 +973,9 @@ function scrollToLetter(letter){
 
 // ==================== FILTERS ====================
 function onSearch(){ renderPage(); }
+function toggleMobileSidebar(){
+  document.getElementById("filterSidebar").classList.toggle("mobile-open");
+}
 function onFilterChange(){ currentFilter=document.getElementById("filterMatch").value; renderPage(); }
 
 // ==================== FILE IMPORT ====================
