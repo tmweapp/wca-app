@@ -1290,7 +1290,7 @@ initCountrySelector();
   g.appendChild(btnBar);
   for(const [name] of Object.entries(NETWORKS)){
     const lbl = document.createElement("label");
-    lbl.innerHTML = `<input type="checkbox" checked value="${name}"> ${name}`;
+    lbl.innerHTML = `<input type="checkbox" value="${name}"> ${name}`;
     g.appendChild(lbl);
   }
   // Bottoni test spostati fuori dal details nel #testDownloadBar
@@ -1439,11 +1439,17 @@ function setMode(mode, btn){
 
 function getSelectedNetworkObjects(){
   // Legge i network selezionati dalla checkbox grid, ritorna [{domain, name}]
+  // IMPORTANTE: cb.value contiene il nome da NETWORKS{} (es. "WCA eCommerce Solutions")
+  // che può differire dal nome in ALL_NETWORKS (es. "WCA eCommerce").
+  // Usiamo siteId come ponte sicuro tra le due strutture.
   const checked = document.querySelectorAll("#networksGrid input[type=checkbox]:checked");
   const selected = [];
   checked.forEach(cb => {
-    const net = ALL_NETWORKS.find(n => n.domain === cb.value);
-    if(net) selected.push({ domain: net.domain, name: net.name });
+    const siteId = NETWORKS[cb.value]; // NETWORKS[name] → siteId
+    if(siteId !== undefined){
+      const net = ALL_NETWORKS.find(n => n.siteId === siteId);
+      if(net) selected.push({ domain: net.domain, name: net.name });
+    }
   });
   return selected;
 }
@@ -1740,6 +1746,19 @@ async function startScraping(){
   } else if(currentMode === "network"){
     await scrapeByNetwork();
   } else {
+    // Discover mode: verifica che almeno un network sia selezionato
+    const discoverSelNames = getSelectedNetworks();
+    if(discoverSelNames.length === 0){
+      log("⚠ Nessun network selezionato! Seleziona almeno un network dalla griglia.","err");
+      alert("Seleziona almeno un network dalla sezione 'Seleziona Network'!");
+      const nd = document.querySelector("details:has(#networksGrid)");
+      if(nd) nd.open = true;
+      scraping = false;
+      document.getElementById("btnStart").disabled = false;
+      document.getElementById("btnStop").disabled = true;
+      document.body.classList.remove("scraping-active");
+      return;
+    }
     const countries = selectedCountries.length > 0 ? [...selectedCountries] : [{code:"", name:"Tutti"}];
     let skippedAll = 0;
 
@@ -2099,22 +2118,14 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
   // ═══════════════════════════════════════════════════════════════
   // FLUSSO PRINCIPALE: network per network → discover → download
   // ═══════════════════════════════════════════════════════════════
-  // Filtra network in base alla selezione utente
+  // Filtra network in base alla selezione utente — usa siteId come ponte sicuro
   const selectedNetNames = getSelectedNetworks();
-  const ACTIVE_NETWORKS = ALL_NETWORKS.filter(n => {
-    // Mappa: il checkbox usa i nomi da NETWORKS{}, che possono differire dai nomi in ALL_NETWORKS
-    // Es. checkbox "WCA eCommerce Solutions" vs ALL_NETWORKS "WCA eCommerce"
-    return selectedNetNames.some(sel => {
-      const selLower = sel.toLowerCase();
-      const nLower = n.name.toLowerCase();
-      // Match esatto, parziale, o per dominio
-      return selLower === nLower || selLower.includes(nLower) || nLower.includes(selLower) ||
-        (NETWORKS[sel] && NETWORKS[sel] === n.siteId);
-    });
-  });
+  const selectedSiteIds = new Set(selectedNetNames.map(name => NETWORKS[name]).filter(id => id !== undefined));
+  const ACTIVE_NETWORKS = ALL_NETWORKS.filter(n => selectedSiteIds.has(n.siteId));
   log(`═══ ${countryName}: INIZIO SCRAPING (${ACTIVE_NETWORKS.length}/${ALL_NETWORKS.length} network selezionati) ═══`);
   if(ACTIVE_NETWORKS.length === 0){
-    log(`⚠ Nessun network selezionato! Seleziona almeno un network dalla griglia.`,"warn");
+    log(`⚠ Nessun network selezionato! Seleziona almeno un network dalla griglia.`,"err");
+    return { ok:false, error:"no_networks" };
   }
 
   for(let ni = 0; ni < ACTIVE_NETWORKS.length && scraping; ni++){
@@ -2306,8 +2317,11 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
     return;
   }
 
-  // Tutti i network sono disponibili — usa ALL_NETWORKS direttamente
-  const availableNetworks = ALL_NETWORKS.map(n => n.name);
+  // Usa solo i network selezionati dall'utente (siteId come ponte)
+  const selNetNames = getSelectedNetworks();
+  const selSiteIds = new Set(selNetNames.map(name => NETWORKS[name]).filter(id => id !== undefined));
+  const activeNets = ALL_NETWORKS.filter(n => selSiteIds.has(n.siteId));
+  const availableNetworks = activeNets.length > 0 ? activeNets.map(n => n.name) : ALL_NETWORKS.map(n => n.name);
 
   log(`═══ FASE 3: ARRICCHIMENTO — ${limitedProfiles.length} profili limitati, ${availableNetworks.length} network disponibili ═══`);
   setStatus(`FASE 3: Arricchimento ${limitedProfiles.length} profili limitati...`, true);
