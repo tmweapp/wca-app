@@ -889,12 +889,12 @@ tr:hover td {
       </div>
     </div>
     <!-- Network mode selector (visible solo in modalità "Per Network") -->
-    <div id="networkModePanel" style="display:none;margin-top:12px;padding:12px;border-radius:12px;background:var(--bg-card);border:1px solid var(--border-color)">
-      <label style="font-size:.85rem;font-weight:600;color:var(--text-secondary);margin-bottom:6px;display:block">Seleziona Network da scansionare</label>
-      <select id="selTargetNetwork" style="width:100%;padding:8px 12px;border-radius:8px;background:var(--bg-card);color:var(--text-primary);border:1px solid var(--border-color);font-size:.85rem">
+    <div id="networkModePanel" style="display:none;margin-top:12px;padding:14px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06)">
+      <label style="font-size:.75rem;font-weight:600;color:var(--text-muted);margin-bottom:8px;display:block;text-transform:uppercase;letter-spacing:0.5px">Network da scansionare</label>
+      <select id="selTargetNetwork" style="width:100%;padding:10px 12px;border-radius:8px;background:rgba(255,255,255,0.04);color:var(--text-primary);border:1px solid rgba(255,255,255,0.08);font-size:.82rem">
         <option value="">-- Scegli un network --</option>
       </select>
-      <p style="font-size:.75rem;color:var(--text-secondary);margin-top:6px">Entra nel network selezionato → scopri e scarica i partner paese per paese, direttamente dal network.</p>
+      <p style="font-size:.72rem;color:var(--text-muted);margin-top:8px">Seleziona "Tutti" per scansionare ogni network in sequenza per i paesi scelti.</p>
     </div>
     <!-- Test Download rapido -->
     <div style="margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap" id="testDownloadBar">
@@ -1316,6 +1316,11 @@ function setMode(mode, btn){
 function initNetworkSelector(){
   const sel = document.getElementById("selTargetNetwork");
   if(sel.options.length > 1) return; // già popolato
+  // Opzione "Tutti" — itera su ogni network in successione
+  const allOpt = document.createElement("option");
+  allOpt.value = "__ALL__";
+  allOpt.textContent = "— Tutti i Network (uno dopo l'altro) —";
+  sel.appendChild(allOpt);
   for(const net of ALL_NETWORKS){
     const opt = document.createElement("option");
     opt.value = net.domain;
@@ -1326,14 +1331,23 @@ function initNetworkSelector(){
 
 // === MODALITÀ PER NETWORK: entra in un network, discover+download paese per paese ===
 async function scrapeByNetwork(){
-  const networkDomain = document.getElementById("selTargetNetwork").value;
-  if(!networkDomain){ alert("Seleziona un network!"); return; }
+  const selValue = document.getElementById("selTargetNetwork").value;
+  if(!selValue){ alert("Seleziona un network!"); return; }
   const countries = [...selectedCountries];
   if(countries.length === 0){ alert("Seleziona almeno un paese!"); return; }
 
-  const networkName = ALL_NETWORKS.find(n => n.domain === networkDomain)?.name || networkDomain;
-  log(`═══ MODALITÀ NETWORK: ${networkName} (${networkDomain}) ═══`);
-  log(`📋 Paesi da scansionare: ${countries.map(c=>c.name).join(", ")}`);
+  // Se "Tutti", itera su ogni network in sequenza
+  const networksToScrape = selValue === "__ALL__"
+    ? ALL_NETWORKS.map(n => ({ domain: n.domain, name: n.name }))
+    : [{ domain: selValue, name: ALL_NETWORKS.find(n => n.domain === selValue)?.name || selValue }];
+
+  log(`═══ MODALITÀ NETWORK: ${networksToScrape.length} network × ${countries.length} paesi ═══`);
+  log(`Network: ${networksToScrape.map(n=>n.name).join(", ")}`);
+  log(`Paesi: ${countries.map(c=>c.name).join(", ")}`);
+
+  for(let ni = 0; ni < networksToScrape.length && scraping; ni++){
+    const { domain: networkDomain, name: networkName } = networksToScrape[ni];
+    log(`\n═══ NETWORK ${ni+1}/${networksToScrape.length}: ${networkName} ═══`,"ok");
 
   for(let ci = 0; ci < countries.length && scraping; ci++){
     const c = countries[ci];
@@ -1451,7 +1465,15 @@ async function scrapeByNetwork(){
       log(`⏸ Pausa ${COUNTRY_PAUSE}s prima del prossimo paese...`);
       await sleepWithActivity("🌍", `Pausa tra paesi — prossimo: ${countries[ci+1].name}`, COUNTRY_PAUSE * 1000);
     }
+  } // fine loop paesi
+
+  // Pausa tra network (se Tutti)
+  if(ni + 1 < networksToScrape.length && scraping){
+    const nextNet = networksToScrape[ni+1].name;
+    log(`⏸ Pausa ${COUNTRY_PAUSE}s prima del prossimo network: ${nextNet}...`);
+    await sleepWithActivity("🌐", `Prossimo network: ${nextNet}`, COUNTRY_PAUSE * 1000);
   }
+  } // fine loop network
 }
 
 function setStatus(text, online=false){
