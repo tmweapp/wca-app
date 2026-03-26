@@ -118,13 +118,13 @@ body{font-family:"SF Pro Display","Geist",'Inter',system-ui,sans-serif;backgroun
 .bc-card .card-date{font-size:.6rem;color:#64748b}
 .bc-card .inferred{opacity:.7;font-style:italic}
 .bc-card .inferred::after{content:" ~";color:#a5b4fc;font-size:.55rem}
-/* NOTES ICON + POPUP */
-.bc-card .notes-btn{background:none;border:none;cursor:pointer;font-size:.85rem;padding:2px;opacity:.5;transition:opacity .2s;filter:grayscale(.5)}
-.bc-card .notes-btn:hover{opacity:1}
-.bc-card .notes-btn.has-notes{opacity:.85;filter:none}
+/* NOTES ICON + PREVIEW */
+.bc-card .notes-btn{background:none;border:none;cursor:pointer;font-size:.78rem;padding:4px 6px;opacity:.4;transition:all .2s;color:#a5b4fc;border-radius:6px}
+.bc-card .notes-btn:hover{opacity:1;background:rgba(165,180,252,0.1)}
+.bc-card .notes-btn.has-notes{opacity:.9}
 .bc-card.has-notes-card{border-left:3px solid rgba(165,180,252,0.45)}
-.bc-card.has-notes-card .notes-indicator{display:inline-flex;align-items:center;gap:4px;font-size:.58rem;color:#a5b4fc;background:rgba(165,180,252,0.1);padding:2px 8px;border-radius:6px;font-weight:600;margin-left:8px;white-space:nowrap}
-.notes-indicator{display:none}
+.bc-card .notes-preview{font-size:.65rem;color:#64748b;line-height:1.4;margin-top:6px;padding:6px 10px;background:rgba(165,180,252,0.04);border-radius:8px;border-left:2px solid rgba(165,180,252,0.2);overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;cursor:pointer;transition:background .2s}
+.bc-card .notes-preview:hover{background:rgba(165,180,252,0.08)}
 .notes-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:500;align-items:center;justify-content:center}
 .notes-overlay.open{display:flex}
 .notes-modal{background:#1a1a2e;border:1px solid rgba(165,180,252,0.2);border-radius:16px;padding:20px;width:90%;max-width:440px;box-shadow:0 20px 60px rgba(0,0,0,0.5)}
@@ -320,6 +320,7 @@ body{font-family:"SF Pro Display","Geist",'Inter',system-ui,sans-serif;backgroun
           <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4m4-5 5-5 5 5m-5-5v12"/></svg>
           Importa File <input type="file" accept=".csv,.xlsx,.xls,.tsv" id="fileInput" onchange="onFileSelected(this.files[0])" style="display:none">
         </label>
+        <button class="btn btn-accent" onclick="aiMatchAll()" id="btnAiMatch" style="display:none" title="Verifica AI corrispondenza WCA">🤖 AI Match</button>
         <button class="btn btn-danger" onclick="clearAll()" id="btnClear" style="display:none">Cancella tutto</button>
       </div>
     </div>
@@ -460,6 +461,7 @@ async function testOpenAIKey(){
       inp.style.borderColor="rgba(16,185,129,0.6)";
       status.textContent="✅ Connesso";
       status.style.color="#10b981";
+      if(allCards.length) document.getElementById("btnAiMatch").style.display="inline-flex";
     } else {
       const err=await r.json().catch(()=>({}));
       icon.style.filter="grayscale(1)";
@@ -576,6 +578,204 @@ function matchCard(card, partners){
   else if(bestScore>=15) matchType="partial";
   else { bestMatch=null; bestReason=""; }
   return { partner:bestMatch, score:bestScore, reason:bestReason, type:matchType };
+}
+
+// ==================== AI-POWERED WCA MATCHING ====================
+const AI_MATCH_KB = `
+KNOWLEDGE BASE — WCA PARTNER MATCHING
+======================================
+Sei un esperto di logistica internazionale e freight forwarding. Il tuo compito è verificare
+se un contatto da biglietto da visita corrisponde a un partner WCA (World Cargo Alliance).
+
+REGOLE DI MATCHING (dalla più affidabile alla meno):
+
+1. MATCH ESATTO AZIENDA (confidenza ALTA):
+   - Stesso nome azienda dopo normalizzazione (rimuovi Ltd, GmbH, Srl, Inc, LLC, Pte, Co, etc.)
+   - "ABC Logistics Pte Ltd" = "ABC Logistics" = "ABC Logistics Co., Ltd"
+   - Attenzione a acronimi: "KWE" potrebbe essere "Kintetsu World Express"
+
+2. MATCH DOMINIO EMAIL/WEBSITE (confidenza ALTA):
+   - Stesso dominio email → stessa azienda (es. @abclog.com = abclog.com)
+   - Controlla varianti: abc-logistics.com vs abclogistics.com
+   - Dominio aziendale (non gmail/yahoo/hotmail) è forte indicatore
+
+3. MATCH TELEFONO (confidenza MEDIA-ALTA):
+   - Stesso numero (ignora prefisso internazionale e formato)
+   - Ultime 8 cifre uguali → probabile match
+
+4. MATCH CONTATTO/PERSONA (confidenza MEDIA):
+   - Nome persona trovato nella lista contatti del partner WCA
+   - Attenzione a nomi comuni in Asia (Lee, Wang, Kim, etc.)
+
+5. MATCH GEOGRAFICO + SETTORE (confidenza BASSA, solo supporto):
+   - Stesso paese + settore simile rafforza un match debole
+   - NON sufficiente da solo per dichiarare un match
+
+VARIANTI NOMI AZIENDALI COMUNI NEL FREIGHT FORWARDING:
+- "Freight" / "Frt" / "Fwd" → stessa cosa
+- "Logistics" / "Log" / "Logistic" → stessa cosa
+- "International" / "Int'l" / "Intl" → stessa cosa
+- "Shipping" / "Ship" → stessa cosa
+- "Transport" / "Trans" → stessa cosa
+- "Global" / "Worldwide" / "World" → spesso intercambiabili
+- "Express" / "Exp" → stessa cosa
+- "Cargo" / "Air Cargo" / "Sea Cargo" → varianti
+- "Supply Chain" / "SCM" → stessa cosa
+- Suffissi legali per paese: Pte Ltd (SG), GmbH (DE), Srl (IT), SA (FR/ES), BV (NL), AS (NO/DK/TR)
+
+CASI SPECIALI:
+- Una persona può lavorare per una filiale/branch del partner WCA
+- Il biglietto da visita potrebbe riportare il nome della filiale locale, non della casa madre
+- Controlla se il dominio email del biglietto corrisponde al website del partner WCA
+- Se il WCA partner ha "contacts" con email che matchano → MATCH FORTE
+
+OUTPUT per ogni contatto:
+- match_type: "found" (confidenza ≥80%), "partial" (confidenza 40-79%), "not-found" (<40%)
+- confidence: numero 0-100
+- reason: spiegazione breve in italiano del perché è un match o no
+- wca_id: ID del partner WCA matchato (se trovato)
+- company_name_wca: nome azienda WCA matchata
+- suggestion: suggerimento per l'utente (es. "Verificare manualmente - nome simile ma paese diverso")
+`;
+
+async function aiMatchAll(){
+  if(!OPENAI_KEY||!OPENAI_KEY.startsWith("sk-")){
+    alert("Inserisci prima una chiave OpenAI valida"); return;
+  }
+  const cards=getFilteredCards().filter(c=>c.id);
+  if(!cards.length){ alert("Nessun contatto da verificare"); return; }
+
+  const btn=document.getElementById("btnAiMatch");
+  const origText=btn.innerHTML;
+  btn.disabled=true;
+  btn.innerHTML="⏳ Analisi AI...";
+
+  // Prepare compact partner list for AI context
+  const partnersSummary=allPartners.slice(0,500).map(p=>{
+    const emails=[p.email||""];
+    if(Array.isArray(p.contacts)) p.contacts.forEach(c=>{ if(c.email) emails.push(c.email); });
+    const contactNames=Array.isArray(p.contacts)?p.contacts.map(c=>c.name).filter(Boolean):[];
+    return {
+      wca_id:p.wca_id, name:p.company_name, cc:p.country_code,
+      emails:emails.filter(Boolean).join(","),
+      phone:p.phone||"", web:p.website||"",
+      contacts:contactNames.join(",")
+    };
+  });
+
+  const BATCH=10;
+  let improved=0, errors=0;
+
+  for(let i=0;i<cards.length;i+=BATCH){
+    const batch=cards.slice(i,i+BATCH);
+    btn.innerHTML=`⏳ AI ${i}/${cards.length}...`;
+
+    const cardsBatch=batch.map(c=>({
+      id:c.id, company:c.company_name, name:c.contact_name,
+      email:c.email, phone:c.phone, city:c.city,
+      country:c.country, web:c.website, position:c.position,
+      current_match:c._match?.type||"not-found",
+      current_score:c._match?.score||0,
+      current_partner:c._match?.partner?.company_name||""
+    }));
+
+    const prompt=`${AI_MATCH_KB}
+
+PARTNER WCA DISPONIBILI (${allPartners.length} totali, mostro i primi 500):
+${JSON.stringify(partnersSummary)}
+
+CONTATTI DA VERIFICARE:
+${JSON.stringify(cardsBatch)}
+
+Per ogni contatto, analizza TUTTI i campi e confrontali con i partner WCA.
+Il sistema ha già fatto un match algoritmico (current_match/current_score/current_partner).
+Tu devi:
+1. CONFERMARE o CORREGGERE il match esistente
+2. TROVARE match che l'algoritmo potrebbe aver perso (es. acronimi, filiali, varianti nome)
+3. SPIEGARE il ragionamento
+
+Rispondi con un JSON array, un oggetto per contatto:
+[{"id":"uuid","match_type":"found|partial|not-found","confidence":85,"wca_id":"...","company_name_wca":"...","reason":"...","suggestion":"..."}]
+
+Rispondi SOLO con il JSON array, nient'altro.`;
+
+    try{
+      const r=await fetch("https://api.openai.com/v1/chat/completions",{
+        method:"POST",
+        headers:{"Content-Type":"application/json","Authorization":"Bearer "+OPENAI_KEY},
+        body:JSON.stringify({
+          model:"gpt-4o-mini", temperature:0,
+          messages:[{role:"user",content:prompt}],
+          response_format:{type:"json_object"}
+        })
+      });
+      if(!r.ok){ console.error("AI Match error:",await r.text()); errors++; continue; }
+      const data=await r.json();
+      const content=data.choices?.[0]?.message?.content||"";
+      let results=JSON.parse(content);
+      if(results&&!Array.isArray(results)){
+        const key=Object.keys(results).find(k=>Array.isArray(results[k]));
+        if(key) results=results[key]; else results=[];
+      }
+
+      for(const res of results){
+        const card=allCards.find(c=>String(c.id)===String(res.id));
+        if(!card) continue;
+
+        // Find the WCA partner by wca_id or company name
+        let matchedPartner=null;
+        if(res.wca_id) matchedPartner=allPartners.find(p=>String(p.wca_id)===String(res.wca_id));
+        if(!matchedPartner&&res.company_name_wca){
+          matchedPartner=allPartners.find(p=>normalize(p.company_name)===normalize(res.company_name_wca));
+        }
+
+        const aiType=res.match_type||"not-found";
+        const aiConf=res.confidence||0;
+        const oldType=card._match?.type||"not-found";
+        const oldScore=card._match?.score||0;
+
+        // AI improves or changes the match
+        const shouldUpdate=
+          (aiType==="found"&&oldType!=="found") ||
+          (aiType==="found"&&aiConf>oldScore) ||
+          (aiType==="partial"&&oldType==="not-found") ||
+          (aiType==="not-found"&&oldType!=="not-found"&&aiConf<20);
+
+        if(shouldUpdate||aiConf>oldScore){
+          card._match={
+            type:aiType,
+            score:aiConf,
+            reason:"🤖 "+res.reason+(res.suggestion?" | "+res.suggestion:""),
+            partner:matchedPartner||card._match?.partner||null
+          };
+          improved++;
+
+          // Update notes with AI match info
+          const aiNote="[AI Match] "+res.reason+(res.suggestion?" — "+res.suggestion:"");
+          const existingNotes=(card.notes||"").replace(/\[AI Match\][^|]*(|\||$)/g,"").trim();
+          const newNotes=existingNotes?(existingNotes+" | "+aiNote):aiNote;
+
+          // PATCH notes to Supabase
+          try{
+            await fetch(`${SUPABASE_URL}/rest/v1/wca_business_cards?id=eq.${card.id}`,{
+              method:"PATCH",
+              headers:{...SB_HEADERS,"Content-Type":"application/json","Prefer":"return=minimal"},
+              body:JSON.stringify({notes:newNotes})
+            });
+            card.notes=newNotes;
+          }catch(e){ console.error("PATCH notes error:",e); }
+        }
+      }
+    }catch(e){ console.error("AI match batch error:",e); errors++; }
+  }
+
+  btn.disabled=false;
+  btn.innerHTML=origText;
+  renderAll();
+
+  const msg=`AI Match completato!\n${improved} contatti aggiornati su ${cards.length} analizzati.`;
+  if(errors) alert(msg+`\n${errors} errori durante l'analisi.`);
+  else alert(msg);
 }
 
 // ==================== DATA LOADING ====================
@@ -872,6 +1072,7 @@ function renderPage(){
     dropzone.style.display="block"; lines.innerHTML=""; statsBar.style.display="none"; btnClear.style.display="none"; sortBar.style.display="none"; document.getElementById("flagCarousel").style.display="none"; return;
   }
   dropzone.style.display="none"; statsBar.style.display="flex"; btnClear.style.display="inline-flex"; sortBar.style.display="flex";
+  document.getElementById("btnAiMatch").style.display=OPENAI_KEY?"inline-flex":"none";
   lines.classList.toggle("list-view",currentView==="list");
 
   const total=allCards.length, matched=allCards.filter(c=>c._match?.type==="found").length,
@@ -900,13 +1101,14 @@ function renderPage(){
     const countryName=c.country||(cc?cc.toUpperCase():"")||"";
     const isSel=selectedIds.has(c.id);
 
+    const isAI=(m.reason||"").startsWith("🤖");
     let matchHtml="";
     if(m.type==="found"){
-      matchHtml=`<span class="match-badge found">✦ WCA</span>
-        <div class="match-sub" title="${esc(m.reason)}">${esc(m.partner?.company_name)}</div>`;
+      matchHtml=`<span class="match-badge found">${isAI?"🤖":"✦"} WCA</span>
+        <div class="match-sub" title="${esc(m.reason)}">${esc(m.partner?.company_name||"")}</div>`;
     } else if(m.type==="partial"){
-      matchHtml=`<span class="match-badge partial">~ PARZIALE</span>
-        <div class="match-sub" title="${esc(m.reason)}">${esc(m.partner?.company_name)}</div>`;
+      matchHtml=`<span class="match-badge partial">${isAI?"🤖":"~"} PARZIALE</span>
+        <div class="match-sub" title="${esc(m.reason)}">${esc(m.partner?.company_name||"")}</div>`;
     } else {
       matchHtml=`<span class="match-badge not-found">✗</span>`;
     }
@@ -942,10 +1144,9 @@ function renderPage(){
       </div>
       <div class="card-fields">${fields.join("")}</div>
       <div class="card-bottom">
-        <button class="${notesBtnCls}" onclick="openNotes('${c.id||""}')" title="${hasNotes?"Visualizza/modifica note":"Aggiungi note"}">📝</button>
-        <span class="notes-indicator">📝 Note</span>
         <span class="card-date">${fmtDate(c.created_at)}</span>
-      </div>
+        <button class="${notesBtnCls}" onclick="openNotes('${c.id||""}')" title="${hasNotes?"Modifica note":"Aggiungi note"}">✎</button>
+      </div>${hasNotes?`<div class="notes-preview" onclick="openNotes('${c.id||""}')">${esc((c.notes||"").substring(0,120))}${(c.notes||"").length>120?"…":""}</div>`:""}
     </div>`;
   }
   lines.innerHTML=html; lines.scrollTop=0; buildLetterIndex(); updateSelectionBar();
