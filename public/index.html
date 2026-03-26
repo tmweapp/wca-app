@@ -610,6 +610,15 @@ details summary:hover {
   opacity: 0.8;
 }
 
+.scraped-tab.no-email {
+  background: rgba(180,120,60,0.18);
+  border-color: rgba(180,120,60,0.45);
+}
+.scraped-tab.no-email.active {
+  background: rgba(180,120,60,0.28);
+  border-color: rgba(180,120,60,0.6);
+}
+
 /* ==================== PROFILE PREVIEW ==================== */
 .profile-preview {
   background: var(--bg-card);
@@ -2564,7 +2573,8 @@ function trimScrapedTabs(maxTabs){
 function addScrapedTab(profile, idx){
   const bar = document.getElementById("scrapedTabsBar");
   const tab = document.createElement("div");
-  tab.className = "scraped-tab" + (idx===0?" active":"") + (profile.access_limited?" limited":"");
+  const hasContactEmail = profile.contacts && profile.contacts.some(c => c.email);
+  tab.className = "scraped-tab" + (idx===0?" active":"") + (profile.access_limited?" limited":"") + (!hasContactEmail?" no-email":"");
   tab.dataset.idx = idx;
   const logoHtml = profile.logo_url ? `<img src="${profile.logo_url}" onerror="this.style.display='none'">` : "";
   const limitBadge = profile.access_limited ? `<span class="access-badge limited" title="Dati contatto protetti">🔒</span>` : "";
