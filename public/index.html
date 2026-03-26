@@ -274,26 +274,28 @@ body {
   box-shadow: 0 0 30px rgba(99,102,241,0.35);
 }
 
+/* btn-success e btn-warning mappati su indigo per coerenza */
 .btn-success {
-  background: var(--success);
+  background: var(--accent);
   color: #fff;
-  box-shadow: 0 0 20px rgba(16,185,129,0.15);
+  box-shadow: 0 0 20px rgba(99,102,241,0.2);
 }
 
 .btn-success:hover:not(:disabled) {
-  box-shadow: 0 0 30px rgba(16,185,129,0.3);
-  filter: brightness(1.1);
+  background: var(--accent-hover);
+  box-shadow: 0 0 30px rgba(99,102,241,0.35);
 }
 
 .btn-warning {
-  background: var(--warning);
-  color: #1e1e18;
-  box-shadow: 0 0 20px rgba(245,158,11,0.12);
+  background: rgba(255,255,255,0.04);
+  color: var(--text-secondary);
+  border: 1px solid rgba(255,255,255,0.08);
 }
 
 .btn-warning:hover:not(:disabled) {
-  box-shadow: 0 0 30px rgba(245,158,11,0.25);
-  filter: brightness(1.1);
+  background: rgba(99,102,241,0.1);
+  border-color: rgba(99,102,241,0.25);
+  color: #a5b4fc;
 }
 
 .btn-danger {
@@ -791,10 +793,10 @@ tr:hover td {
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px">
       <h3 style="font-size:.9rem;color:white;margin:0;font-weight:600">🖥 Job in Background</h3>
       <div style="display:flex;gap:6px">
-        <span id="bgJobStatus" style="font-size:.7rem;padding:3px 8px;border-radius:6px;background:var(--accent);color:#fff;font-weight:600">—</span>
-        <button class="btn btn-sm" id="bgPauseBtn" onclick="pauseBackgroundJob()" style="background:var(--warning);color:#1e293b;font-size:.7rem;padding:4px 10px">⏸ Pausa</button>
-        <button class="btn btn-sm" id="bgResumeBtn" onclick="resumeBackgroundJob()" style="display:none;background:var(--success);color:#fff;font-size:.7rem;padding:4px 10px">▶ Riprendi</button>
-        <button class="btn btn-sm" onclick="cancelBackgroundJob()" style="background:var(--danger);color:#fff;font-size:.7rem;padding:4px 10px">✗ Annulla</button>
+        <span id="bgJobStatus" style="font-size:.7rem;padding:3px 8px;border-radius:6px;background:rgba(99,102,241,0.2);color:#a5b4fc;font-weight:600;border:1px solid rgba(99,102,241,0.3)">—</span>
+        <button class="btn btn-sm btn-secondary" id="bgPauseBtn" onclick="pauseBackgroundJob()" data-tip="Metti in pausa il job in background">Pausa</button>
+        <button class="btn btn-sm btn-primary" id="bgResumeBtn" onclick="resumeBackgroundJob()" style="display:none" data-tip="Riprendi il job in background">Riprendi</button>
+        <button class="btn btn-sm btn-danger" onclick="cancelBackgroundJob()" data-tip="Annulla definitivamente il job in background">Annulla</button>
       </div>
     </div>
     <div style="font-size:.8rem;color:white" id="bgJobActivity">—</div>
@@ -820,9 +822,9 @@ tr:hover td {
         <!-- Gruppo: Azioni scraping -->
         <div class="btn-group">
           <span class="btn-group-label">Scraping</span>
-          <button class="btn btn-success btn-sm" id="btnStart" onclick="startScraping()" disabled data-tip="Avvia lo scraping dei partner per i paesi selezionati">Avvia</button>
-          <button class="btn btn-sm" id="btnStartBg" onclick="startBackgroundJob()" style="background:rgba(124,58,237,0.8);color:#fff" data-tip="Esegui lo scraping in background senza bloccare l'interfaccia">Background</button>
-          <button class="btn btn-warning btn-sm" id="btnResume" onclick="resumeScraping()" style="display:none" data-tip="Riprendi il download dei partner dal punto in cui si era interrotto">Continua</button>
+          <button class="btn btn-primary btn-sm" id="btnStart" onclick="startScraping()" disabled data-tip="Avvia lo scraping dei partner per i paesi selezionati">Avvia</button>
+          <button class="btn btn-secondary btn-sm" id="btnStartBg" onclick="startBackgroundJob()" data-tip="Esegui lo scraping in background senza bloccare l'interfaccia">Background</button>
+          <button class="btn btn-primary btn-sm" id="btnResume" onclick="resumeScraping()" style="display:none" data-tip="Riprendi il download dei partner dal punto in cui si era interrotto">Continua</button>
           <button class="btn btn-danger btn-sm" id="btnStop" onclick="stopScraping()" disabled data-tip="Ferma immediatamente lo scraping in corso">Stop</button>
         </div>
       </div>
@@ -1135,7 +1137,7 @@ function updateCountryDisplay(){
     disp.innerHTML = '<span style="color:#64748b">Seleziona paesi...</span>';
   } else {
     disp.innerHTML = selectedCountries.map(c =>
-      `<span style="background:#2563eb;color:#fff;padding:2px 8px;border-radius:4px;font-size:.75rem;display:inline-flex;align-items:center;gap:4px">${countryFlag(c.code)} ${c.name} <span onclick="event.stopPropagation();removeCountry('${c.code}')" style="cursor:pointer;opacity:.7">×</span></span>`
+      `<span style="background:rgba(99,102,241,0.2);color:#a5b4fc;padding:2px 8px;border-radius:4px;font-size:.75rem;display:inline-flex;align-items:center;gap:4px;border:1px solid rgba(99,102,241,0.3)">${countryFlag(c.code)} ${c.name} <span onclick="event.stopPropagation();removeCountry('${c.code}')" style="cursor:pointer;opacity:.7">×</span></span>`
     ).join("");
   }
 }
@@ -1154,7 +1156,7 @@ function refreshHeaderFlags(){
   const sorted = Object.entries(countryPartnerCounts).filter(([,v]) => v > 0).sort((a,b) => b[1] - a[1]);
   flagsDiv.innerHTML = sorted.map(([code, cnt]) => {
     const isSelected = selectedCountries.some(c => c.code === code);
-    return `<span onclick="selectFlagCountry('${code}','${nameMap[code]||code}')" title="${nameMap[code]||code}: ${cnt} partner" style="cursor:pointer;font-size:1.1rem;padding:1px 2px;border-radius:3px;position:relative;${isSelected?'background:#2563eb33;outline:1px solid #3b82f6':''}">${countryFlag(code)}<span style="position:absolute;bottom:-4px;right:-2px;background:#059669;color:#fff;font-size:.5rem;padding:0 3px;border-radius:4px;line-height:1.2">${cnt}</span></span>`;
+    return `<span onclick="selectFlagCountry('${code}','${nameMap[code]||code}')" title="${nameMap[code]||code}: ${cnt} partner" style="cursor:pointer;font-size:1.1rem;padding:1px 2px;border-radius:3px;position:relative;${isSelected?'background:rgba(99,102,241,0.15);outline:1px solid rgba(99,102,241,0.4)':''}">${countryFlag(code)}<span style="position:absolute;bottom:-4px;right:-2px;background:rgba(99,102,241,0.3);color:#a5b4fc;font-size:.5rem;padding:0 3px;border-radius:4px;line-height:1.2">${cnt}</span></span>`;
   }).join("");
 }
 // Click fuori chiude dropdown
@@ -2341,9 +2343,9 @@ function showScrapedProfile(p){
   const enrichedBadge = p.enriched_from ? `<span class="access-badge full" style="font-size:.6rem">arricchito da ${esc(p.enriched_from)}</span>` : "";
   let html = `<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">`;
   html += `<h3 style="flex:1">${logoImg} ${esc(p.company_name)} ${gmBadge} ${accessBadge} ${enrichedBadge}</h3>`;
-  html += `<button class="btn btn-sm btn-warning" onclick="refreshSingleProfile(${p.wca_id})" title="Riscarica questo profilo da WCA">↻ Aggiorna</button>`;
+  html += `<button class="btn btn-sm btn-secondary" onclick="refreshSingleProfile(${p.wca_id})" data-tip="Riscarica questo profilo da WCA per aggiornare i dati">Aggiorna</button>`;
   html += `</div>`;
-  if(p.access_limited) html += `<div style="background:#92400e;color:#fbbf24;padding:8px 12px;border-radius:6px;font-size:.8rem;margin-bottom:10px">⚠️ Questo partner appartiene a un network che richiede credenziali dedicate. I dati di contatto (nomi, email, telefoni) non sono accessibili con le credenziali attuali. I dati base del profilo sono comunque disponibili.</div>`;
+  if(p.access_limited) html += `<div style="background:rgba(245,158,11,0.1);color:#fcd34d;padding:8px 12px;border-radius:8px;font-size:.78rem;margin-bottom:10px;border:1px solid rgba(245,158,11,0.2)">Accesso limitato — i contatti richiedono credenziali dedicate per questo network.</div>`;
   html += `<div class="info-grid">`;
   html += infoRow("WCA ID", p.wca_id);
   html += infoRow("Branch", p.branch);
@@ -2358,7 +2360,7 @@ function showScrapedProfile(p){
   html += infoRow("Scadenza", p.expires);
   html += `</div>`;
 
-  if(p.gm_status_text) html += `<div style="font-size:.8rem;color:#94a3b8;margin:6px 0;padding:6px;background:#334155;border-radius:6px">${esc(p.gm_status_text)}</div>`;
+  if(p.gm_status_text) html += `<div style="font-size:.78rem;color:var(--text-muted);margin:6px 0;padding:6px;background:rgba(255,255,255,0.03);border-radius:6px;border:1px solid rgba(255,255,255,0.05)">${esc(p.gm_status_text)}</div>`;
   if(p.profile_text) html += `<div style="font-size:.82rem;color:#cbd5e1;margin:8px 0;white-space:pre-line">${esc(p.profile_text)}</div>`;
 
   if(p.networks && p.networks.length){
@@ -2706,7 +2708,7 @@ async function loadHeaderCounts(){
       const sorted = Object.entries(cData.counts).filter(([,v]) => v > 0).sort((a,b) => b[1] - a[1]);
       flagsDiv.innerHTML = sorted.map(([code, cnt]) => {
         const isSelected = selectedCountries.some(c => c.code === code);
-        return `<span onclick="selectFlagCountry('${code}','${nameMap[code]||code}')" title="${nameMap[code]||code}: ${cnt} partner" style="cursor:pointer;font-size:1.1rem;padding:1px 2px;border-radius:3px;position:relative;${isSelected?'background:#2563eb33;outline:1px solid #3b82f6':''}">${countryFlag(code)}<span style="position:absolute;bottom:-4px;right:-2px;background:#059669;color:#fff;font-size:.5rem;padding:0 3px;border-radius:4px;line-height:1.2">${cnt}</span></span>`;
+        return `<span onclick="selectFlagCountry('${code}','${nameMap[code]||code}')" title="${nameMap[code]||code}: ${cnt} partner" style="cursor:pointer;font-size:1.1rem;padding:1px 2px;border-radius:3px;position:relative;${isSelected?'background:rgba(99,102,241,0.15);outline:1px solid rgba(99,102,241,0.4)':''}">${countryFlag(code)}<span style="position:absolute;bottom:-4px;right:-2px;background:rgba(99,102,241,0.3);color:#a5b4fc;font-size:.5rem;padding:0 3px;border-radius:4px;line-height:1.2">${cnt}</span></span>`;
       }).join("");
     }
   } catch(e){ console.warn("loadHeaderCounts error:", e.message); }
