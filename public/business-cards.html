@@ -150,6 +150,10 @@ body{font-family:"SF Pro Display","Geist",'Inter',system-ui,sans-serif;backgroun
   </a>
   <a href="/agenda.html" class="btn btn-back">Agenda</a>
   <h1>💼 Business Cards</h1>
+  <div style="position:relative;display:flex;align-items:center">
+    <span id="aiKeyIcon" onclick="document.getElementById('aiKeyInput').focus()" style="cursor:pointer;font-size:1rem;margin-right:-28px;z-index:1;filter:grayscale(1);transition:filter .3s" title="OpenAI API Key">🤖</span>
+    <input type="password" id="aiKeyInput" placeholder="OpenAI API Key..." oninput="onAiKeyChange()" style="padding:7px 12px 7px 30px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:var(--bg-input);color:var(--text-primary);font-size:.75rem;width:160px;outline:none;transition:border-color .3s">
+  </div>
   <input type="text" id="searchInput" placeholder="Cerca contatto..." oninput="onSearch()" style="min-width:180px">
   <select id="filterMatch" onchange="onFilterChange()" style="min-width:100px">
     <option value="all">Tutti</option>
@@ -250,6 +254,19 @@ body{font-family:"SF Pro Display","Geist",'Inter',system-ui,sans-serif;backgroun
 const SUPABASE_URL = "https://dlldkrzoxvjxpgkkttxu.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRsbGRrcnpveHZqeHBna2t0dHh1Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1ODcyMDU4NCwiZXhwIjoyMDc0Mjk2NTg0fQ.py_d96kA6Mqvi0ugBm4gmIlJSoOC_KbwUM7cgDR-O_E";
 const SB_HEADERS = {"Content-Type":"application/json","apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY};
+let OPENAI_KEY = "";
+function onAiKeyChange(){
+  const inp=document.getElementById("aiKeyInput");
+  const icon=document.getElementById("aiKeyIcon");
+  OPENAI_KEY=inp.value.trim();
+  if(OPENAI_KEY&&OPENAI_KEY.startsWith("sk-")){
+    icon.style.filter="none";
+    inp.style.borderColor="rgba(16,185,129,0.5)";
+  } else {
+    icon.style.filter="grayscale(1)";
+    inp.style.borderColor="rgba(255,255,255,0.08)";
+  }
+}
 
 let allCards = [];
 let allPartners = [];
@@ -374,6 +391,8 @@ async function loadEvents(){
 
 async function init(){
   await Promise.all([loadPartners(), loadCards(), loadEvents()]);
+  // Fix corrupted records (entire CSV row in company_name)
+  cleanCorruptedCards();
   for(const card of allCards){
     if(!card.country_code&&card.country) card.country_code=resolveCountryCode(card.country);
     card._match=matchCard(card,allPartners);
@@ -450,23 +469,6 @@ function renderEventTabs(){
 }
 
 // ==================== RENDERING ====================
-function getFilteredCards(){
-  let cards=[...allCards];
-  if(currentEvent!=="all") cards=cards.filter(c=>(c.event_name||"Senza evento")===currentEvent);
-  const q=(document.getElementById("searchInput").value||"").toLowerCase();
-  if(q) cards=cards.filter(c=>
-    (c.company_name||"").toLowerCase().includes(q)||
-    (c.contact_name||"").toLowerCase().includes(q)||
-    (c.email||"").toLowerCase().includes(q)||
-    (c.city||"").toLowerCase().includes(q)||
-    (c.event_name||"").toLowerCase().includes(q)||
-    (c._match?.partner?.company_name||"").toLowerCase().includes(q)
-  );
-  if(currentFilter!=="all") cards=cards.filter(c=>c._match?.type===currentFilter);
-  cards=sortCards(cards);
-  return cards;
-}
-
 let currentSort="company";
 function setSort(key){
   currentSort=key;
@@ -488,6 +490,23 @@ function sortCards(cards){
     default: return cards;
   }
 }
+function getFilteredCards(){
+  let cards=[...allCards];
+  if(currentEvent!=="all") cards=cards.filter(c=>(c.event_name||"Senza evento")===currentEvent);
+  const q=(document.getElementById("searchInput").value||"").toLowerCase();
+  if(q) cards=cards.filter(c=>
+    (c.company_name||"").toLowerCase().includes(q)||
+    (c.contact_name||"").toLowerCase().includes(q)||
+    (c.email||"").toLowerCase().includes(q)||
+    (c.city||"").toLowerCase().includes(q)||
+    (c.event_name||"").toLowerCase().includes(q)||
+    (c._match?.partner?.company_name||"").toLowerCase().includes(q)
+  );
+  if(currentFilter!=="all") cards=cards.filter(c=>c._match?.type===currentFilter);
+  cards=sortCards(cards);
+  return cards;
+}
+
 
 function renderPage(){
   const cards=getFilteredCards();
@@ -600,7 +619,18 @@ async function onFileSelected(file){
   const ext=file.name.split(".").pop().toLowerCase();
   try{
     let rows=[];
-    if(ext==="csv"||ext==="tsv"){ const text=await file.text(); rows=parseCsv(text,ext==="tsv"?"\t":null); }
+    if(ext==="csv"||ext==="tsv"){
+      if(!OPENAI_KEY||!OPENAI_KEY.startsWith("sk-")){
+        alert("Inserisci prima la chiave API OpenAI nel campo 🤖 in alto.");
+        document.getElementById("aiKeyInput").focus();
+        return;
+      }
+      const text=await file.text();
+      // Show loading state
+      document.getElementById("importForm").style.display="flex";
+      document.getElementById("importFileName").textContent="🤖 AI sta analizzando "+file.name+"...";
+      rows=await parseWithAI(text, file.name);
+    }
     else if(ext==="xlsx"||ext==="xls"){ rows=await parseExcel(file); }
     else { alert("Formato non supportato."); return; }
     if(!rows.length){ alert("Nessun dato trovato."); return; }
@@ -608,7 +638,7 @@ async function onFileSelected(file){
     pendingFile=file; pendingRows=rows;
     // Show import form
     document.getElementById("importForm").style.display="flex";
-    document.getElementById("importFileName").textContent=file.name+" ("+rows.length+" righe)";
+    document.getElementById("importFileName").textContent=file.name+" ("+rows.length+" righe — AI parsed)";
     document.getElementById("txtContactDate").value=new Date().toISOString().split("T")[0];
     // Populate event dropdown
     const sel=document.getElementById("selEvent");
@@ -689,58 +719,88 @@ async function confirmImport(){
   }catch(e){ alert("Errore: "+e.message); }
 }
 
-function parseCsv(text, forceSep){
+// ==================== AI-POWERED CSV PARSER ====================
+async function parseWithAI(text, fileName){
   text=text.replace(/\uFEFF/g,"");
   const lines=text.split(/\r?\n/).filter(l=>l.trim());
   if(lines.length<2) return [];
-  let sep=forceSep;
-  if(!sep){
-    // Detect separator from header line only (no quoted fields expected in header)
-    const f=lines[0];
-    const tabCount=(f.match(/\t/g)||[]).length;
-    const semiCount=(f.match(/;/g)||[]).length;
-    const commaCount=(f.match(/,/g)||[]).length;
-    if(tabCount>=semiCount && tabCount>=commaCount && tabCount>0) sep="\t";
-    else if(semiCount>=commaCount && semiCount>0) sep=";";
-    else sep=",";
-  }
-  // RFC4180-aware field splitter: respects quoted fields containing separators and newlines
-  function splitRow(line){
-    const fields=[]; let field=""; let inQuotes=false;
-    for(let i=0;i<line.length;i++){
-      const ch=line[i];
-      if(inQuotes){
-        if(ch==='"'){ if(line[i+1]==='"'){ field+='"'; i++; } else { inQuotes=false; } }
-        else { field+=ch; }
-      } else {
-        if(ch==='"'){ inQuotes=true; }
-        else if(ch===sep){ fields.push(field.trim()); field=""; }
-        else { field+=ch; }
-      }
-    }
-    fields.push(field.trim());
-    return fields;
-  }
-  // Handle multi-line quoted fields: rejoin lines that are inside quotes
-  const joinedLines=[];
-  let buffer=""; let open=false;
-  for(const line of lines){
-    if(open){ buffer+="\n"+line; } else { buffer=line; }
-    const quoteCount=(buffer.match(/"/g)||[]).length;
-    open=(quoteCount%2!==0);
-    if(!open){ joinedLines.push(buffer); buffer=""; }
-  }
-  if(buffer) joinedLines.push(buffer);
+  const header=lines[0];
+  const dataLines=lines.slice(1);
 
-  const headers=splitRow(joinedLines[0]).map(h=>h.replace(/^["']|["']$/g,""));
-  const numCols=headers.length;
-  const rows=[];
-  for(let i=1;i<joinedLines.length;i++){
-    const vals=splitRow(joinedLines[i]);
-    if(vals.length<2) continue;
-    const obj={}; headers.forEach((h,idx)=>{obj[h]=vals[idx]||"";}); rows.push(obj);
+  // Process in batches of 5 rows to stay within token limits
+  const BATCH=5;
+  const allResults=[];
+  const statusEl=document.getElementById("importFileName");
+
+  for(let i=0;i<dataLines.length;i+=BATCH){
+    const batch=dataLines.slice(i,i+BATCH);
+    if(statusEl) statusEl.textContent=`AI parsing... ${i}/${dataLines.length} righe`;
+
+    const prompt=`Sei un parser CSV esperto. Ti do l'header e alcune righe di un file CSV di biglietti da visita.
+Il separatore è il punto e virgola (;).
+ATTENZIONE: alcune righe hanno un campo "Note" che contiene punti e virgola interni, spesso racchiuso tra virgolette. NON splittare su quei punti e virgola.
+Alcune righe contengono spazzatura OCR illeggibile (caratteri come =, |, {}, \\, >, <, simboli casuali). SCARTA completamente quelle righe — non includerle nell'output.
+Per i numeri di telefono che iniziano con - (es: -18917527447) aggiungi il prefisso + se riconoscibile.
+
+HEADER:
+${header}
+
+RIGHE:
+${batch.join("\n")}
+
+Rispondi SOLO con un JSON array di oggetti. Ogni oggetto deve avere ESATTAMENTE questi campi:
+{"Nome":"","Azienda":"","Ruolo":"","Email":"","Cellulare":"","Tel_Fisso":"","Fax":"","Web":"","LinkedIn":"","Indirizzo":"","Citta":"","Paese":"","Note":"","Data":""}
+
+NON includere campi Logo, P.IVA, C.F. — ignorali.
+Le Note devono essere SOLO testo leggibile e utile (info aggiuntive sull'azienda, indirizzi secondari, WCA ID). Rimuovi tutta la spazzatura OCR dalle note.
+Se una riga intera è spazzatura illeggibile, NON includerla.
+Rispondi SOLO con il JSON array, nient'altro.`;
+
+    try{
+      const r=await fetch("https://api.openai.com/v1/chat/completions",{
+        method:"POST",
+        headers:{"Content-Type":"application/json","Authorization":"Bearer "+OPENAI_KEY},
+        body:JSON.stringify({
+          model:"gpt-4o-mini",
+          temperature:0,
+          messages:[{role:"user",content:prompt}],
+          response_format:{type:"json_object"}
+        })
+      });
+      if(!r.ok){ console.error("OpenAI error:",await r.text()); continue; }
+      const data=await r.json();
+      const content=data.choices?.[0]?.message?.content||"";
+      try{
+        let parsed=JSON.parse(content);
+        // Handle both {rows:[...]} and [...] formats
+        if(parsed&&!Array.isArray(parsed)){
+          const key=Object.keys(parsed).find(k=>Array.isArray(parsed[k]));
+          if(key) parsed=parsed[key]; else parsed=[];
+        }
+        allResults.push(...parsed);
+      }catch(e){ console.error("JSON parse error:",content); }
+    }catch(e){ console.error("Fetch error:",e); }
   }
-  return rows;
+
+  if(statusEl) statusEl.textContent=fileName+" — "+allResults.length+" contatti parsed by AI";
+
+  // Map AI output to our standard format
+  return allResults.map(r=>({
+    Nome:r.Nome||"",
+    Azienda:r.Azienda||"",
+    Ruolo:r.Ruolo||"",
+    Email:(r.Email||"").split(",")[0].trim(),
+    Cellulare:r.Cellulare||"",
+    "Tel. Fisso":r.Tel_Fisso||r["Tel. Fisso"]||"",
+    Fax:r.Fax||"",
+    Web:r.Web||"",
+    LinkedIn:r.LinkedIn||"",
+    Indirizzo:r.Indirizzo||"",
+    "Città":r.Citta||r["Città"]||"",
+    Paese:r.Paese||"",
+    Note:r.Note||"",
+    Data:r.Data||""
+  }));
 }
 async function parseExcel(file){
   if(!window.XLSX){
@@ -818,8 +878,72 @@ function mapRows(rows, fileName){
 // ==================== CLEAR ====================
 async function clearAll(){
   if(!confirm("Cancellare tutti i biglietti da visita?")) return;
-  await fetch(`${SUPABASE_URL}/rest/v1/wca_business_cards?id=gt.0`,{method:"DELETE",headers:SB_HEADERS}).catch(()=>{});
+  // Delete all rows — works with UUID ids
+  await fetch(`${SUPABASE_URL}/rest/v1/wca_business_cards?id=not.is.null`,{method:"DELETE",headers:SB_HEADERS}).catch(()=>{});
   allCards=[]; renderAll();
+}
+
+// ==================== AUTO-CLEANUP CORRUPTED DATA ====================
+function cleanCorruptedCards(){
+  // Detect and fix cards where entire CSV row was stored in company_name
+  let fixed=0;
+  for(const card of allCards){
+    const cn=card.company_name||"";
+    // If company_name contains semicolons, it's a corrupted raw CSV row
+    if(cn.includes(";") && cn.split(";").length>=3){
+      const parts=cn.split(";");
+      // Try to re-parse: Nome;Azienda;Ruolo;Email;Tel;...
+      // Detect which part looks like an email
+      let emailIdx=parts.findIndex(p=>/\S+@\S+\.\S+/.test(p.trim()));
+      if(emailIdx>=2){
+        // Pattern: name;company;role;email;phone;...
+        card.contact_name=parts[0]?.trim()||card.contact_name;
+        card.company_name=parts[1]?.trim()||"";
+        card.position=parts[2]?.trim()||card.position;
+        card.email=(parts[emailIdx]?.trim().split(",")[0])||card.email;
+        if(parts[emailIdx+1]) card.phone=parts[emailIdx+1]?.trim()||card.phone;
+      } else if(parts.length>=2){
+        // At minimum: name;company
+        card.contact_name=parts[0]?.trim()||card.contact_name;
+        card.company_name=parts[1]?.trim()||"";
+        if(parts[2]) card.position=parts[2]?.trim()||"";
+      }
+      // Clean garbage from all fields
+      cleanCardField(card,"contact_name");
+      cleanCardField(card,"company_name");
+      cleanCardField(card,"position");
+      cleanCardField(card,"phone");
+      cleanCardField(card,"email");
+      cleanCardField(card,"city");
+      cleanCardField(card,"notes");
+      // Resolve country code if country present
+      if(card.country && !card.country_code) card.country_code=resolveCountryCode(card.country);
+      fixed++;
+    }
+    // Also clean phone numbers that start with -
+    if(card.phone && card.phone.startsWith("-")){
+      card.phone=card.phone.replace(/^-+/,"");
+    }
+  }
+  if(fixed) console.log("Auto-cleaned "+fixed+" corrupted cards");
+  // Remove completely garbage cards (name AND company are unreadable)
+  allCards=allCards.filter(c=>{
+    const cn=c.company_name||"";
+    const nm=c.contact_name||"";
+    return !isGarbageText(cn)||!isGarbageText(nm);
+  });
+}
+function isGarbageText(s){
+  if(!s||s.length<3) return false;
+  const special=(s.match(/[=|{}\\<>_~^#\[\]]/g)||[]).length;
+  return special/s.length>0.12;
+}
+function cleanCardField(card,field){
+  let v=card[field]||"";
+  if(isGarbageText(v)){ card[field]=""; return; }
+  // Remove leading/trailing quotes and junk
+  v=v.replace(/^["']+|["']+$/g,"").trim();
+  card[field]=v;
 }
 
 init();
