@@ -852,20 +852,30 @@ tr:hover td {
 <div class="container">
   <!-- STATUS -->
   <div class="card">
-    <div class="status-bar">
-    <div class="status-dot off" id="statusDot"></div>
-    <span id="statusText">Clicca "Login WCA" per iniziare</span>
-    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
-    <span id="progressText" style="font-size:.78rem;color:var(--text-muted)">0/0</span>
-  </div>
-  <!-- ACTIVITY TICKER -->
-  <div id="activityBar" style="display:none;padding:8px 16px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:8px;margin-bottom:12px;font-size:.78rem;font-family:'JetBrains Mono',monospace;color:var(--text-secondary)">
-    <div style="display:flex;align-items:center;gap:8px">
-      <span id="activityIcon" style="font-size:1rem">⏳</span>
-      <span id="activityText">In attesa...</span>
-      <span id="activityTimer" style="margin-left:auto;color:var(--text-muted);font-size:.75rem"></span>
+    <div style="display:flex;align-items:center;gap:12px">
+      <!-- STATUS + PROGRESS -->
+      <div style="flex:1;min-width:0">
+        <div class="status-bar">
+          <div class="status-dot off" id="statusDot"></div>
+          <span id="statusText">Clicca "Login WCA" per iniziare</span>
+          <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+          <span id="progressText" style="font-size:.78rem;color:var(--text-muted)">0/0</span>
+        </div>
+        <!-- ACTIVITY TICKER (sotto la status bar) -->
+        <div id="activityBar" style="display:none;padding:6px 0 0 0;font-size:.78rem;font-family:'JetBrains Mono',monospace;color:var(--text-secondary)">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span id="activityIcon" style="font-size:1rem">⏳</span>
+            <span id="activityText" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">In attesa...</span>
+            <span id="activityTimer" style="margin-left:auto;color:var(--text-muted);font-size:.75rem;white-space:nowrap"></span>
+          </div>
+        </div>
+      </div>
+      <!-- NETWORK LOGO (visibile durante scraping) -->
+      <div id="activeNetworkBadge" style="display:none;flex-shrink:0;text-align:center">
+        <img id="activeNetworkLogo" src="" alt="" style="height:25px;min-height:25px;object-fit:contain;display:block;margin:0 auto 4px" onerror="this.style.display='none'">
+        <div id="activeNetworkName" style="font-size:.6rem;color:var(--text-muted);max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
+      </div>
     </div>
-  </div>
 
   <!-- BACKGROUND JOB PANEL -->
   <div id="bgJobPanel" style="display:none;padding:12px 16px;background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.25);border-radius:10px;margin-bottom:12px">
@@ -1127,20 +1137,27 @@ function removeSuspendedJob(countryCode){
 const DELAY_PATTERN = [3,3,2,3,8,3,5,3,12,3,4,3,6,3,9,3,3,3,10];
 const COUNTRY_PAUSE = 15; // 15 secondi di pausa tra un paese e l'altro
 
-// Tutti i network con sito dedicato (escluso wcaworld.com che è il fallback)
+// Tutti i network WCA — con dominio dedicato o su wcaworld.com
 const ALL_NETWORKS = [
-  { domain: "wcaprojects.com",           siteId: 5,   name: "WCA Projects" },
-  { domain: "wcadangerousgoods.com",     siteId: 22,  name: "WCA Dangerous Goods" },
-  { domain: "wcaperishables.com",        siteId: 13,  name: "WCA Perishables" },
-  { domain: "wcatimecritical.com",       siteId: 18,  name: "WCA Time Critical" },
-  { domain: "wcapharma.com",             siteId: 16,  name: "WCA Pharma" },
-  { domain: "wcarelocations.com",        siteId: 15,  name: "WCA Relocations" },
-  { domain: "wcaecommercesolutions.com", siteId: 107, name: "WCA eCommerce" },
-  { domain: "wcaexpo.com",              siteId: 124, name: "WCA Expo" },
-  { domain: "lognetglobal.com",           siteId: 61,  name: "Lognet Global" },
-  { domain: "globalaffinityalliance.com", siteId: 98,  name: "GAA" },
-  { domain: "elitegln.com",              siteId: 108, name: "EGLN" },
-  { domain: "ifc8.network",             siteId: 118, name: "IFC8" },
+  // === Network con dominio dedicato ===
+  { domain: "wcaprojects.com",           siteId: 5,   name: "WCA Projects",              logo: "logos/wca-projects.png" },
+  { domain: "wcadangerousgoods.com",     siteId: 22,  name: "WCA Dangerous Goods",       logo: "logos/wca-dangerous-goods.png" },
+  { domain: "wcaperishables.com",        siteId: 13,  name: "WCA Perishables",            logo: "logos/wca-perishables.png" },
+  { domain: "wcatimecritical.com",       siteId: 18,  name: "WCA Time Critical",          logo: "logos/wca-time-critical.png" },
+  { domain: "wcapharma.com",             siteId: 16,  name: "WCA Pharma",                 logo: "logos/wca-pharma.png" },
+  { domain: "wcarelocations.com",        siteId: 15,  name: "WCA Relocations",            logo: "logos/wca-relocations.png" },
+  { domain: "wcaecommercesolutions.com", siteId: 107, name: "WCA eCommerce",              logo: "logos/wca-ecommerce.png" },
+  { domain: "wcaexpo.com",              siteId: 124, name: "WCA Expo",                   logo: "logos/wca-expo.png" },
+  { domain: "lognetglobal.com",           siteId: 61,  name: "Lognet Global",              logo: "logos/lognet-global.png" },
+  { domain: "globalaffinityalliance.com", siteId: 98,  name: "GAA",                        logo: "logos/gaa.png" },
+  { domain: "elitegln.com",              siteId: 108, name: "EGLN",                       logo: "logos/egln.png" },
+  { domain: "ifc8.network",             siteId: 118, name: "IFC8",                       logo: "logos/ifc8.png" },
+  // === Network su wcaworld.com (dominio condiviso) ===
+  { domain: "wcaworld.com",             siteId: 1,   name: "WCA First",                  logo: "logos/wca-first.png" },
+  { domain: "wcaworld.com",             siteId: 2,   name: "WCA Advanced Professionals",  logo: "logos/wca-advanced.png" },
+  { domain: "wcaworld.com",             siteId: 3,   name: "WCA China Global",            logo: "logos/wca-china-global.png" },
+  { domain: "wcaworld.com",             siteId: 4,   name: "WCA Inter Global",            logo: "logos/wca-inter-global.png" },
+  { domain: "wcaworld.com",             siteId: 38,  name: "WCA Vendors",                 logo: "logos/wca-vendors.png" },
 ];
 let delayIndex = 0;
 function getNextDelay(){
@@ -1286,7 +1303,7 @@ initCountrySelector();
   // Bottoni Tutti/Nessuno
   const btnBar = document.createElement("div");
   btnBar.style.cssText = "grid-column:1/-1;display:flex;gap:6px;margin-bottom:4px";
-  btnBar.innerHTML = `<button class="btn btn-sm btn-secondary" onclick="document.querySelectorAll('#networksGrid input').forEach(c=>c.checked=true)" style="font-size:.7rem;padding:2px 8px">Tutti</button><button class="btn btn-sm btn-secondary" onclick="document.querySelectorAll('#networksGrid input').forEach(c=>c.checked=false)" style="font-size:.7rem;padding:2px 8px">Nessuno</button>`;
+  btnBar.innerHTML = `<button class="btn btn-sm btn-secondary" onclick="document.querySelectorAll('#networksGrid input[type=checkbox]').forEach(c=>c.checked=true);updateNetworkSelCount()" style="font-size:.7rem;padding:2px 8px">Tutti</button><button class="btn btn-sm btn-secondary" onclick="document.querySelectorAll('#networksGrid input[type=checkbox]').forEach(c=>c.checked=false);updateNetworkSelCount()" style="font-size:.7rem;padding:2px 8px">Nessuno</button>`;
   g.appendChild(btnBar);
   for(const [name] of Object.entries(NETWORKS)){
     const lbl = document.createElement("label");
@@ -1503,7 +1520,14 @@ function getAllCountriesList(){
 async function scrapeByNetwork(){
   const allCountriesMode = document.getElementById("chkAllCountries")?.checked;
   const countries = allCountriesMode ? getAllCountriesList() : [...selectedCountries];
-  if(countries.length === 0){ alert("Seleziona almeno un paese oppure attiva 'Tutti i Paesi'!"); return; }
+  if(countries.length === 0){
+    alert("Seleziona almeno un paese oppure attiva 'Tutti i Paesi'!");
+    scraping = false;
+    document.getElementById("btnStart").disabled = false;
+    document.getElementById("btnStop").disabled = true;
+    document.body.classList.remove("scraping-active");
+    return;
+  }
 
   // Obbliga selezione di almeno un network
   const selectedNets = getSelectedNetworkObjects();
@@ -1511,6 +1535,11 @@ async function scrapeByNetwork(){
     alert("Seleziona almeno un network dalla sezione 'Seleziona Network'!");
     const netDetails = document.querySelector("details:has(#networksGrid)");
     if(netDetails) netDetails.open = true;
+    // Ripristina stato UI
+    scraping = false;
+    document.getElementById("btnStart").disabled = false;
+    document.getElementById("btnStop").disabled = true;
+    document.body.classList.remove("scraping-active");
     return;
   }
   const networksToScrape = selectedNets;
@@ -1521,6 +1550,7 @@ async function scrapeByNetwork(){
 
   for(let ni = 0; ni < networksToScrape.length && scraping; ni++){
     const { domain: networkDomain, name: networkName } = networksToScrape[ni];
+    setActiveNetwork(networkDomain, networkName);
     log(`\n═══ NETWORK ${ni+1}/${networksToScrape.length}: ${networkName} ═══`,"ok");
 
   for(let ci = 0; ci < countries.length && scraping; ci++){
@@ -1659,6 +1689,32 @@ function setProgress(current, total){
   const pct = total > 0 ? (current/total*100) : 0;
   document.getElementById("progressFill").style.width = pct+"%";
   document.getElementById("progressText").textContent = `${current}/${total}`;
+}
+
+// === NETWORK BADGE — mostra logo e nome del network attivo a destra ===
+function setActiveNetwork(networkDomain, networkName){
+  const badge = document.getElementById("activeNetworkBadge");
+  const logo = document.getElementById("activeNetworkLogo");
+  const nameEl = document.getElementById("activeNetworkName");
+  if(!networkDomain && !networkName){
+    badge.style.display = "none";
+    return;
+  }
+  // Cerca il logo reale da ALL_NETWORKS, fallback a Google favicon
+  const net = ALL_NETWORKS.find(n => n.domain === networkDomain || n.name === networkName);
+  const domain = networkDomain || "wcaworld.com";
+  if(net && net.logo){
+    logo.src = net.logo;
+  } else {
+    logo.src = `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
+  }
+  logo.alt = networkName || domain;
+  logo.style.display = "block";
+  nameEl.textContent = networkName || domain;
+  badge.style.display = "block";
+}
+function hideActiveNetwork(){
+  document.getElementById("activeNetworkBadge").style.display = "none";
 }
 
 // === ACTIVITY BAR — mostra cosa sta succedendo in tempo reale ===
@@ -1808,6 +1864,7 @@ async function startScraping(){
   }
 
   scraping = false;
+  hideActiveNetwork();
   document.getElementById("btnStart").disabled = false;
   document.getElementById("btnStop").disabled = true;
   document.body.classList.remove("scraping-active");
@@ -1820,6 +1877,7 @@ async function startScraping(){
 function stopScraping(){
   scraping = false;
   hideActivity();
+  hideActiveNetwork();
   document.getElementById("btnStop").disabled = true;
   document.getElementById("btnStart").disabled = false;
   document.body.classList.remove("scraping-active");
@@ -1961,6 +2019,7 @@ async function resumeScraping(jobCode){
     const memberNets = networkMap[member.id]?.networks || [];
     const bestNetwork = memberNets.find(d => d !== "wcaworld.com") || memberNets[0] || null;
     const netLabel = bestNetwork ? bestNetwork.replace("www.","") : "wcaworld.com";
+    setActiveNetwork(bestNetwork || "wcaworld.com", netLabel);
 
     setStatus(`Download ${i+1}/${total} — ID ${member.id} [${netLabel}]`, true);
     setProgress(i+1, total);
@@ -2140,6 +2199,7 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
     if(!scraping) break;
 
     // --- DISCOVER su questo network ---
+    setActiveNetwork(network.domain, network.name);
     setStatus(`${countryName} [${ni+1}/${ACTIVE_NETWORKS.length}] ${network.name}: discover...`, true);
     showActivity("🌐", `Discover ${countryName} su ${network.name}...`);
     setProgress(ni+1, ACTIVE_NETWORKS.length);
@@ -2239,6 +2299,7 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
   // FALLBACK: wcaworld.com per membri non trovati su nessun network
   // ═══════════════════════════════════════════════════════════════
   if(scraping){
+    setActiveNetwork("wcaworld.com", "WCA (fallback)");
     log(`═══ FALLBACK: wcaworld.com per ${countryName} — membri restanti ═══`);
     setStatus(`${countryName}: discover wcaworld.com per membri mancanti...`, true);
 
@@ -2286,6 +2347,7 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
         const knownNets = memberNetworkMap[member.id] || [];
         const useNetwork = knownNets.length > 0 ? knownNets[0] : null;
         const netLabel = useNetwork || "wcaworld.com";
+        setActiveNetwork(useNetwork || "wcaworld.com", netLabel);
 
         setStatus(`${countryName} [${netLabel}] ${i+1}/${wcaToDownload.length} — ${member.name||member.id}`, true);
         setProgress(i+1, wcaToDownload.length);
@@ -2326,18 +2388,15 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
   log(`═══ FASE 3: ARRICCHIMENTO — ${limitedProfiles.length} profili limitati, ${availableNetworks.length} network disponibili ═══`);
   setStatus(`FASE 3: Arricchimento ${limitedProfiles.length} profili limitati...`, true);
 
-  // Mappa nomi network → domini CORRETTI (coerenti con ALL_NETWORKS)
-  const NETWORK_DOMAIN_MAP = {
-    "WCA First":"wcaworld.com","WCA Advanced Professionals":"wcaworld.com",
-    "WCA China Global":"wcaworld.com","WCA Inter Global":"wcaworld.com",
-    "Lognet Global":"lognetglobal.com","Global Affinity Alliance":"globalaffinityalliance.com",
-    "Elite Global Logistics Network":"elitegln.com","InFinite Connection (IFC8)":"ifc8.network",
-    "WCA Projects":"wcaprojects.com","WCA Dangerous Goods":"wcadangerousgoods.com",
-    "WCA Perishables":"wcaperishables.com","WCA Time Critical":"wcatimecritical.com",
-    "WCA Relocations":"wcarelocations.com","WCA Pharma":"wcapharma.com",
-    "WCA Vendors":"wcaworld.com","WCA eCommerce Solutions":"wcaecommercesolutions.com",
-    "WCA Live Events and Expo":"wcaexpo.com",
-  };
+  // Mappa nomi network → domini — generata dinamicamente da ALL_NETWORKS + NETWORKS
+  // Copre sia i nomi ALL_NETWORKS (es. "WCA eCommerce") che i nomi NETWORKS (es. "WCA eCommerce Solutions")
+  const NETWORK_DOMAIN_MAP = {};
+  ALL_NETWORKS.forEach(n => { NETWORK_DOMAIN_MAP[n.name] = n.domain; });
+  // Aggiungi mapping anche per i nomi NETWORKS{} (che possono differire)
+  Object.entries(NETWORKS).forEach(([name, siteId]) => {
+    const net = ALL_NETWORKS.find(n => n.siteId === siteId);
+    if(net) NETWORK_DOMAIN_MAP[name] = net.domain;
+  });
 
   let enriched = 0;
   let enrichFailed = 0;
