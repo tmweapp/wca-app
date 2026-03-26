@@ -4,49 +4,75 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>WCA - Verifica Profili Non Trovati</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
+:root {
+  --bg-page: #0e0e18;
+  --bg-card: #1a1a2e;
+  --bg-input: #12121e;
+  --bg-header: rgba(26,26,46,0.92);
+  --text-primary: #e2e8f0;
+  --text-secondary: #a0aec0;
+  --text-muted: #64748b;
+  --border-color: rgba(99,102,241,0.15);
+  --accent: #6366f1;
+  --accent-soft: rgba(99,102,241,0.15);
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --gradient: linear-gradient(135deg, #6366f1, #818cf8, #a5b4fc);
+}
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh}
-.header{background:linear-gradient(135deg,#1e293b,#334155);padding:16px 24px;display:flex;align-items:center;gap:16px;border-bottom:1px solid #475569}
-.header h1{font-size:1.4rem;color:#f59e0b}
-.header .badge{background:#dc2626;color:#fff;font-size:.7rem;padding:2px 8px;border-radius:10px}
-.container{max-width:1400px;margin:0 auto;padding:16px}
-.card{background:#1e293b;border-radius:12px;border:1px solid #334155;padding:16px;margin-bottom:16px}
-.card h2{font-size:1rem;color:#94a3b8;margin-bottom:12px}
-.btn{padding:8px 20px;border:none;border-radius:6px;font-size:.85rem;font-weight:600;cursor:pointer;transition:all .2s}
-.btn-primary{background:#2563eb;color:#fff}.btn-primary:hover{background:#1d4ed8}
-.btn-success{background:#059669;color:#fff}.btn-success:hover{background:#047857}
-.btn-warning{background:#d97706;color:#fff}.btn-warning:hover{background:#b45309}
-.btn-danger{background:#dc2626;color:#fff}.btn-danger:hover{background:#b91c1c}
-.btn-secondary{background:#475569;color:#fff}.btn-secondary:hover{background:#64748b}
-.btn:disabled{opacity:.5;cursor:not-allowed}
+body{font-family:"SF Pro Display","Geist",'Inter',system-ui,sans-serif;background:var(--bg-page);color:var(--text-primary);min-height:100vh}
+
+.header{background:var(--bg-header);backdrop-filter:blur(20px);padding:14px 24px;display:flex;align-items:center;gap:16px;border-bottom:1px solid rgba(255,255,255,0.07);flex-wrap:wrap}
+.header h1{font-size:1.15rem;font-weight:700;background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.header .badge{background:rgba(239,68,68,0.15);color:#fca5a5;font-size:.68rem;padding:3px 10px;border-radius:10px;font-weight:600;border:1px solid rgba(239,68,68,0.2)}
+.btn{padding:7px 18px;border:none;border-radius:8px;font-size:.82rem;font-weight:600;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:6px;color:var(--text-primary)}
+.btn-back{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);text-decoration:none;color:var(--text-secondary)}.btn-back:hover{background:rgba(255,255,255,0.08)}
+.btn-primary{background:var(--accent-soft);color:#a5b4fc;border:1px solid rgba(99,102,241,0.25)}.btn-primary:hover{background:rgba(99,102,241,0.25)}
+.btn-success{background:rgba(16,185,129,0.12);color:#6ee7b7;border:1px solid rgba(16,185,129,0.2)}.btn-success:hover{background:rgba(16,185,129,0.2)}
+.btn-warning{background:rgba(245,158,11,0.12);color:#fbbf24;border:1px solid rgba(245,158,11,0.2)}.btn-warning:hover{background:rgba(245,158,11,0.2)}
+.btn-danger{background:rgba(239,68,68,0.12);color:#fca5a5;border:1px solid rgba(239,68,68,0.2)}.btn-danger:hover{background:rgba(239,68,68,0.2)}
+.btn-secondary{background:rgba(255,255,255,0.04);color:var(--text-secondary);border:1px solid rgba(255,255,255,0.08)}.btn-secondary:hover{background:rgba(255,255,255,0.08)}
 .btn-sm{padding:6px 14px;font-size:.78rem}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+
+.container{max-width:1400px;margin:0 auto;padding:16px}
+.card{background:var(--bg-card);border-radius:12px;border:1px solid rgba(255,255,255,0.06);padding:16px;margin-bottom:16px}
+.card h2{font-size:.9rem;color:var(--text-secondary);margin-bottom:12px;font-weight:600}
 .row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
 .field{display:flex;flex-direction:column;gap:4px}
-.field label{font-size:.75rem;color:#64748b;text-transform:uppercase;letter-spacing:.5px}
-.field select{background:#0f172a;border:1px solid #475569;color:#e2e8f0;padding:8px 12px;border-radius:6px;font-size:.85rem;min-width:250px}
-.status-bar{display:flex;align-items:center;gap:12px;padding:10px 16px;background:#1e293b;border-radius:8px;margin-bottom:12px;border:1px solid #334155;font-size:.85rem}
-.progress-bar{flex:1;background:#334155;border-radius:4px;height:6px;overflow:hidden}
-.progress-fill{height:100%;background:linear-gradient(90deg,#d97706,#f59e0b);transition:width .3s;width:0}
-table{width:100%;border-collapse:collapse;font-size:.8rem}
-th{background:#334155;color:#94a3b8;padding:8px;text-align:left;position:sticky;top:0}
-td{padding:6px 8px;border-bottom:1px solid #1e293b}
-tr:hover td{background:#334155}
-.tag{display:inline-block;background:#334155;color:#94a3b8;padding:2px 8px;border-radius:4px;font-size:.72rem;margin:1px}
-.tag.found{background:#059669;color:#fff}
-.tag.not-found{background:#dc2626;color:#fff}
-.tag.pending{background:#d97706;color:#fff}
-.log-area{background:#0f172a;border:1px solid #334155;border-radius:8px;padding:10px;max-height:200px;overflow-y:auto;font-family:'Fira Code',monospace;font-size:.75rem;color:#64748b;margin-top:8px}
-.log-area .ok{color:#22c55e}.log-area .err{color:#ef4444}.log-area .warn{color:#eab308}
-.profile-preview{background:#0f172a;border:1px solid #334155;border-radius:10px;padding:16px;max-height:60vh;overflow-y:auto;display:none;margin-top:12px}
+.field label{font-size:.72rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;font-weight:600}
+.field select{background:var(--bg-input);border:1px solid var(--border-color);color:var(--text-primary);padding:8px 12px;border-radius:8px;font-size:.82rem;min-width:250px;outline:none}
+.field select:focus{border-color:var(--accent)}
+
+.status-bar{display:flex;align-items:center;gap:12px;padding:10px 16px;background:var(--bg-card);border-radius:10px;margin-bottom:12px;border:1px solid rgba(255,255,255,0.06);font-size:.82rem}
+.progress-bar{flex:1;background:rgba(255,255,255,0.05);border-radius:4px;height:6px;overflow:hidden}
+.progress-fill{height:100%;background:var(--gradient);transition:width .3s;width:0}
+
+table{width:100%;border-collapse:collapse;font-size:.78rem}
+th{background:rgba(99,102,241,0.06);color:var(--text-muted);padding:8px;text-align:left;position:sticky;top:0;font-size:.72rem;text-transform:uppercase;letter-spacing:.5px;font-weight:600}
+td{padding:7px 8px;border-bottom:1px solid rgba(255,255,255,0.03)}
+tr:hover td{background:rgba(99,102,241,0.04)}
+
+.tag{display:inline-block;padding:2px 10px;border-radius:6px;font-size:.72rem;font-weight:600;margin:1px}
+.tag.found{background:rgba(16,185,129,0.12);color:#6ee7b7;border:1px solid rgba(16,185,129,0.2)}
+.tag.not-found{background:rgba(239,68,68,0.12);color:#fca5a5;border:1px solid rgba(239,68,68,0.2)}
+.tag.pending{background:rgba(245,158,11,0.12);color:#fbbf24;border:1px solid rgba(245,158,11,0.2)}
+
+.log-area{background:var(--bg-input);border:1px solid rgba(255,255,255,0.05);border-radius:10px;padding:12px;max-height:200px;overflow-y:auto;font-family:'JetBrains Mono',monospace;font-size:.72rem;color:var(--text-muted);margin-top:8px}
+.log-area .ok{color:#6ee7b7}.log-area .err{color:#fca5a5}.log-area .warn{color:#fbbf24}
+
+.profile-preview{background:var(--bg-input);border:1px solid rgba(255,255,255,0.05);border-radius:12px;padding:16px;max-height:60vh;overflow-y:auto;display:none;margin-top:12px}
 .profile-preview.visible{display:block}
-.profile-preview h3{color:#38bdf8;font-size:1.1rem;margin-bottom:8px}
+.profile-preview h3{color:#a5b4fc;font-size:1.1rem;margin-bottom:8px;display:flex;align-items:center;gap:10px}
 .profile-preview .info-grid{display:grid;grid-template-columns:140px 1fr;gap:4px 12px;font-size:.82rem;margin:10px 0}
-.profile-preview .info-grid .lbl{color:#64748b;font-weight:600}
-.profile-preview .info-grid .val{color:#cbd5e1}
-.contact-card{background:#1e293b;border:1px solid #334155;border-radius:8px;padding:10px;margin-bottom:6px;font-size:.8rem}
-.contact-card strong{color:#38bdf8}
-.section-title{color:#94a3b8;font-size:.85rem;font-weight:700;margin:12px 0 6px;border-bottom:1px solid #334155;padding-bottom:4px}
+.profile-preview .info-grid .lbl{color:var(--text-muted);font-weight:600;font-size:.72rem;text-transform:uppercase}
+.profile-preview .info-grid .val{color:var(--text-primary)}
+.contact-card{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:10px;margin-bottom:6px;font-size:.8rem}
+.contact-card strong{color:#a5b4fc}
+.section-title{color:#6366f1;font-size:.78rem;font-weight:700;margin:14px 0 6px;border-bottom:1px solid rgba(99,102,241,0.15);padding-bottom:4px;text-transform:uppercase;letter-spacing:.5px}
 .flex-between{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
 .hidden{display:none}
 </style>
@@ -54,11 +80,17 @@ tr:hover td{background:#334155}
 <body>
 
 <div class="header">
+  <a href="/" class="btn btn-back">
+    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 12H5m7-7-7 7 7 7"/></svg>
+    Scraper
+  </a>
   <h1>Verifica Profili Non Trovati</h1>
   <span class="badge" id="countBadge">0</span>
   <div style="flex:1"></div>
-  <button class="btn btn-secondary btn-sm" onclick="window.location.href='/'">Torna allo Scraper</button>
-  <button class="btn btn-secondary btn-sm" onclick="window.location.href='/agenda.html'">Agenda Partner</button>
+  <a href="/agenda.html" class="btn btn-secondary btn-sm">
+    <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+    Agenda
+  </a>
 </div>
 
 <div class="container">
@@ -66,13 +98,15 @@ tr:hover td{background:#334155}
   <div class="status-bar">
     <span id="statusText">Carica i profili non trovati dalla pagina scraper oppure importa un JSON.</span>
     <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
-    <span id="progressText" style="font-size:.78rem;color:#64748b">0/0</span>
+    <span id="progressText" style="font-size:.72rem;color:var(--text-muted)">0/0</span>
   </div>
 
-  <!-- CONFIGURAZIONE VERIFICA -->
   <div class="card">
-    <h2>Verifica Network per Network</h2>
-    <p style="font-size:.8rem;color:#64748b;margin-bottom:12px">Seleziona un network e clicca "Verifica" per controllare gli ID non trovati su quel dominio specifico. Un solo profilo alla volta, con pausa tra le richieste.</p>
+    <h2>
+      <svg width="16" height="16" fill="none" stroke="#a5b4fc" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:6px"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+      Verifica Network per Network
+    </h2>
+    <p style="font-size:.78rem;color:var(--text-muted);margin-bottom:12px">Seleziona un network e clicca "Verifica" per controllare gli ID non trovati su quel dominio specifico.</p>
     <div class="row">
       <div class="field">
         <label>Network</label>
@@ -108,35 +142,32 @@ tr:hover td{background:#334155}
       </div>
       <button class="btn btn-warning" id="btnVerify" onclick="startVerify()" disabled>Verifica</button>
       <button class="btn btn-danger btn-sm" id="btnStop" onclick="stopVerify()" style="display:none">Stop</button>
-      <button class="btn btn-success btn-sm" onclick="exportFound()">Esporta Trovati (JSON)</button>
-      <button class="btn btn-secondary btn-sm" onclick="saveFoundToSupabase()">Salva Trovati su DB</button>
+      <button class="btn btn-success btn-sm" onclick="exportFound()">Esporta Trovati</button>
+      <button class="btn btn-primary btn-sm" onclick="saveFoundToSupabase()">Salva su DB</button>
     </div>
   </div>
 
-  <!-- TABELLA PROFILI NON TROVATI -->
   <div class="card">
     <div class="flex-between">
       <h2>Profili Non Trovati (<span id="failedCount">0</span>)</h2>
-      <div>
+      <div style="display:flex;gap:6px">
         <button class="btn btn-sm btn-secondary" onclick="importFailed()">Importa JSON</button>
         <button class="btn btn-sm btn-danger" onclick="clearAll()">Pulisci Tutto</button>
       </div>
     </div>
     <div style="max-height:400px;overflow-y:auto;margin-top:8px">
       <table>
-        <thead><tr><th>ID</th><th>Nome (dal discover)</th><th>Stato</th><th>Trovato su</th><th>Azioni</th></tr></thead>
+        <thead><tr><th>ID</th><th>Nome</th><th>Stato</th><th>Trovato su</th><th>Azioni</th></tr></thead>
         <tbody id="failedTableBody"></tbody>
       </table>
     </div>
   </div>
 
-  <!-- PREVIEW PROFILO TROVATO -->
   <div class="card">
     <h2>Anteprima Profilo</h2>
     <div class="profile-preview" id="profilePreview"></div>
   </div>
 
-  <!-- LOG -->
   <div class="card">
     <h2>Log</h2>
     <div class="log-area" id="logArea"></div>
@@ -151,13 +182,12 @@ const API_BASE = window.location.origin;
 const SUPABASE_URL = "https://dlldkrzoxvjxpgkkttxu.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRsbGRrcnpveHZqeHBna2t0dHh1Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1ODcyMDU4NCwiZXhwIjoyMDc0Mjk2NTg0fQ.py_d96kA6Mqvi0ugBm4gmIlJSoOC_KbwUM7cgDR-O_E";
 
-let failedProfiles = []; // {id, name, status: 'pending'|'found'|'not_found', foundOn: null, profile: null}
+let failedProfiles = [];
 let foundProfiles = [];
 let cookies = "";
 let wcaToken = "";
 let running = false;
 
-// Carica dati da localStorage (passati dallo scraper)
 function init() {
   try {
     const stored = localStorage.getItem("wca_failed_profiles");
@@ -174,15 +204,13 @@ function init() {
     const storedToken = localStorage.getItem("wca_token");
     if (storedToken) wcaToken = storedToken;
   } catch(e) {}
-
   updateTable();
   updateCounts();
   if (cookies) {
-    log("Sessione WCA caricata da localStorage", "ok");
+    log("Sessione WCA caricata", "ok");
     document.getElementById("btnVerify").disabled = false;
   } else {
-    log("Nessuna sessione WCA trovata. Fai login dalla pagina scraper prima.", "warn");
-    // Prova login automatico
+    log("Nessuna sessione WCA. Login automatico...", "warn");
     doLogin();
   }
 }
@@ -215,7 +243,7 @@ function updateTable() {
                       `<span class="tag pending">Da verificare</span>`;
     const actions = f.status === "found" ?
       `<button class="btn btn-sm btn-primary" onclick="showProfile(${i})">Vedi</button>` :
-      `<button class="btn btn-sm btn-secondary" onclick="verifySingle(${i})">Verifica singolo</button>`;
+      `<button class="btn btn-sm btn-secondary" onclick="verifySingle(${i})">Verifica</button>`;
     return `<tr><td>${f.id}</td><td>${f.name||''}</td><td>${statusTag}</td><td>${f.foundOn||'-'}</td><td>${actions}</td></tr>`;
   }).join("");
 }
@@ -241,68 +269,46 @@ function log(msg, cls="") {
 async function startVerify() {
   const network = document.getElementById("networkSelect").value;
   if (!network) { alert("Seleziona un network"); return; }
-  if (!cookies) { alert("Sessione WCA non disponibile. Fai login prima."); return; }
-
+  if (!cookies) { alert("Sessione WCA non disponibile."); return; }
   const delay = parseInt(document.getElementById("delaySelect").value) * 1000;
   const pending = failedProfiles.filter(f => f.status === "pending");
   if (pending.length === 0) { alert("Nessun profilo da verificare"); return; }
-
   running = true;
   document.getElementById("btnVerify").disabled = true;
-  document.getElementById("btnStop").style.display = "inline-block";
+  document.getElementById("btnStop").style.display = "inline-flex";
   log(`Inizio verifica su ${network} — ${pending.length} profili, delay ${delay/1000}s`);
-
   for (let i = 0; i < pending.length; i++) {
-    if (!running) { log("Verifica interrotta dall'utente", "warn"); break; }
-
+    if (!running) { log("Verifica interrotta", "warn"); break; }
     const item = pending[i];
     const progress = ((i+1) / pending.length * 100).toFixed(0);
     document.getElementById("progressFill").style.width = progress + "%";
     document.getElementById("progressText").textContent = `${i+1}/${pending.length}`;
-
     log(`Verifica ID ${item.id} su ${network}...`);
-
     try {
       const resp = await fetch(`${API_BASE}/api/verify`, {
-        method: "POST",
-        headers: {"Content-Type":"application/json"},
+        method: "POST", headers: {"Content-Type":"application/json"},
         body: JSON.stringify({ cookies, wcaId: item.id, network })
       });
       const data = await resp.json();
-
       if (data.found && data.profile && data.profile.state === "ok") {
-        item.status = "found";
-        item.foundOn = network;
-        item.profile = data.profile;
+        item.status = "found"; item.foundOn = network; item.profile = data.profile;
         foundProfiles.push(data.profile);
-        log(`ID ${item.id}: TROVATO su ${network} → ${data.profile.company_name}`, "ok");
+        log(`ID ${item.id}: TROVATO → ${data.profile.company_name}`, "ok");
       } else if (data.error === "login_required") {
         log(`Sessione scaduta. Rifaccio login...`, "warn");
-        await doLogin();
-        i--; // riprova
-        continue;
+        await doLogin(); i--; continue;
       } else {
         log(`ID ${item.id}: non trovato su ${network}`, "warn");
-        // Non marchiamo come not_found — potrebbe essere su un altro network
       }
-    } catch(e) {
-      log(`Errore verifica ID ${item.id}: ${e.message}`, "err");
-    }
-
-    updateTable();
-    updateCounts();
-
-    if (i < pending.length - 1 && running) {
-      await new Promise(r => setTimeout(r, delay));
-    }
+    } catch(e) { log(`Errore ID ${item.id}: ${e.message}`, "err"); }
+    updateTable(); updateCounts();
+    if (i < pending.length - 1 && running) await new Promise(r => setTimeout(r, delay));
   }
-
   running = false;
   document.getElementById("btnVerify").disabled = false;
   document.getElementById("btnStop").style.display = "none";
   log("Verifica completata", "ok");
-  updateTable();
-  updateCounts();
+  updateTable(); updateCounts();
 }
 
 function stopVerify() { running = false; }
@@ -311,30 +317,23 @@ async function verifySingle(idx) {
   const network = document.getElementById("networkSelect").value;
   if (!network) { alert("Seleziona un network"); return; }
   if (!cookies) { await doLogin(); if (!cookies) return; }
-
   const item = failedProfiles[idx];
   log(`Verifica singola ID ${item.id} su ${network}...`);
-
   try {
     const resp = await fetch(`${API_BASE}/api/verify`, {
-      method: "POST",
-      headers: {"Content-Type":"application/json"},
+      method: "POST", headers: {"Content-Type":"application/json"},
       body: JSON.stringify({ cookies, wcaId: item.id, network })
     });
     const data = await resp.json();
     if (data.found && data.profile && data.profile.state === "ok") {
-      item.status = "found";
-      item.foundOn = network;
-      item.profile = data.profile;
+      item.status = "found"; item.foundOn = network; item.profile = data.profile;
       foundProfiles.push(data.profile);
       log(`ID ${item.id}: TROVATO → ${data.profile.company_name}`, "ok");
     } else {
       log(`ID ${item.id}: non trovato su ${network}`, "warn");
     }
   } catch(e) { log(`Errore: ${e.message}`, "err"); }
-
-  updateTable();
-  updateCounts();
+  updateTable(); updateCounts();
 }
 
 function showProfile(idx) {
@@ -343,8 +342,7 @@ function showProfile(idx) {
   const p = item.profile;
   const preview = document.getElementById("profilePreview");
   preview.className = "profile-preview visible";
-
-  let html = `<h3>${p.logo_url ? `<img src="${p.logo_url}" style="width:50px;height:50px;object-fit:contain;background:#fff;border-radius:8px;padding:2px">` : ''} ${p.company_name || 'N/A'}</h3>`;
+  let html = `<h3>${p.logo_url ? `<img src="${p.logo_url}" style="width:50px;height:50px;object-fit:contain;background:rgba(255,255,255,0.08);border-radius:8px;padding:2px">` : ''} ${p.company_name || 'N/A'}</h3>`;
   html += `<div class="info-grid">`;
   const fields = [
     ["WCA ID", p.wca_id], ["Branch", p.branch], ["GM Coverage", p.gm_status_text],
@@ -356,16 +354,15 @@ function showProfile(idx) {
     if (val) html += `<div class="lbl">${lbl}</div><div class="val">${val}</div>`;
   }
   html += `</div>`;
-
   if (p.networks && p.networks.length) {
-    html += `<div class="section-title">Networks</div><div>${p.networks.map(n => `<span class="tag">${n}</span>`).join(' ')}</div>`;
+    html += `<div class="section-title">Networks</div><div>${p.networks.map(n => `<span class="tag" style="background:var(--accent-soft);color:#a5b4fc;border:1px solid rgba(99,102,241,0.2)">${n}</span>`).join(' ')}</div>`;
   }
   if (p.contacts && p.contacts.length) {
     html += `<div class="section-title">Contatti (${p.contacts.length})</div>`;
     for (const c of p.contacts) {
       html += `<div class="contact-card"><strong>${c.name || c.title || 'N/A'}</strong>`;
       if (c.title && c.name) html += ` — ${c.title}`;
-      if (c.email) html += `<br>Email: ${c.email}`;
+      if (c.email) html += `<br>Email: <span style="color:#818cf8">${c.email}</span>`;
       if (c.direct_line) html += `<br>Tel: ${c.direct_line}`;
       if (c.mobile) html += `<br>Mobile: ${c.mobile}`;
       if (c.fax) html += `<br>Fax: ${c.fax}`;
@@ -373,11 +370,10 @@ function showProfile(idx) {
       html += `</div>`;
     }
   }
-  if (p.profile_text) html += `<div class="section-title">Profilo</div><div style="font-size:.82rem;color:#cbd5e1">${p.profile_text}</div>`;
+  if (p.profile_text) html += `<div class="section-title">Profilo</div><div style="font-size:.82rem;color:var(--text-secondary)">${p.profile_text}</div>`;
   if (p.services && p.services.length) {
-    html += `<div class="section-title">Servizi</div><div>${p.services.map(s => `<span class="tag">${s}</span>`).join(' ')}</div>`;
+    html += `<div class="section-title">Servizi</div><div>${p.services.map(s => `<span class="tag" style="background:rgba(255,255,255,0.05);color:var(--text-secondary);border:none">${s}</span>`).join(' ')}</div>`;
   }
-
   preview.innerHTML = html;
 }
 
@@ -394,9 +390,8 @@ function exportFound() {
 
 async function saveFoundToSupabase() {
   const found = failedProfiles.filter(f => f.status === "found" && f.profile);
-  if (found.length === 0) { alert("Nessun profilo trovato da salvare"); return; }
-
-  log(`Salvataggio ${found.length} profili su Supabase...`);
+  if (found.length === 0) { alert("Nessun profilo trovato"); return; }
+  log(`Salvataggio ${found.length} profili su DB...`);
   let ok = 0, fail = 0;
   for (const f of found) {
     try {
@@ -405,7 +400,7 @@ async function saveFoundToSupabase() {
         body: JSON.stringify({ profile: f.profile })
       });
       const data = await resp.json();
-      if (data.success) { ok++; } else { fail++; log(`Errore save ID ${f.id}: ${data.error}`, "err"); }
+      if (data.success) ok++; else { fail++; log(`Errore save ID ${f.id}: ${data.error}`, "err"); }
     } catch(e) { fail++; log(`Errore save ID ${f.id}: ${e.message}`, "err"); }
     await new Promise(r => setTimeout(r, 200));
   }
@@ -430,9 +425,8 @@ function handleImport(e) {
           added++;
         }
       }
-      log(`Importati ${added} profili da JSON`, "ok");
-      updateTable();
-      updateCounts();
+      log(`Importati ${added} profili`, "ok");
+      updateTable(); updateCounts();
     } catch(err) { alert("JSON non valido: " + err.message); }
   };
   reader.readAsText(file);
@@ -444,8 +438,7 @@ function clearAll() {
   failedProfiles = [];
   foundProfiles = [];
   localStorage.removeItem("wca_failed_profiles");
-  updateTable();
-  updateCounts();
+  updateTable(); updateCounts();
   log("Lista pulita", "ok");
 }
 

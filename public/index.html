@@ -105,15 +105,74 @@ body {
   background: var(--bg-header);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  padding: 12px 24px;
+  padding: 12px 24px 0 24px;
   display: flex;
-  align-items: center;
-  gap: 12px;
+  flex-direction: column;
+  gap: 0;
   border-bottom: 1px solid rgba(255,255,255,0.07);
-  flex-wrap: wrap;
   position: sticky;
   top: 0;
   z-index: 100;
+}
+.header-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-bottom: 6px;
+}
+.header-flags-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 8px 0 10px 0;
+  border-top: 1px solid rgba(255,255,255,0.04);
+  min-height: 0;
+  overflow: visible;
+}
+.flag-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 8px;
+  transition: all 0.2s;
+  position: relative;
+}
+.flag-chip:hover {
+  background: rgba(99,102,241,0.12);
+}
+.flag-chip.selected {
+  background: rgba(99,102,241,0.15);
+  outline: 1.5px solid rgba(99,102,241,0.5);
+}
+.flag-chip .flag-emoji {
+  font-size: 2rem;
+  line-height: 1;
+}
+.flag-chip .flag-count {
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 6px;
+  line-height: 1.3;
+  min-width: 22px;
+  text-align: center;
+}
+.flag-chip .flag-count.complete {
+  background: rgba(16,185,129,0.18);
+  color: #6ee7b7;
+}
+.flag-chip .flag-count.incomplete {
+  background: rgba(239,68,68,0.18);
+  color: #fca5a5;
+}
+.flag-chip .flag-count.neutral {
+  background: rgba(99,102,241,0.2);
+  color: #a5b4fc;
 }
 
 .header h1 {
@@ -758,21 +817,20 @@ tr:hover td {
 <body>
 
 <div class="header">
-  <h1>WCA Partner Scraper</h1>
-  <span class="badge off" id="loginBadge">NON CONNESSO</span>
-
-  <div class="header-stats">
-    <span class="header-stat partners" data-tip="Numero totale di partner salvati nel database"><span id="headerTotalPartners">0</span> partner</span>
-    <span class="header-stat limited" data-tip="Partner con dati incompleti (accesso limitato)"><span id="headerLimitedPartners">0</span> limitati</span>
+  <div class="header-top">
+    <h1>WCA Partner Scraper</h1>
+    <span class="badge off" id="loginBadge">NON CONNESSO</span>
+    <div class="header-stats">
+      <span class="header-stat partners" data-tip="Numero totale di partner salvati nel database"><span id="headerTotalPartners">0</span> partner</span>
+      <span class="header-stat limited" data-tip="Partner con dati incompleti (accesso limitato)"><span id="headerLimitedPartners">0</span> limitati</span>
+    </div>
+    <div class="header-actions" style="margin-left:auto">
+      <button class="btn btn-secondary btn-sm" onclick="openAgenda()" data-tip="Apri l'agenda completa dei partner salvati">Agenda</button>
+      <a href="/wca-extension.zip" download class="btn btn-secondary btn-sm" style="text-decoration:none" data-tip="Scarica l'estensione Chrome per catturare i cookies WCA">Estensione</a>
+      <button class="btn btn-secondary btn-sm" onclick="openVerifica()" data-tip="Rivedi i profili non trovati e ritenta il download">Non trovati <span id="failedCountHeader">0</span></button>
+    </div>
   </div>
-
-  <div id="headerFlags" style="display:flex;gap:2px;align-items:center;flex-wrap:wrap;max-width:350px;overflow:hidden"></div>
-
-  <div class="header-actions">
-    <button class="btn btn-secondary btn-sm" onclick="openAgenda()" data-tip="Apri l'agenda completa dei partner salvati">Agenda</button>
-    <a href="/wca-extension.zip" download class="btn btn-secondary btn-sm" style="text-decoration:none" data-tip="Scarica l'estensione Chrome per catturare i cookies WCA">Estensione</a>
-    <button class="btn btn-secondary btn-sm" onclick="openVerifica()" data-tip="Rivedi i profili non trovati e ritenta il download">Non trovati <span id="failedCountHeader">0</span></button>
-  </div>
+  <div class="header-flags-row" id="headerFlags"></div>
 </div>
 
 <div class="container">
@@ -888,13 +946,19 @@ tr:hover td {
         <button class="btn btn-danger btn-sm" onclick="resetCountryAndRestart()" data-tip="Cancella la cache locale del paese selezionato e riesegui lo scraping da zero">Reset Paese</button>
       </div>
     </div>
-    <!-- Network mode selector (visible solo in modalità "Per Network") -->
-    <div id="networkModePanel" style="display:none;margin-top:12px;padding:14px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06)">
-      <label style="font-size:.75rem;font-weight:600;color:var(--text-muted);margin-bottom:8px;display:block;text-transform:uppercase;letter-spacing:0.5px">Network da scansionare</label>
-      <select id="selTargetNetwork" style="width:100%;padding:10px 12px;border-radius:8px;background:rgba(255,255,255,0.04);color:var(--text-primary);border:1px solid rgba(255,255,255,0.08);font-size:.82rem">
-        <option value="">-- Scegli un network --</option>
-      </select>
-      <p style="font-size:.72rem;color:var(--text-muted);margin-top:8px">Seleziona "Tutti" per scansionare ogni network in sequenza per i paesi scelti.</p>
+    <!-- Network mode hint (visible solo in modalità "Per Network") -->
+    <div id="networkModePanel" style="display:none;margin-top:12px;padding:12px 14px;border-radius:10px;background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.15)">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <p style="font-size:.78rem;color:#a5b4fc;margin:0;display:flex;align-items:center;gap:8px;flex:1">
+          <svg width="16" height="16" fill="none" stroke="#a5b4fc" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4m0-4h.01"/></svg>
+          Seleziona i network qui sotto. Se nessuno è selezionato, verranno usati tutti.
+        </p>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.78rem;color:#c7d2fe;padding:6px 14px;border-radius:8px;background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.2);white-space:nowrap;transition:all .2s;user-select:none" data-tip="Scarica tutti i paesi in sequenza per i network selezionati, senza dover selezionare manualmente ogni paese">
+          <input type="checkbox" id="chkAllCountries" style="accent-color:#6366f1" onchange="toggleAllCountriesMode()">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+          Tutti i Paesi
+        </label>
+      </div>
     </div>
     <!-- Test Download rapido -->
     <div style="margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap" id="testDownloadBar">
@@ -1154,14 +1218,36 @@ function removeCountry(code){
   refreshHeaderFlags();
 }
 function refreshHeaderFlags(){
+  renderFlagChips();
+}
+function renderFlagChips(){
   const flagsDiv = document.getElementById("headerFlags");
-  if(!flagsDiv.children.length) return;
+  if(!flagsDiv) return;
   const nameMap = {};
   ALL_COUNTRIES.forEach(g => g.items.forEach(([code, name]) => { nameMap[code] = name; }));
   const sorted = Object.entries(countryPartnerCounts).filter(([,v]) => v > 0).sort((a,b) => b[1] - a[1]);
   flagsDiv.innerHTML = sorted.map(([code, cnt]) => {
     const isSelected = selectedCountries.some(c => c.code === code);
-    return `<span onclick="selectFlagCountry('${code}','${nameMap[code]||code}')" title="${nameMap[code]||code}: ${cnt} partner" style="cursor:pointer;font-size:1.1rem;padding:1px 2px;border-radius:3px;position:relative;${isSelected?'background:rgba(99,102,241,0.15);outline:1px solid rgba(99,102,241,0.4)':''}">${countryFlag(code)}<span style="position:absolute;bottom:-4px;right:-2px;background:rgba(99,102,241,0.3);color:#a5b4fc;font-size:.5rem;padding:0 3px;border-radius:4px;line-height:1.2">${cnt}</span></span>`;
+    const dir = getDirectory(code);
+    const dirTotal = dir ? Object.keys(dir.ids).length : 0;
+    const doneCount = dir ? Object.values(dir.ids).filter(s => s === "done").length : 0;
+    const completed = dir ? (Object.values(dir.ids).filter(s => s === "pending").length === 0) : false;
+    let countClass, countLabel;
+    if(!dir || dirTotal === 0){
+      countClass = "neutral";
+      countLabel = cnt;
+    } else if(completed){
+      countClass = "complete";
+      countLabel = cnt;
+    } else {
+      const missing = dirTotal - doneCount;
+      countClass = "incomplete";
+      countLabel = "-" + missing;
+    }
+    return `<div class="flag-chip ${isSelected?'selected':''}" onclick="selectFlagCountry('${code}','${nameMap[code]||code}')" title="${nameMap[code]||code}: ${cnt} partner${dir ? ' | '+doneCount+'/'+dirTotal+' scaricati' : ''}">
+      <span class="flag-emoji">${countryFlag(code)}</span>
+      <span class="flag-count ${countClass}">${countLabel}</span>
+    </div>`;
   }).join("");
 }
 // Click fuori chiude dropdown
@@ -1310,36 +1396,67 @@ function setMode(mode, btn){
   document.getElementById("fieldSearch").classList.toggle("hidden",isRange || isNetwork);
   document.getElementById("fieldSearchBy").classList.toggle("hidden",isRange || isNetwork);
   document.getElementById("networkModePanel").style.display = isNetwork ? "block" : "none";
-  if(isNetwork) initNetworkSelector();
+  // In Per Network mode, auto-expand the network selector details
+  const netDetails = document.querySelector("details:has(#networksGrid)");
+  if(netDetails){
+    if(isNetwork){
+      netDetails.open = true;
+      netDetails.style.border = "1.5px solid rgba(99,102,241,0.3)";
+      netDetails.style.borderRadius = "10px";
+      netDetails.style.padding = "8px";
+      netDetails.style.background = "rgba(99,102,241,0.04)";
+    } else {
+      netDetails.style.border = "";
+      netDetails.style.borderRadius = "";
+      netDetails.style.padding = "";
+      netDetails.style.background = "";
+    }
+  }
 }
 
-function initNetworkSelector(){
-  const sel = document.getElementById("selTargetNetwork");
-  if(sel.options.length > 1) return; // già popolato
-  // Opzione "Tutti" — itera su ogni network in successione
-  const allOpt = document.createElement("option");
-  allOpt.value = "__ALL__";
-  allOpt.textContent = "— Tutti i Network (uno dopo l'altro) —";
-  sel.appendChild(allOpt);
-  for(const net of ALL_NETWORKS){
-    const opt = document.createElement("option");
-    opt.value = net.domain;
-    opt.textContent = `${net.name} (${net.domain})`;
-    sel.appendChild(opt);
+function getSelectedNetworkObjects(){
+  // Legge i network selezionati dalla checkbox grid, ritorna [{domain, name}]
+  const checked = document.querySelectorAll("#networksGrid input[type=checkbox]:checked");
+  const selected = [];
+  checked.forEach(cb => {
+    const net = ALL_NETWORKS.find(n => n.domain === cb.value);
+    if(net) selected.push({ domain: net.domain, name: net.name });
+  });
+  return selected;
+}
+
+function toggleAllCountriesMode(){
+  const chk = document.getElementById("chkAllCountries");
+  const countrySelector = document.getElementById("countrySelector");
+  if(chk.checked){
+    countrySelector.style.opacity = "0.4";
+    countrySelector.style.pointerEvents = "none";
+  } else {
+    countrySelector.style.opacity = "1";
+    countrySelector.style.pointerEvents = "auto";
   }
+}
+function getAllCountriesList(){
+  const all = [];
+  for(const group of ALL_COUNTRIES){
+    for(const [code, name] of group.items){
+      all.push({code, name});
+    }
+  }
+  return all;
 }
 
 // === MODALITÀ PER NETWORK: entra in un network, discover+download paese per paese ===
 async function scrapeByNetwork(){
-  const selValue = document.getElementById("selTargetNetwork").value;
-  if(!selValue){ alert("Seleziona un network!"); return; }
-  const countries = [...selectedCountries];
+  const allCountriesMode = document.getElementById("chkAllCountries")?.checked;
+  const countries = allCountriesMode ? getAllCountriesList() : [...selectedCountries];
   if(countries.length === 0){ alert("Seleziona almeno un paese!"); return; }
 
-  // Se "Tutti", itera su ogni network in sequenza
-  const networksToScrape = selValue === "__ALL__"
-    ? ALL_NETWORKS.map(n => ({ domain: n.domain, name: n.name }))
-    : [{ domain: selValue, name: ALL_NETWORKS.find(n => n.domain === selValue)?.name || selValue }];
+  // Usa i network selezionati dalla checkbox grid; se nessuno, usa tutti
+  const selectedNets = getSelectedNetworkObjects();
+  const networksToScrape = selectedNets.length > 0
+    ? selectedNets
+    : ALL_NETWORKS.map(n => ({ domain: n.domain, name: n.name }));
 
   log(`═══ MODALITÀ NETWORK: ${networksToScrape.length} network × ${countries.length} paesi ═══`);
   log(`Network: ${networksToScrape.map(n=>n.name).join(", ")}`);
@@ -2726,17 +2843,8 @@ async function loadHeaderCounts(){
     const cData = await respCounts.json();
     if(cData.success && cData.counts){
       countryPartnerCounts = cData.counts;
-      // Popola flags bar
-      const flagsDiv = document.getElementById("headerFlags");
-      // Trova nome paese da ALL_COUNTRIES
-      const nameMap = {};
-      ALL_COUNTRIES.forEach(g => g.items.forEach(([code, name]) => { nameMap[code] = name; }));
-      // Ordina per conteggio desc
-      const sorted = Object.entries(cData.counts).filter(([,v]) => v > 0).sort((a,b) => b[1] - a[1]);
-      flagsDiv.innerHTML = sorted.map(([code, cnt]) => {
-        const isSelected = selectedCountries.some(c => c.code === code);
-        return `<span onclick="selectFlagCountry('${code}','${nameMap[code]||code}')" title="${nameMap[code]||code}: ${cnt} partner" style="cursor:pointer;font-size:1.1rem;padding:1px 2px;border-radius:3px;position:relative;${isSelected?'background:rgba(99,102,241,0.15);outline:1px solid rgba(99,102,241,0.4)':''}">${countryFlag(code)}<span style="position:absolute;bottom:-4px;right:-2px;background:rgba(99,102,241,0.3);color:#a5b4fc;font-size:.5rem;padding:0 3px;border-radius:4px;line-height:1.2">${cnt}</span></span>`;
-      }).join("");
+      // Popola flags bar con nuovi chip
+      renderFlagChips();
     }
   } catch(e){ console.warn("loadHeaderCounts error:", e.message); }
 }
