@@ -6,109 +6,77 @@
 <title>WCA Partner Scraper</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
-/* ==================== THEME SYSTEM ==================== */
+/* ==================== COMMAND CENTER — INDIGO ==================== */
 :root {
-  --bg-page: #0f172a;
-  --bg-card: #1e293b;
-  --bg-input: #0f172a;
-  --bg-header: #1e293b;
+  --bg-page: #0e0e18;
+  --bg-card: #1a1a2e;
+  --bg-input: #12121e;
+  --bg-header: rgba(26,26,46,0.92);
   --text-primary: #e2e8f0;
-  --text-secondary: #94a3b8;
+  --text-secondary: #a0aec0;
   --text-muted: #64748b;
-  --border-color: #334155;
-  --border-subtle: #475569;
-  --accent: #3b82f6;
-  --accent-hover: #2563eb;
-  --accent-soft: #1e40af;
-  --success: #22c55e;
-  --warning: #d97706;
-  --danger: #dc2626;
-  --card-shadow: 0 4px 12px rgba(0,0,0,0.3);
-  --card-radius: 14px;
-}
-
-/* Glassmorphism Light */
-body[data-theme="glass-light"] {
-  --bg-page: #f8fafc;
-  --bg-card: rgba(255,255,255,0.55);
-  --bg-input: rgba(248,250,252,0.8);
-  --bg-header: rgba(255,255,255,0.6);
-  --text-primary: #1e293b;
-  --text-secondary: #475569;
-  --text-muted: #64748b;
-  --border-color: rgba(255,255,255,0.7);
-  --border-subtle: rgba(226,232,240,0.5);
+  --border-color: rgba(99,102,241,0.15);
+  --border-subtle: rgba(99,102,241,0.08);
   --accent: #6366f1;
-  --accent-hover: #4f46e5;
-  --accent-soft: #4338ca;
+  --accent-hover: #818cf8;
+  --accent-soft: rgba(99,102,241,0.15);
+  --accent-glow: rgba(99,102,241,0.06);
   --success: #10b981;
   --warning: #f59e0b;
   --danger: #ef4444;
-  --card-shadow: 0 8px 32px rgba(31,41,55,0.1);
-  --card-backdrop: blur(16px);
+  --sky: #0ea5e9;
+  --card-shadow: 0 0 60px rgba(99,102,241,0.06);
+  --card-radius: 12px;
+  --card-backdrop: blur(20px);
+  --gradient: linear-gradient(135deg, #6366f1, #818cf8, #a5b4fc);
+  --glow: radial-gradient(circle at 20% 80%, rgba(99,102,241,0.08), transparent 50%);
 }
 
-/* Glassmorphism Dark */
-body[data-theme="glass-dark"] {
-  --bg-page: #0f172a;
-  --bg-card: rgba(30,41,59,0.7);
-  --bg-input: rgba(15,23,42,0.8);
-  --bg-header: rgba(30,41,59,0.8);
-  --text-primary: #e2e8f0;
-  --text-secondary: #cbd5e1;
-  --text-muted: #94a3b8;
-  --border-color: rgba(71,85,105,0.5);
-  --border-subtle: rgba(71,85,105,0.3);
-  --accent: #818cf8;
-  --accent-hover: #6366f1;
-  --accent-soft: #4f46e5;
-  --success: #34d399;
-  --warning: #fbbf24;
-  --danger: #f87171;
-  --card-shadow: 0 8px 32px rgba(0,0,0,0.4);
-  --card-backdrop: blur(16px);
+/* ==================== TOOLTIP SYSTEM ==================== */
+[data-tip] {
+  position: relative;
 }
-
-/* Neumorphism Light */
-body[data-theme="neu-light"] {
-  --bg-page: #f0f0f3;
-  --bg-card: #f0f0f3;
-  --bg-input: #f0f0f3;
-  --bg-header: #f0f0f3;
-  --text-primary: #2d3436;
-  --text-secondary: #636e72;
-  --text-muted: #b2bec3;
-  --border-color: #e8eaed;
-  --border-subtle: #dfe6e9;
-  --accent: #6c63ff;
-  --accent-hover: #5a52c5;
-  --accent-soft: #4a3f9f;
-  --success: #00b894;
-  --warning: #fdcb6e;
-  --danger: #ff7675;
-  --card-shadow: 8px 8px 16px #d1d1d4, -8px -8px 16px #ffffff;
-  --card-radius: 14px;
+[data-tip]::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) scale(0.95);
+  background: linear-gradient(135deg, #1e1e38, #2a2a4a);
+  color: #e2e8f0;
+  font-size: 0.72rem;
+  font-weight: 500;
+  padding: 8px 14px;
+  border-radius: 8px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s, transform 0.2s;
+  z-index: 9999;
+  border: 1px solid rgba(99,102,241,0.25);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 0 20px rgba(99,102,241,0.1);
+  max-width: 280px;
+  white-space: normal;
+  text-align: center;
+  line-height: 1.4;
 }
-
-/* Neumorphism Dark */
-body[data-theme="neu-dark"] {
-  --bg-page: #2d2d3f;
-  --bg-card: #2d2d3f;
-  --bg-input: #2d2d3f;
-  --bg-header: #2d2d3f;
-  --text-primary: #e8eef5;
-  --text-secondary: #b0bcc4;
-  --text-muted: #8a95a4;
-  --border-color: #3d3d55;
-  --border-subtle: #3a3a52;
-  --accent: #a78bfa;
-  --accent-hover: #9d7ee6;
-  --accent-soft: #8b6cd6;
-  --success: #66d9ef;
-  --warning: #f4bf75;
-  --danger: #f78c6b;
-  --card-shadow: 8px 8px 16px #1a1a2a, -8px -8px 16px #3d3d55;
-  --card-radius: 14px;
+[data-tip]::before {
+  content: "";
+  position: absolute;
+  bottom: calc(100% + 2px);
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: rgba(99,102,241,0.25);
+  opacity: 0;
+  transition: opacity 0.2s;
+  z-index: 9999;
+  pointer-events: none;
+}
+[data-tip]:hover::after,
+[data-tip]:hover::before {
+  opacity: 1;
+  transform: translateX(-50%) scale(1);
 }
 
 /* ==================== BASE STYLES ==================== */
@@ -119,22 +87,24 @@ body[data-theme="neu-dark"] {
 }
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: "SF Pro Display", "Geist", 'Inter', system-ui, sans-serif;
   background: var(--bg-page);
+  background-image: var(--glow);
   color: var(--text-primary);
   min-height: 100vh;
   transition: background 0.3s, color 0.3s;
 }
 
-/* ==================== HEADER ==================== */
+/* ==================== SHELL TOPBAR ==================== */
 .header {
   background: var(--bg-header);
-  backdrop-filter: var(--card-backdrop, none);
-  padding: 16px 24px;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  padding: 12px 24px;
   display: flex;
   align-items: center;
-  gap: 16px;
-  border-bottom: 1px solid var(--border-color);
+  gap: 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
   flex-wrap: wrap;
   position: sticky;
   top: 0;
@@ -142,53 +112,68 @@ body {
 }
 
 .header h1 {
-  font-size: 1.5rem;
+  font-size: 1.2rem;
   font-weight: 700;
-  color: var(--accent);
+  background: var(--gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .header .badge {
-  background: var(--accent);
-  color: white;
-  font-size: 0.7rem;
-  padding: 4px 10px;
-  border-radius: 12px;
+  font-size: 0.68rem;
+  padding: 4px 12px;
+  border-radius: 20px;
   font-weight: 600;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(99,102,241,0.12);
+  color: #a5b4fc;
 }
 
-/* Theme Switcher Buttons */
-.theme-switcher {
+.header .badge.off {
+  background: rgba(239,68,68,0.12);
+  color: #fca5a5;
+  border-color: rgba(239,68,68,0.2);
+}
+
+.header .badge.on {
+  background: rgba(16,185,129,0.12);
+  color: #6ee7b7;
+  border-color: rgba(16,185,129,0.2);
+}
+
+.header-stats {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.header-stat {
+  font-size: 0.68rem;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-weight: 600;
+  border: 1px solid rgba(255,255,255,0.06);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.header-stat.partners {
+  background: rgba(99,102,241,0.1);
+  color: #a5b4fc;
+}
+
+.header-stat.limited {
+  background: rgba(245,158,11,0.1);
+  color: #fcd34d;
+}
+
+.header-actions {
   display: flex;
   gap: 6px;
-  align-items: center;
   margin-left: auto;
-  margin-right: 8px;
-}
-
-.theme-btn {
-  width: 32px;
-  height: 32px;
-  border: 1px solid var(--border-subtle);
-  background: var(--bg-card);
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 0.75rem;
-  display: flex;
   align-items: center;
-  justify-content: center;
-  transition: all 0.2s;
-  color: var(--text-secondary);
-}
-
-.theme-btn:hover {
-  background: var(--accent-soft);
-  color: white;
-}
-
-.theme-btn.active {
-  background: var(--accent);
-  color: white;
-  border-color: var(--accent);
 }
 
 /* ==================== CONTAINER & CARDS ==================== */
@@ -199,26 +184,24 @@ body {
 }
 
 .card {
-  background: var(--bg-card);
-  backdrop-filter: var(--card-backdrop, none);
+  background: rgba(26,26,46,0.65);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border-radius: var(--card-radius);
-  border: 1px solid var(--border-color);
+  border: 1px solid rgba(255,255,255,0.07);
   padding: 20px;
   margin-bottom: 16px;
   box-shadow: var(--card-shadow);
   transition: all 0.3s;
 }
 
-.card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 24px rgba(0,0,0,0.15);
-}
-
 .card h2 {
-  font-size: 1.1rem;
-  color: var(--text-secondary);
+  font-size: 0.82rem;
+  color: var(--text-muted);
   margin-bottom: 16px;
   font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
 /* ==================== FORMS & INPUTS ==================== */
@@ -245,12 +228,12 @@ body {
 
 .field select,
 .field input {
-  background: var(--bg-input);
-  border: 1px solid var(--border-color);
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
   color: var(--text-primary);
   padding: 10px 12px;
-  border-radius: 10px;
-  font-size: 0.85rem;
+  border-radius: 8px;
+  font-size: 0.82rem;
   transition: all 0.2s;
   font-family: inherit;
 }
@@ -258,8 +241,9 @@ body {
 .field select:focus,
 .field input:focus {
   outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-soft);
+  border-color: rgba(99,102,241,0.5);
+  box-shadow: 0 0 0 3px rgba(99,102,241,0.1);
+  background: rgba(99,102,241,0.05);
 }
 
 .field select {
@@ -268,73 +252,97 @@ body {
 
 /* ==================== BUTTONS ==================== */
 .btn {
-  padding: 10px 20px;
+  padding: 9px 18px;
   border: none;
-  border-radius: 10px;
-  font-size: 0.85rem;
+  border-radius: 8px;
+  font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
   font-family: inherit;
+  letter-spacing: 0.2px;
 }
 
 .btn-primary {
   background: var(--accent);
   color: #fff;
+  box-shadow: 0 0 20px rgba(99,102,241,0.2);
 }
 
 .btn-primary:hover:not(:disabled) {
   background: var(--accent-hover);
-  transform: translateY(-1px);
+  box-shadow: 0 0 30px rgba(99,102,241,0.35);
 }
 
 .btn-success {
   background: var(--success);
   color: #fff;
+  box-shadow: 0 0 20px rgba(16,185,129,0.15);
 }
 
 .btn-success:hover:not(:disabled) {
-  background: var(--accent);
+  box-shadow: 0 0 30px rgba(16,185,129,0.3);
+  filter: brightness(1.1);
 }
 
 .btn-warning {
   background: var(--warning);
-  color: #1e293b;
+  color: #1e1e18;
+  box-shadow: 0 0 20px rgba(245,158,11,0.12);
 }
 
 .btn-warning:hover:not(:disabled) {
-  background: var(--accent);
-  color: #fff;
+  box-shadow: 0 0 30px rgba(245,158,11,0.25);
+  filter: brightness(1.1);
 }
 
 .btn-danger {
+  background: rgba(239,68,68,0.15);
+  color: #fca5a5;
+  border: 1px solid rgba(239,68,68,0.25);
+}
+
+.btn-danger:hover:not(:disabled) {
   background: var(--danger);
   color: #fff;
 }
 
-.btn-danger:hover:not(:disabled) {
-  background: var(--accent);
-}
-
 .btn-secondary {
-  background: var(--bg-input);
-  color: var(--text-primary);
-  border: 1px solid var(--border-color);
+  background: rgba(255,255,255,0.04);
+  color: var(--text-secondary);
+  border: 1px solid rgba(255,255,255,0.08);
 }
 
 .btn-secondary:hover:not(:disabled) {
-  background: var(--border-color);
-  color: var(--text-primary);
+  background: rgba(99,102,241,0.1);
+  border-color: rgba(99,102,241,0.25);
+  color: #a5b4fc;
 }
 
 .btn:disabled {
-  opacity: 0.5;
+  opacity: 0.35;
   cursor: not-allowed;
 }
 
 .btn-sm {
   padding: 6px 14px;
-  font-size: 0.78rem;
+  font-size: 0.75rem;
+}
+
+/* Button Group */
+.btn-group {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.btn-group-label {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+  font-weight: 600;
+  margin-right: 4px;
 }
 
 /* ==================== STATUS & PROGRESS ==================== */
@@ -343,11 +351,11 @@ body {
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
-  background: var(--bg-card);
-  border-radius: var(--card-radius);
+  background: rgba(255,255,255,0.03);
+  border-radius: 10px;
   margin-bottom: 12px;
-  border: 1px solid var(--border-color);
-  font-size: 0.85rem;
+  border: 1px solid rgba(255,255,255,0.06);
+  font-size: 0.82rem;
   flex-wrap: wrap;
 }
 
@@ -383,9 +391,10 @@ body {
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--accent), var(--success));
+  background: var(--gradient);
   transition: width 0.3s ease;
   width: 0;
+  border-radius: 6px;
 }
 
 /* ==================== DETAILS/COLLAPSIBLE ==================== */
@@ -393,9 +402,19 @@ details {
   transition: all 0.3s;
 }
 
+details summary {
+  color: var(--text-secondary);
+  font-size: .82rem;
+  font-weight: 600;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  user-select: none;
+}
 details summary:hover {
-  background: var(--accent-soft);
-  color: white;
+  background: rgba(99,102,241,0.1);
+  color: #a5b4fc;
 }
 
 /* ==================== NETWORKS GRID ==================== */
@@ -406,7 +425,7 @@ details summary:hover {
 }
 
 .networks-grid label {
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -414,13 +433,14 @@ details summary:hover {
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s;
-  background: var(--bg-input);
-  border: 1px solid var(--border-color);
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
 }
 
 .networks-grid label:hover {
-  background: var(--accent-soft);
-  color: white;
+  background: rgba(99,102,241,0.1);
+  border-color: rgba(99,102,241,0.25);
+  color: #a5b4fc;
 }
 
 .networks-grid input[type="checkbox"] {
@@ -468,23 +488,23 @@ details summary:hover {
   align-items: center;
   gap: 8px;
   padding: 8px 12px;
-  background: var(--bg-input);
-  border: 1px solid var(--border-color);
-  border-radius: 10px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s;
   max-width: 200px;
 }
 
 .scraped-tab:hover {
-  background: var(--accent-soft);
-  color: white;
+  background: rgba(99,102,241,0.1);
+  border-color: rgba(99,102,241,0.25);
 }
 
 .scraped-tab.active {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: white;
+  background: rgba(99,102,241,0.15);
+  border-color: rgba(99,102,241,0.4);
+  color: #a5b4fc;
 }
 
 .scraped-tab img {
@@ -610,38 +630,42 @@ table {
 }
 
 th {
-  background: var(--bg-input);
-  color: var(--text-secondary);
+  background: rgba(0,0,0,0.2);
+  color: var(--text-muted);
   padding: 10px;
   text-align: left;
   position: sticky;
   top: 0;
   font-weight: 600;
-  border-bottom: 1px solid var(--border-color);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
 }
 
 td {
   padding: 8px 10px;
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  font-size: 0.8rem;
 }
 
 tr:hover td {
-  background: var(--accent-soft);
-  color: white;
+  background: rgba(99,102,241,0.08);
 }
 
 /* ==================== LOG AREA ==================== */
 .log-area {
-  background: var(--bg-input);
-  border: 1px solid var(--border-color);
-  border-radius: 10px;
-  padding: 10px;
+  background: rgba(0,0,0,0.25);
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 8px;
+  padding: 12px;
   max-height: 150px;
   overflow-y: auto;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   color: var(--text-muted);
   margin-top: 8px;
+  line-height: 1.6;
 }
 
 .log-area .ok {
@@ -678,8 +702,9 @@ tr:hover td {
 }
 
 .mode-selector .btn.active {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
+  background: rgba(99,102,241,0.15);
+  border: 1px solid rgba(99,102,241,0.4);
+  color: #a5b4fc;
 }
 
 .gm-badge {
@@ -723,26 +748,24 @@ tr:hover td {
 }
 </style>
 </head>
-<body data-theme="glass-light">
+<body>
 
 <div class="header">
-  <h1>🔍 WCA Partner Scraper</h1>
-  <span class="badge" id="loginBadge">NON CONNESSO</span>
-  <span style="background:var(--accent-soft);color:white;font-size:.7rem;padding:4px 10px;border-radius:8px;display:inline-flex;align-items:center;gap:4px;font-weight:600">📊 <span id="headerTotalPartners">0</span> partner</span>
-  <span style="background:var(--warning);color:#1e293b;font-size:.7rem;padding:4px 10px;border-radius:8px;display:inline-flex;align-items:center;gap:4px;font-weight:600">🔒 <span id="headerLimitedPartners">0</span> limitati</span>
-  <div id="headerFlags" style="display:flex;gap:2px;align-items:center;flex-wrap:wrap;margin:0 8px;max-width:400px;overflow:hidden"></div>
+  <h1>WCA Partner Scraper</h1>
+  <span class="badge off" id="loginBadge">NON CONNESSO</span>
 
-  <div class="theme-switcher">
-    <button class="theme-btn active" data-theme="glass-light" onclick="setTheme('glass-light')" title="Glassmorphism Light">🌞</button>
-    <button class="theme-btn" data-theme="glass-dark" onclick="setTheme('glass-dark')" title="Glassmorphism Dark">🌙</button>
-    <button class="theme-btn" data-theme="neu-light" onclick="setTheme('neu-light')" title="Neumorphism Light">✨</button>
-    <button class="theme-btn" data-theme="neu-dark" onclick="setTheme('neu-dark')" title="Neumorphism Dark">🌑</button>
+  <div class="header-stats">
+    <span class="header-stat partners" data-tip="Numero totale di partner salvati nel database"><span id="headerTotalPartners">0</span> partner</span>
+    <span class="header-stat limited" data-tip="Partner con dati incompleti (accesso limitato)"><span id="headerLimitedPartners">0</span> limitati</span>
   </div>
 
-  <button class="btn btn-secondary btn-sm" onclick="window.open('/settings.html','_blank')">⚙ Network</button>
-  <button class="btn btn-secondary btn-sm" onclick="openAgenda()">Apri Agenda Partner</button>
-  <a href="/wca-extension.zip" download class="btn btn-secondary btn-sm" style="text-decoration:none">⬇ Estensione Chrome</a>
-  <button class="btn btn-warning btn-sm" onclick="openVerifica()">Verifica Non Trovati (<span id="failedCountHeader">0</span>)</button>
+  <div id="headerFlags" style="display:flex;gap:2px;align-items:center;flex-wrap:wrap;max-width:350px;overflow:hidden"></div>
+
+  <div class="header-actions">
+    <button class="btn btn-secondary btn-sm" onclick="openAgenda()" data-tip="Apri l'agenda completa dei partner salvati">Agenda</button>
+    <a href="/wca-extension.zip" download class="btn btn-secondary btn-sm" style="text-decoration:none" data-tip="Scarica l'estensione Chrome per catturare i cookies WCA">Estensione</a>
+    <button class="btn btn-secondary btn-sm" onclick="openVerifica()" data-tip="Rivedi i profili non trovati e ritenta il download">Non trovati <span id="failedCountHeader">0</span></button>
+  </div>
 </div>
 
 <div class="container">
@@ -755,7 +778,7 @@ tr:hover td {
     <span id="progressText" style="font-size:.78rem;color:var(--text-muted)">0/0</span>
   </div>
   <!-- ACTIVITY TICKER -->
-  <div id="activityBar" style="display:none;padding:8px 16px;background:var(--bg-input);border:1px solid var(--border-color);border-radius:10px;margin-bottom:12px;font-size:.8rem;font-family:monospace;color:var(--text-secondary)">
+  <div id="activityBar" style="display:none;padding:8px 16px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:8px;margin-bottom:12px;font-size:.78rem;font-family:'JetBrains Mono',monospace;color:var(--text-secondary)">
     <div style="display:flex;align-items:center;gap:8px">
       <span id="activityIcon" style="font-size:1rem">⏳</span>
       <span id="activityText">In attesa...</span>
@@ -764,7 +787,7 @@ tr:hover td {
   </div>
 
   <!-- BACKGROUND JOB PANEL -->
-  <div id="bgJobPanel" style="display:none;padding:12px 16px;background:var(--accent-soft);border:1px solid var(--accent);border-radius:10px;margin-bottom:12px;opacity:0.9">
+  <div id="bgJobPanel" style="display:none;padding:12px 16px;background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.25);border-radius:10px;margin-bottom:12px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px">
       <h3 style="font-size:.9rem;color:white;margin:0;font-weight:600">🖥 Job in Background</h3>
       <div style="display:flex;gap:6px">
@@ -788,21 +811,29 @@ tr:hover td {
   <div class="card" style="position:relative;z-index:100">
     <div class="flex-between">
       <h2>Configurazione</h2>
-      <div style="display:flex;gap:8px">
-        <button class="btn btn-primary" id="btnLogin" onclick="doLogin()">Login WCA</button>
-        <button class="btn btn-success" id="btnStart" onclick="startScraping()" disabled>Avvia Scraping</button>
-        <button class="btn btn-success" id="btnStartBg" onclick="startBackgroundJob()" style="background:#7c3aed">▶ Background</button>
-        <button class="btn btn-warning" id="btnResume" onclick="resumeScraping()" style="display:none">▶ Continua Download</button>
-        <button class="btn btn-danger btn-sm" id="btnStop" onclick="stopScraping()" disabled>Stop</button>
+      <div style="display:flex;gap:16px;align-items:center">
+        <!-- Gruppo: Connessione -->
+        <div class="btn-group">
+          <span class="btn-group-label">Accesso</span>
+          <button class="btn btn-primary btn-sm" id="btnLogin" onclick="doLogin()" data-tip="Effettua il login SSO su WCA per accedere ai profili dei partner">Login WCA</button>
+        </div>
+        <!-- Gruppo: Azioni scraping -->
+        <div class="btn-group">
+          <span class="btn-group-label">Scraping</span>
+          <button class="btn btn-success btn-sm" id="btnStart" onclick="startScraping()" disabled data-tip="Avvia lo scraping dei partner per i paesi selezionati">Avvia</button>
+          <button class="btn btn-sm" id="btnStartBg" onclick="startBackgroundJob()" style="background:rgba(124,58,237,0.8);color:#fff" data-tip="Esegui lo scraping in background senza bloccare l'interfaccia">Background</button>
+          <button class="btn btn-warning btn-sm" id="btnResume" onclick="resumeScraping()" style="display:none" data-tip="Riprendi il download dei partner dal punto in cui si era interrotto">Continua</button>
+          <button class="btn btn-danger btn-sm" id="btnStop" onclick="stopScraping()" disabled data-tip="Ferma immediatamente lo scraping in corso">Stop</button>
+        </div>
       </div>
     </div>
     <div class="row" style="margin-top:12px">
       <div class="field">
         <label>Modalità</label>
         <div class="mode-selector">
-          <button class="btn btn-sm btn-secondary active" data-mode="discover" onclick="setMode('discover',this)">Discover</button>
-          <button class="btn btn-sm btn-secondary" data-mode="network" onclick="setMode('network',this)">Per Network</button>
-          <button class="btn btn-sm btn-secondary" data-mode="range" onclick="setMode('range',this)">Range ID</button>
+          <button class="btn btn-sm btn-secondary active" data-mode="discover" onclick="setMode('discover',this)" data-tip="Scopri automaticamente tutti i partner di un paese su ogni network">Discover</button>
+          <button class="btn btn-sm btn-secondary" data-mode="network" onclick="setMode('network',this)" data-tip="Scarica i partner da un singolo network specifico">Per Network</button>
+          <button class="btn btn-sm btn-secondary" data-mode="range" onclick="setMode('range',this)" data-tip="Scarica profili per intervallo numerico di ID WCA">Range ID</button>
         </div>
       </div>
       <div class="field" style="min-width:300px">
@@ -811,7 +842,7 @@ tr:hover td {
           <div id="countryDisplay" onclick="toggleCountryDropdown()" style="background:var(--bg-input);border:1px solid var(--border-color);color:var(--text-primary);padding:10px 12px;border-radius:10px;font-size:.85rem;cursor:pointer;min-height:40px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;transition:all 0.2s">
             <span style="color:var(--text-muted)">Seleziona paesi...</span>
           </div>
-          <div id="countryDropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg-card);border:1px solid var(--border-color);border-radius:0 0 10px 10px;max-height:300px;overflow-y:auto;z-index:9999;box-shadow:0 12px 40px rgba(0,0,0,0.25)">
+          <div id="countryDropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:rgba(18,18,30,0.98);border:1px solid rgba(99,102,241,0.2);border-radius:0 0 10px 10px;max-height:300px;overflow-y:auto;z-index:9999;box-shadow:0 12px 40px rgba(0,0,0,0.5);backdrop-filter:blur(20px)">
             <div style="padding:8px;border-bottom:1px solid var(--border-color);display:flex;gap:6px">
               <input type="text" id="countryFilter" placeholder="Filtra..." oninput="filterCountries()" style="flex:1;background:var(--bg-input);border:1px solid var(--border-color);color:var(--text-primary);padding:8px;border-radius:8px;font-size:.8rem">
               <button class="btn btn-sm btn-secondary" onclick="clearCountries()">Reset</button>
@@ -843,11 +874,11 @@ tr:hover td {
       <!-- Delay gestito automaticamente con pattern variabile -->
       <div class="field" style="align-self:center;margin-top:18px">
         <label style="display:flex;align-items:center;gap:6px;cursor:pointer;white-space:nowrap">
-          <input type="checkbox" id="chkUpdateAddress" style="accent-color:#d97706"> Aggiorna address esistenti
+          <input type="checkbox" id="chkUpdateAddress" style="accent-color:var(--accent)"> Aggiorna esistenti
         </label>
       </div>
       <div class="field" style="align-self:center;margin-top:18px">
-        <button class="btn btn-danger btn-sm" onclick="resetCountryAndRestart()" title="Cancella cache e directory locale del paese selezionato e riesegui da zero">🔄 Riesegui Paese da zero</button>
+        <button class="btn btn-danger btn-sm" onclick="resetCountryAndRestart()" data-tip="Cancella la cache locale del paese selezionato e riesegui lo scraping da zero">Reset Paese</button>
       </div>
     </div>
     <!-- Network mode selector (visible solo in modalità "Per Network") -->
@@ -860,8 +891,8 @@ tr:hover td {
     </div>
     <!-- Test Download rapido -->
     <div style="margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap" id="testDownloadBar">
-      <button class="btn btn-sm btn-secondary" onclick="testDownloadProfile()" id="btnTestDL">🧪 Test Download Profilo</button>
-      <button class="btn btn-sm btn-secondary" onclick="testAllNetworks()" id="btnTestNets">🔍 Testa Accesso Network</button>
+      <button class="btn btn-sm btn-secondary" onclick="testDownloadProfile()" id="btnTestDL" data-tip="Testa il download di un singolo profilo per verificare che l'estrazione funzioni">Test Profilo</button>
+      <button class="btn btn-sm btn-secondary" onclick="testAllNetworks()" id="btnTestNets" data-tip="Verifica l'accesso autenticato su tutti i network WCA disponibili">Test Network</button>
       <span id="netTestStatus" style="font-size:.75rem;color:var(--text-secondary)"></span>
     </div>
     <!-- Networks (filtro per discover mode) -->
@@ -877,8 +908,8 @@ tr:hover td {
       <div class="flex-between" style="margin-bottom:6px">
         <h3 style="font-size:.85rem;color:#94a3b8">Profili Scrappati (<span id="scrapedCount">0</span>)</h3>
         <div style="display:flex;gap:6px">
-          <button class="btn btn-sm btn-secondary" onclick="exportJSON()">Export JSON</button>
-          <button class="btn btn-sm btn-secondary" onclick="exportCSV()">Export CSV</button>
+          <button class="btn btn-sm btn-secondary" onclick="exportJSON()" data-tip="Esporta tutti i profili in formato JSON">JSON</button>
+          <button class="btn btn-sm btn-secondary" onclick="exportCSV()" data-tip="Esporta tutti i profili in formato CSV per Excel">CSV</button>
         </div>
       </div>
       <div class="scraped-tabs-bar" id="scrapedTabsBar"></div>
@@ -1063,14 +1094,14 @@ async function initCountrySelector(){
   const list = document.getElementById("countryList");
   let html = "";
   for(const group of ALL_COUNTRIES){
-    html += `<div style="padding:4px 8px;font-size:.7rem;color:#64748b;font-weight:700;text-transform:uppercase;background:#0f172a">${group.g}</div>`;
+    html += `<div style="padding:4px 8px;font-size:.65rem;color:#6366f1;font-weight:700;text-transform:uppercase;letter-spacing:1px;background:rgba(0,0,0,0.3)">${group.g}</div>`;
     for(const [code, name] of group.items){
       const flag = countryFlag(code);
       const cnt = countryPartnerCounts[code] || 0;
-      const cntBadge = cnt > 0 ? `<span style="margin-left:auto;background:#059669;color:#fff;font-size:.65rem;padding:1px 6px;border-radius:8px;min-width:20px;text-align:center">${cnt}</span>` : `<span style="margin-left:auto;color:#475569;font-size:.65rem">0</span>`;
-      const doneBadge = isCountryCompleted(code) ? `<span style="background:#065f46;color:#34d399;font-size:.6rem;padding:1px 5px;border-radius:4px">✓</span>` : "";
-      html += `<label style="display:flex;align-items:center;gap:6px;padding:4px 8px;font-size:.8rem;cursor:pointer;border-bottom:1px solid #1e293b" data-code="${code}" data-name="${name.toLowerCase()}">
-        <input type="checkbox" value="${code}" onchange="toggleCountry('${code}','${name}')" style="accent-color:#2563eb"> ${flag} ${name} (${code}) ${doneBadge} ${cntBadge}
+      const cntBadge = cnt > 0 ? `<span style="margin-left:auto;background:rgba(16,185,129,0.15);color:#6ee7b7;font-size:.65rem;padding:1px 6px;border-radius:8px;min-width:20px;text-align:center">${cnt}</span>` : `<span style="margin-left:auto;color:#475569;font-size:.65rem">0</span>`;
+      const doneBadge = isCountryCompleted(code) ? `<span style="background:rgba(16,185,129,0.15);color:#6ee7b7;font-size:.6rem;padding:1px 5px;border-radius:4px">done</span>` : "";
+      html += `<label style="display:flex;align-items:center;gap:6px;padding:5px 8px;font-size:.78rem;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.04);transition:all 0.15s" data-code="${code}" data-name="${name.toLowerCase()}" onmouseover="this.style.background='rgba(99,102,241,0.08)'" onmouseout="this.style.background='transparent'">
+        <input type="checkbox" value="${code}" onchange="toggleCountry('${code}','${name}')" style="accent-color:#6366f1"> ${flag} ${name} (${code}) ${doneBadge} ${cntBadge}
       </label>`;
     }
   }
@@ -1477,8 +1508,9 @@ async function doLogin(){
     if(data.success){
       sessionCookies = data.cookies;
       wcaToken = data.wcaToken || null;
-      document.getElementById("loginBadge").textContent = "CONNESSO";
-      document.getElementById("loginBadge").style.background = "#059669";
+      const lb = document.getElementById("loginBadge");
+      lb.textContent = "CONNESSO";
+      lb.className = "badge on";
       document.getElementById("btnStart").disabled = false;
       setStatus("Connesso! Configura e avvia lo scraping.", true);
       log("Login riuscito!" + (wcaToken ? " Token trovato." : " Nessun token."), "ok");
@@ -2699,16 +2731,8 @@ loadHeaderCounts();
 // Aggiorna ogni 30s durante lo scraping
 setInterval(()=>{ if(scraping || bgJobId) loadHeaderCounts(); }, 30000);
 
-// === THEME SWITCHER ===
-function setTheme(theme) {
-  document.body.setAttribute('data-theme', theme);
-  try { localStorage.setItem('wca_theme', theme); } catch(e){}
-  document.querySelectorAll('.theme-btn').forEach(b => b.classList.toggle('active', b.dataset.theme === theme));
-}
-(function initTheme(){
-  const saved = localStorage.getItem('wca_theme') || 'glass-light';
-  setTheme(saved);
-})();
+// === THEME (Command Center — fixed) ===
+function setTheme(t) { /* no-op: tema fisso Command Center */ }
 
 </script>
 </body>
