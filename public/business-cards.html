@@ -595,9 +595,8 @@ function renderPage(){
     const fields=[];
     if(c.email) fields.push(`<div class="card-field"><span class="f-icon" style="color:#818cf8">✉</span><span class="f-label">Email</span><a href="mailto:${esc(c.email)}" class="f-val" style="color:#818cf8">${esc(c.email)}</a></div>`);
     if(c.phone) fields.push(`<div class="card-field"><span class="f-icon" style="color:#34d399">☎</span><span class="f-label">Tel</span><a href="tel:${esc(c.phone)}" class="f-val" style="color:#34d399">${esc(c.phone)}</a></div>`);
-    if(c.city||c.country) fields.push(`<div class="card-field"><span class="f-icon" style="color:#f59e0b">📍</span><span class="f-label">Luogo</span><span class="f-val">${esc([c.city,c.province,c.country].filter(Boolean).join(", "))}</span></div>`);
+    if(c.city||c.country) fields.push(`<div class="card-field"><span class="f-icon" style="color:#f59e0b">📍</span><span class="f-label">Luogo</span><span class="f-val">${esc([c.city,c.country].filter(Boolean).join(", "))}</span></div>`);
     if(c.website) fields.push(`<div class="card-field"><span class="f-icon" style="color:#0ea5e9">🌐</span><span class="f-label">Web</span><a href="${esc(c.website.startsWith('http')?c.website:'https://'+c.website)}" target="_blank" class="f-val" style="color:#0ea5e9">${esc(c.website)}</a></div>`);
-    if(c.address) fields.push(`<div class="card-field"><span class="f-icon" style="color:#a78bfa">🏢</span><span class="f-label">Indirizzo</span><span class="f-val">${esc(c.address)}</span></div>`);
 
     html+=`<div class="bc-card" data-letter="${(c.company_name||"#")[0].toUpperCase()}">
       <div class="card-top">
@@ -948,18 +947,21 @@ function mapRows(rows, fileName){
     // Clean website
     let web=colWebsite?r[colWebsite]:"";
     if(web&&isGarbage(web)) web="";
-    // Build notes without OCR garbage
+    // Build notes without OCR garbage; include address/province/zip in notes
     let notes=colNotes?r[colNotes]:"";
     if(isGarbage(notes)) notes="";
+    const addr=colAddress?r[colAddress]:"";
+    const prov=colProvince?r[colProvince]:"";
+    const zipVal=colZip?r[colZip]:"";
+    const addrParts=[addr,prov,zipVal].filter(Boolean).join(", ");
+    if(addrParts&&!isGarbage(addrParts)) notes=(notes?notes+"\n":"")+addrParts;
     return {
       company_name:company, contact_name:cn,
       email:cleanEmail, phone:phone||(phone2||""),
       country:colCountry?r[colCountry]:"", country_code:resolveCountryCode(colCountry?r[colCountry]:""),
       city:colCity?r[colCity]:"", position:colPosition?r[colPosition]:"",
       website:web, notes:notes,
-      address:colAddress?r[colAddress]:"", province:colProvince?r[colProvince]:"",
-      zip:colZip?r[colZip]:"",
-      source_file:fileName, created_at:colDate?r[colDate]:new Date().toISOString(),
+      source_file:fileName,
     };
   }).filter(c=>c&&(c.company_name||c.contact_name||c.email));
 }
