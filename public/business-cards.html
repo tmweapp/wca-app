@@ -659,15 +659,21 @@ async function deleteSelected(){
   if(!selectedIds.size) return;
   if(!confirm("Cancellare "+selectedIds.size+" contatti selezionati?")) return;
   const ids=[...selectedIds];
-  // Delete in batches
-  for(let i=0;i<ids.length;i+=50){
-    const batch=ids.slice(i,i+50);
-    const filter=batch.map(id=>"id.eq."+id).join(",");
-    await fetch(`${SUPABASE_URL}/rest/v1/wca_business_cards?or=(${filter})`,{method:"DELETE",headers:SB_HEADERS}).catch(()=>{});
+  let deleted=0, errors=0;
+  for(const id of ids){
+    try{
+      const r=await fetch(`${SUPABASE_URL}/rest/v1/wca_business_cards?id=eq.${id}`,{
+        method:"DELETE",headers:{...SB_HEADERS,"Prefer":"return=minimal"}
+      });
+      if(r.ok) deleted++; else { console.error("Delete fail",id,await r.text()); errors++; }
+    }catch(e){ console.error("Delete error:",e); errors++; }
   }
-  allCards=allCards.filter(c=>!selectedIds.has(c.id));
+  // Remove from local array (compare as strings for safety)
+  const idSet=new Set(ids.map(String));
+  allCards=allCards.filter(c=>!idSet.has(String(c.id)));
   selectedIds.clear();
   renderAll();
+  if(errors) alert("Cancellati "+deleted+", errori: "+errors);
 }
 function filterByCountry(cc){
   currentCountryFilter=currentCountryFilter===cc?"":cc;
