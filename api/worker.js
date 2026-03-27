@@ -140,9 +140,86 @@ async function scrapeProfile(cookies, wcaId, href) {
   return result;
 }
 
+// === COUNTRY CODE → NAME MAP ===
+const CC_TO_NAME = {
+  "AF":"Afghanistan","AL":"Albania","DZ":"Algeria","AR":"Argentina","AM":"Armenia",
+  "AU":"Australia","AT":"Austria","AZ":"Azerbaijan","BH":"Bahrain","BD":"Bangladesh",
+  "BY":"Belarus","BE":"Belgium","BO":"Bolivia","BA":"Bosnia and Herzegovina","BR":"Brazil",
+  "BN":"Brunei","BG":"Bulgaria","KH":"Cambodia","CM":"Cameroon","CA":"Canada",
+  "CL":"Chile","CN":"China","CO":"Colombia","CR":"Costa Rica","HR":"Croatia",
+  "CU":"Cuba","CY":"Cyprus","CZ":"Czech Republic","DK":"Denmark","DO":"Dominican Republic",
+  "EC":"Ecuador","EG":"Egypt","SV":"El Salvador","EE":"Estonia","ET":"Ethiopia",
+  "FI":"Finland","FR":"France","GE":"Georgia","DE":"Germany","GH":"Ghana",
+  "GR":"Greece","GT":"Guatemala","HN":"Honduras","HK":"Hong Kong","HU":"Hungary",
+  "IS":"Iceland","IN":"India","ID":"Indonesia","IR":"Iran","IQ":"Iraq",
+  "IE":"Ireland","IL":"Israel","IT":"Italy","CI":"Ivory Coast","JM":"Jamaica",
+  "JP":"Japan","JO":"Jordan","KZ":"Kazakhstan","KE":"Kenya","KR":"South Korea",
+  "KW":"Kuwait","LA":"Laos","LV":"Latvia","LB":"Lebanon","LY":"Libya",
+  "LT":"Lithuania","LU":"Luxembourg","MY":"Malaysia","MV":"Maldives","MT":"Malta",
+  "MU":"Mauritius","MX":"Mexico","MN":"Mongolia","ME":"Montenegro","MA":"Morocco",
+  "MZ":"Mozambique","MM":"Myanmar","NP":"Nepal","NL":"Netherlands","NZ":"New Zealand",
+  "NI":"Nicaragua","NG":"Nigeria","NO":"Norway","OM":"Oman","PK":"Pakistan",
+  "PA":"Panama","PY":"Paraguay","PE":"Peru","PH":"Philippines","PL":"Poland",
+  "PT":"Portugal","QA":"Qatar","RO":"Romania","RU":"Russia","SA":"Saudi Arabia",
+  "SN":"Senegal","RS":"Serbia","SG":"Singapore","SK":"Slovakia","SI":"Slovenia",
+  "ZA":"South Africa","ES":"Spain","LK":"Sri Lanka","SD":"Sudan","SE":"Sweden",
+  "CH":"Switzerland","SY":"Syria","TW":"Taiwan","TZ":"Tanzania","TH":"Thailand",
+  "TN":"Tunisia","TR":"Turkey","AE":"United Arab Emirates","UG":"Uganda","UA":"Ukraine",
+  "GB":"United Kingdom","US":"United States","UY":"Uruguay","UZ":"Uzbekistan",
+  "VE":"Venezuela","VN":"Vietnam","YE":"Yemen","ZM":"Zambia","ZW":"Zimbabwe",
+  "TT":"Trinidad and Tobago","BW":"Botswana","MW":"Malawi","NA":"Namibia","RW":"Rwanda",
+};
+
+function extractCity(address, branch, branchCities) {
+  if (Array.isArray(branchCities) && branchCities.length > 0) {
+    const c = branchCities[0].replace(/\s*\(.*?\)\s*/g, "").trim();
+    if (c && c.length > 1 && c.length < 50) return c;
+  }
+  if (branch) {
+    const c = branch.replace(/\s*\(.*?\)\s*/g, "").replace(/head\s*office/i, "").trim();
+    if (c && c.length > 1 && c.length < 50) return c;
+  }
+  if (address) {
+    const parts = address.split(",").map(p => p.trim()).filter(Boolean);
+    if (parts.length >= 2) {
+      let c = parts[parts.length - 2].replace(/^\d{3,7}\s*/, "").replace(/\s*\d{3,7}$/, "").trim();
+      if (c && c.length > 1 && !/^\d+$/.test(c) && !/^(P\.?O\.?\s*Box|Suite|Floor|Unit|Building)/i.test(c)) return c;
+    }
+  }
+  return "";
+}
+
+function parseMemberSince(enrolledSince) {
+  if (!enrolledSince) return null;
+  const cleaned = enrolledSince.trim().replace(/,/g, "").replace(/\s+/g, " ");
+  const d = new Date(cleaned);
+  if (!isNaN(d.getTime()) && d.getFullYear() > 1990 && d.getFullYear() < 2030) return d.toISOString().split("T")[0];
+  const months = {"jan":"01","feb":"02","mar":"03","apr":"04","may":"05","jun":"06",
+    "jul":"07","aug":"08","sep":"09","oct":"10","nov":"11","dec":"12",
+    "january":"01","february":"02","march":"03","april":"04","june":"06",
+    "july":"07","august":"08","september":"09","october":"10","november":"11","december":"12"};
+  const m = cleaned.match(/([A-Za-z]+)\s+(\d{1,2})\s+(\d{4})/);
+  if (m) { const mon = months[m[1].toLowerCase()]; if (mon) return `${m[3]}-${mon}-${m[2].padStart(2, "0")}`; }
+  const ym = cleaned.match(/(\d{4})/);
+  if (ym && parseInt(ym[1]) > 1990) return `${ym[1]}-01-01`;
+  return null;
+}
+
+function normalizeContacts(contacts) {
+  if (!Array.isArray(contacts)) return [];
+  return contacts.map(c => {
+    const n = { ...c };
+    if (!n.direct_phone && !n.direct_line) { if (n.mobile) n.direct_phone = n.mobile; }
+    else if (n.direct_line && !n.direct_phone) n.direct_phone = n.direct_line;
+    return n;
+  });
+}
+
 // === SAVE TO SUPABASE ===
 async function savePartner(profile, countryCode) {
   if (!profile.country_code && countryCode) profile.country_code = countryCode;
+  const cc = (profile.country_code || countryCode || "").toUpperCase();
+  const contacts = normalizeContacts(profile.contacts || []);
   const row = {
     wca_id: profile.wca_id, company_name: profile.company_name || "",
     logo_url: profile.logo_url || null, branch: profile.branch || "",
@@ -153,9 +230,12 @@ async function savePartner(profile, countryCode) {
     mailing: profile.mailing || "", phone: profile.phone || "",
     fax: profile.fax || "", emergency_call: profile.emergency_call || "",
     website: profile.website || "", email: profile.email || "",
-    contacts: profile.contacts || [], services: profile.services || [],
+    contacts: contacts, services: profile.services || [],
     certifications: profile.certifications || [], branch_cities: profile.branch_cities || [],
-    country_code: (profile.country_code || countryCode || "").toUpperCase(),
+    country_code: cc,
+    country_name: CC_TO_NAME[cc] || cc || "",
+    city: extractCity(profile.address || "", profile.branch || "", profile.branch_cities || []),
+    member_since: parseMemberSince(profile.enrolled_since),
     raw_data: profile, updated_at: new Date().toISOString(),
     access_limited: profile.access_limited || false,
   };
@@ -275,19 +355,51 @@ module.exports = async (req, res) => {
       const toDownload = allMembers.filter(m => !existingIds.has(String(m.id)));
       const skipped = allMembers.length - toDownload.length;
 
+      // ═══ FIX: se 0 nuovi membri, SKIP IMMEDIATO al prossimo paese (niente pausa 15s) ═══
+      if (toDownload.length === 0) {
+        const nextCountryIdx = (job.current_country_idx || 0) + 1;
+        const logMsg = `Discover ${country.name}: ${allMembers.length} trovati, tutti già in DB → skip`;
+        console.log(`[worker] ${logMsg}`);
+        if (nextCountryIdx < countries.length) {
+          await updateJob(job.id, {
+            status: "pending",
+            current_country_idx: nextCountryIdx,
+            current_member_idx: 0,
+            discovered_members: [],
+            delay_index: 0,
+            consecutive_failures: 0,
+            total_skipped: (job.total_skipped || 0) + skipped,
+            last_activity: `⏩ ${country.name}: 0 nuovi — passo a ${countries[nextCountryIdx].name}`,
+            error_log: await addJobLog(job, logMsg),
+          });
+          // Pausa breve (2s) invece di 15s, poi retrigger
+          await sleep(Math.min(2000, timeLeft() - 2000));
+          const workerUrl = `https://${req.headers.host}/api/worker?jobId=${job.id}`;
+          fetch(workerUrl, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" }).catch(e => console.log(`[worker] Retrigger error: ${e.message}`));
+          return res.json({ success: true, phase: "skip_country", country: country.name, reason: "0 new members" });
+        } else {
+          await updateJob(job.id, {
+            status: "completed",
+            total_skipped: (job.total_skipped || 0) + skipped,
+            last_activity: `🎉 Completato! Tutti i paesi analizzati, tutti i profili già in DB.`,
+            error_log: await addJobLog(job, logMsg),
+          });
+          return res.json({ success: true, phase: "completed", total: job.total_scraped || 0 });
+        }
+      }
+
       await updateJob(job.id, {
         status: "downloading",
         discovered_members: toDownload,
-        total_skipped: skipped,
+        total_skipped: (job.total_skipped || 0) + skipped,
         current_member_idx: 0,
         delay_index: 0,
         last_activity: `Discover completato: ${allMembers.length} trovati, ${skipped} già in DB, ${toDownload.length} da scaricare`,
         error_log: await addJobLog(job, `Discover ${country.name}: ${allMembers.length} trovati, ${skipped} skip, ${toDownload.length} nuovi`),
       });
 
-      // Se c'è ancora tempo, inizia subito il download
+      // Se c'è ancora tempo, prosegui subito al download (niente re-trigger inutile)
       if (timeLeft() < 8000) {
-        // Re-trigger per continuare
         const workerUrl = `https://${req.headers.host}/api/worker?jobId=${job.id}`;
         fetch(workerUrl, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" }).catch(e => console.log(`[worker] Retrigger error: ${e.message}`));
         return res.json({ success: true, phase: "discover_done", members: toDownload.length });
@@ -327,16 +439,18 @@ module.exports = async (req, res) => {
             discovered_members: [],
             delay_index: 0,
             consecutive_failures: 0,
-            last_activity: `${country.name} completato (${scraped} salvati). Prossimo: ${countries[nextCountryIdx].name} tra 15s...`,
+            last_activity: `✅ ${country.name} completato (${scraped} salvati). Prossimo: ${countries[nextCountryIdx].name}...`,
           });
-          await sleep(Math.min(15000, timeLeft() - 2000));
+          // Pausa ridotta: 5s se ha scaricato qualcosa, 2s se niente
+          const pauseMs = scraped > 0 ? 5000 : 2000;
+          await sleep(Math.min(pauseMs, timeLeft() - 2000));
           const workerUrl = `https://${req.headers.host}/api/worker?jobId=${job.id}`;
           fetch(workerUrl, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" }).catch(e => console.log(`[worker] Retrigger error: ${e.message}`));
           return res.json({ success: true, phase: "next_country" });
         } else {
           await updateJob(job.id, {
             status: "completed",
-            last_activity: `Completato! ${scraped} profili salvati da ${countries.map(c => c.name).join(", ")}`,
+            last_activity: `🎉 Completato! ${scraped} profili salvati da ${countries.map(c => c.name).join(", ")}`,
           });
           return res.json({ success: true, phase: "completed", total: scraped });
         }
@@ -437,10 +551,11 @@ module.exports = async (req, res) => {
           discovered_members: [],
           delay_index: 0,
           consecutive_failures: 0,
-          last_activity: `✅ ${country.name} completato (${scraped} salvati). Pausa 15s, poi: ${countries[nextCountryIdx].name}`,
+          last_activity: `✅ ${country.name} completato (${scraped} salvati). Prossimo: ${countries[nextCountryIdx].name}`,
         });
         const workerUrl = `https://${req.headers.host}/api/worker?jobId=${job.id}`;
-        setTimeout(() => fetch(workerUrl, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" }).catch(e => console.log(`[worker] Retrigger error: ${e.message}`)), 15000);
+        const retriggerDelay = scraped > 0 ? 5000 : 2000;
+        setTimeout(() => fetch(workerUrl, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" }).catch(e => console.log(`[worker] Retrigger error: ${e.message}`)), retriggerDelay);
       } else {
         await updateJob(job.id, {
           status: "completed",
