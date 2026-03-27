@@ -1732,7 +1732,7 @@ function getNextDelay(){
   delayIndex++;
   // Reset ciclo dopo 10 profili (ogni 10 profili = pausa lunga di 15s)
   if(delayIndex % DELAY_PATTERN.length === 0){
-    return 15000; // pausa lunga fine ciclo
+    return 4000; // pausa lunga fine ciclo
   }
   return d * 1000;
 }
