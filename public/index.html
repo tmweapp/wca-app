@@ -1351,9 +1351,9 @@ tr:hover td {
       <button class="btn btn-danger btn-sm" onclick="resetCountryAndRestart()" style="font-size:.62rem;padding:2px 6px">Reset</button>
       <div style="width:1px;height:22px;background:rgba(255,255,255,0.1);flex-shrink:0;margin:0 2px"></div>
       <div class="status-dot off" id="statusDot"></div>
-      <div id="activeCountryBadge" style="display:none;align-items:center;gap:4px;flex-shrink:0">
-        <span id="activeCountryFlag" style="font-size:1.2rem;line-height:1"></span>
-        <span id="activeCountryName" style="font-size:.72rem;color:var(--text-primary);font-weight:600;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+      <div id="activeCountryBadge" style="display:none;align-items:center;gap:6px;flex-shrink:0;background:rgba(99,102,241,0.12);border:1px solid rgba(165,180,252,0.25);border-radius:10px;padding:3px 10px 3px 6px">
+        <span id="activeCountryFlag" style="font-size:1.8rem;line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.3))"></span>
+        <span id="activeCountryName" style="font-size:.75rem;color:#e2e8f0;font-weight:700;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:.3px"></span>
       </div>
       <span id="statusText" style="font-size:.72rem;color:var(--text-secondary);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Pronto</span>
       <div id="activityBar" style="display:none;font-size:.68rem;font-family:'JetBrains Mono',monospace;color:var(--text-secondary);align-items:center;gap:4px;flex-shrink:0">
@@ -1402,6 +1402,13 @@ tr:hover td {
         <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="6" y="6" width="12" height="12" rx="2"/></svg> Stop
       </button>
     </div>
+  </div>
+
+  <!-- ════════ PARTNER DB FLAGS BAR ════════ -->
+  <div id="partnerFlagsBar" style="display:flex;align-items:center;gap:6px;padding:6px 14px;background:rgba(16,185,129,0.04);border:1px solid rgba(16,185,129,0.12);border-radius:12px;margin-top:8px;flex-wrap:wrap;min-height:36px">
+    <span style="font-size:.62rem;color:#6ee7b7;font-weight:700;letter-spacing:.5px;text-transform:uppercase;flex-shrink:0">DB Partner:</span>
+    <div id="partnerFlagsTrack" style="display:flex;align-items:center;gap:4px;flex-wrap:wrap"></div>
+    <span id="partnerFlagsTotal" style="margin-left:auto;font-size:.62rem;color:#94a3b8;font-weight:600;flex-shrink:0"></span>
   </div>
 
   <!-- ════════ CONFIG CARD ════════ -->
@@ -1734,7 +1741,36 @@ async function loadCountryCounts(){
     const resp = await fetch(API+"/api/partners?action=country_counts");
     const data = await resp.json();
     if(data.success && data.counts) countryPartnerCounts = data.counts;
+    renderPartnerFlags();
   } catch(e){ console.warn("loadCountryCounts error:", e.message); }
+}
+// Aggiorna conteggio locale dopo ogni save (senza ri-chiamare API)
+function incrementPartnerCount(cc){
+  if(!cc) return;
+  const code=cc.toUpperCase();
+  countryPartnerCounts[code]=(countryPartnerCounts[code]||0)+1;
+  renderPartnerFlags();
+}
+// Renderizza barra bandiere partner in DB
+function renderPartnerFlags(){
+  const track=document.getElementById("partnerFlagsTrack");
+  const totalEl=document.getElementById("partnerFlagsTotal");
+  if(!track) return;
+  const entries=Object.entries(countryPartnerCounts).sort((a,b)=>b[1]-a[1]);
+  if(entries.length===0){
+    track.innerHTML='<span style="font-size:.62rem;color:#475569;font-style:italic">Nessun partner scaricato</span>';
+    totalEl.textContent="";
+    return;
+  }
+  let total=0;
+  track.innerHTML=entries.map(([cc,n])=>{
+    total+=n;
+    const flag=countryFlag(cc);
+    return `<span style="display:inline-flex;align-items:center;gap:2px;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.2);border-radius:8px;padding:2px 7px 2px 4px;cursor:default;transition:transform .15s" title="${cc}: ${n} partner" onmouseenter="this.style.transform='scale(1.1)'" onmouseleave="this.style.transform='scale(1)'">`
+      +`<span style="font-size:1.1rem;line-height:1">${flag}</span>`
+      +`<span style="font-size:.62rem;font-weight:700;color:#6ee7b7">${n}</span></span>`;
+  }).join("");
+  totalEl.textContent=total+" partner · "+entries.length+" paesi";
 }
 
 // Country selector
@@ -3460,6 +3496,9 @@ async function saveToSupabase(profile){
     const data = await resp.json();
     if(!data.success){
       log(`⚠️ Save fallito ${profile.wca_id}: ${data.error}`,"warn");
+    } else {
+      // Aggiorna conteggio bandiere in tempo reale
+      incrementPartnerCount(profile.country_code);
     }
   } catch(e){log(`❌ Errore save ${profile.wca_id}: ${e.message}`,"err");}
 }
