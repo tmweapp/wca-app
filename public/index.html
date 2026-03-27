@@ -2096,7 +2096,6 @@ async function scrapeByNetwork(){
   if(selectedNets.length === 0){
     alert("Seleziona almeno un network!");
     openNetworkPopup();
-    // Ripristina stato UI
     scraping = false;
     document.getElementById("btnStart").disabled = false;
     document.getElementById("btnStop").disabled = true;
@@ -2104,89 +2103,17 @@ async function scrapeByNetwork(){
     return;
   }
   const networksToScrape = selectedNets;
+  const MAX_TABS = 50;
+  const MAX_RETRIES = 2;
 
-  log(`═══ MODALITÀ NETWORK: ${networksToScrape.length} network × ${countries.length} paesi ═══`);
+  log(`═══ MODALITÀ NETWORK+: ${networksToScrape.length} network × ${countries.length} paesi (con fallback + enrichment) ═══`);
   log(`Network: ${networksToScrape.map(n=>n.name).join(", ")}`);
   log(`Paesi: ${countries.map(c=>c.name).join(", ")}`);
 
-  for(let ni = 0; ni < networksToScrape.length && scraping; ni++){
-    const { domain: networkDomain, name: networkName } = networksToScrape[ni];
-    setActiveNetwork(networkDomain, networkName);
-    log(`\n═══ NETWORK ${ni+1}/${networksToScrape.length}: ${networkName} ═══`,"ok");
-
-  for(let ci = 0; ci < countries.length && scraping; ci++){
-    const c = countries[ci];
-    log(`═══ [${networkName}] PAESE ${ci+1}/${countries.length}: ${c.name} (${c.code}) ═══`,"ok");
-    setActiveCountry(c.code, c.name);
-    setStatus(`[${networkName}] ${c.name}: discover in corso...`, true);
-
-    // FASE 1: Discover su QUESTO network per QUESTO paese
-    showActivity("🔍", `Discover ${c.name} su ${networkName}...`);
-    let members = [];
-    try {
-      const delay = ci > 0 ? getNextDelay() : 0;
-      if(delay > 0){
-        log(`⏱ Pausa ${(delay/1000).toFixed(0)}s...`);
-        await sleepWithActivity("⏳", `Pausa prima di ${c.name}`, delay);
-      }
-      if(!scraping) break;
-
-      const resp = await fetch(API+"/api/discover-network",{
-        method:"POST",headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({ networkDomain, country: c.code })
-      });
-      const data = await resp.json();
-      if(!data.success){
-        log(`⚠ ${c.name} su ${networkName}: ${data.error||"errore"}`,"warn");
-        continue;
-      }
-      members = data.members || [];
-      log(`📋 ${c.name}: ${members.length} membri trovati su ${networkName}`,"ok");
-      updateScrapeStats({ found: members.length, networkName, countryName: c.name, downloaded: 0, skipped: 0 });
-      if(members.length > 0) notifyEvent(`${members.length} partner trovati in ${c.name} su ${networkName}`);
-    } catch(e){
-      log(`⚠ Errore discover ${c.name}: ${e.message}`,"err");
-      continue;
-    }
-
-    if(members.length === 0){
-      log(`⏭ ${c.name}: nessun membro su ${networkName} — salto`,"warn");
-      continue;
-    }
-
-    // Aggiorna discover table
-    discoveredMembers = members.map(m => ({id:m.id, name:m.name, networks:[networkDomain]}));
-    document.getElementById("resultsCard").style.display = "block";
-    updateResultsTable();
-
-    // Directory locale
-    const allIds = members.map(m => m.id);
-    let dir = getDirectory(c.code);
-    if(!dir) dir = createDirectory(c.code, allIds);
-    else {
-      let added = 0;
-      for(const id of allIds){ if(!(String(id) in dir.ids)){ dir.ids[String(id)] = "pending"; added++; } }
-      if(added > 0){ dir.total = Object.keys(dir.ids).length; saveDirectory(c.code, dir); }
-    }
-
-    // Filtra solo i pending
-    const pendingIds = allIds.filter(id => dir.ids[String(id)] === "pending");
-    const toDownload = members.filter(m => pendingIds.includes(m.id));
-    log(`📥 ${c.name}: ${allIds.length - pendingIds.length} già fatti, ${toDownload.length} da scaricare su ${networkName}`,"ok");
-
-    if(toDownload.length === 0){
-      log(`✅ ${c.name}: tutto già scaricato su ${networkName}`,"ok");
-      continue;
-    }
-
-    // FASE 2: Download dal network specifico
-    currentScrapingCountry = c.code;
-    for(let i = 0; i < toDownload.length && scraping; i++){
-      const member = toDownload[i];
-      setStatus(`[${networkName}] ${c.name}: ${i+1}/${toDownload.length} — ID ${member.id}`, true);
-      setProgress(i+1, toDownload.length);
-      showActivity("📥", `Download ${i+1}/${toDownload.length} — ${member.name||member.id} da ${networkName}`);
-
+  // === HELPER: scarica un profilo con SSO retry (come discovery) ===
+  async function downloadProfileNet(member, networkDomain, networkLabel, countryCode){
+    let retries = 0;
+    while(retries <= MAX_RETRIES && scraping){
       try {
         const resp = await fetch(API+"/api/scrape",{
           method:"POST",headers:{"Content-Type":"application/json"},
@@ -2194,57 +2121,337 @@ async function scrapeByNetwork(){
         });
         const data = await resp.json();
         if(!data.success){
-          log(`⚠ ${member.id}: ${data.error}`,"err");
-          markIdFailed(c.code, member.id);
-          continue;
+          if(data.error && data.error.includes("SSO") && retries < MAX_RETRIES){
+            retries++;
+            await sleepWithActivity("🔄", `SSO retry ${retries}/${MAX_RETRIES}`, 15000);
+            continue;
+          }
+          return { ok:false, error: data.error };
         }
         const profile = data.results?.[0];
-        if(profile && profile.state === "ok"){
+        if(!profile) return { ok:false, error:"no_result" };
+        if(profile.state === "ok"){
           scrapedProfiles.unshift(profile);
-          if(scrapedProfiles.length > 50) scrapedProfiles.pop();
+          if(scrapedProfiles.length > MAX_TABS) scrapedProfiles.pop();
           addScrapedTab(profile, 0);
-          trimScrapedTabs(50);
+          trimScrapedTabs(MAX_TABS);
           const limited = profile.access_limited ? " [LIMITATO]" : "";
-          log(`✓ ${profile.company_name} (${profile.wca_id}) contatti:${profile.contacts?.length||0}${limited} [${networkName}]`,"ok");
+          log(`✓ ${profile.company_name} (${profile.wca_id}) contatti:${profile.contacts?.length||0}${limited} [${networkLabel}]`,"ok");
           saveToSupabase(profile);
-          markIdDone(c.code, profile.wca_id);
+          markIdDone(countryCode, profile.wca_id);
           updateResultRow(profile.wca_id, "ok");
           totalScraped++;
           updateScrapeStats({ downloaded: scrapeStats.downloaded + 1 });
-        } else if(profile){
-          log(`✗ ${member.id}: ${profile.state}`,"warn");
-          markIdFailed(c.code, member.id);
-          updateResultRow(member.id, profile.state);
+          return { ok:true, profile };
+        } else if(profile.state === "login_redirect" && retries < MAX_RETRIES){
+          retries++;
+          await sleepWithActivity("🔑", `Sessione scaduta — retry ${retries}/${MAX_RETRIES}`, 15000);
+          continue;
+        }
+        return { ok:false, state: profile.state };
+      } catch(e){
+        if(retries < MAX_RETRIES){ retries++; await sleepWithActivity("⚠️", `Errore rete — retry`, 10000); continue; }
+        return { ok:false, error: e.message };
+      }
+    }
+    return { ok:false, error:"stopped" };
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // LOOP PRINCIPALE: per ogni PAESE → tutti i network → fallback → enrichment
+  // ═══════════════════════════════════════════════════════════════
+  for(let ci = 0; ci < countries.length && scraping; ci++){
+    const c = countries[ci];
+    currentScrapingCountry = c.code;
+    setActiveCountry(c.code, c.name);
+    log(`\n═══ PAESE ${ci+1}/${countries.length}: ${c.name} (${c.code}) ═══`,"ok");
+
+    const doneIds = new Set(); // ID scaricati con successo per questo paese
+    const memberNetworkMap = {}; // id → [domain1, domain2...]
+    let consecutiveFailures = 0;
+
+    // Carica ID già fatti dalla directory locale
+    const existingDir = getDirectory(c.code);
+    if(existingDir){
+      Object.entries(existingDir.ids).forEach(([id, status]) => { if(status === "done") doneIds.add(parseInt(id)); });
+      if(doneIds.size > 0) log(`📂 ${c.name}: ${doneIds.size} profili già completati in directory locale`,"ok");
+    }
+
+    // Pausa tra paesi (tranne il primo)
+    if(ci > 0 && scraping){
+      const delay = getNextDelay();
+      log(`⏱ Pausa ${(delay/1000).toFixed(0)}s prima di ${c.name}...`);
+      await sleepWithActivity("⏳", `Pausa — prossimo paese: ${c.name}`, delay);
+    }
+    if(!scraping) break;
+
+    // ─── FASE 1: Discover + Download su ogni network selezionato ───
+    for(let ni = 0; ni < networksToScrape.length && scraping; ni++){
+      const { domain: networkDomain, name: networkName } = networksToScrape[ni];
+      setActiveNetwork(networkDomain, networkName);
+
+      // Delay prima del network (tranne il primo)
+      if(ni > 0){
+        const delay = getNextDelay();
+        log(`⏱ Pausa ${(delay/1000).toFixed(0)}s prima di ${networkName}...`);
+        await sleepWithActivity("⏳", `Pausa — prossimo network: ${networkName}`, delay);
+      }
+      if(!scraping) break;
+
+      // DISCOVER
+      setStatus(`[${networkName}] ${c.name}: discover in corso...`, true);
+      showActivity("🔍", `Discover ${c.name} su ${networkName}...`);
+
+      let members = [];
+      try {
+        const resp = await fetch(API+"/api/discover-network",{
+          method:"POST",headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({ networkDomain, country: c.code })
+        });
+        const data = await resp.json();
+        if(!data.success){
+          log(`⚠ ${c.name} su ${networkName}: ${data.error||"errore"}`,"warn");
+          continue;
+        }
+        members = data.members || [];
+        log(`🌐 [${ni+1}/${networksToScrape.length}] ${networkName}: ${members.length} membri trovati`,"ok");
+        updateScrapeStats({ found: members.length, networkName, countryName: c.name, downloaded: 0, skipped: 0 });
+        if(members.length > 0) notifyEvent(`${members.length} partner trovati in ${c.name} su ${networkName}`);
+      } catch(e){
+        log(`⚠ Errore discover ${c.name} su ${networkName}: ${e.message}`,"err");
+        continue;
+      }
+
+      if(members.length === 0) continue;
+
+      // Directory locale
+      for(const m of members){
+        let dir = getDirectory(c.code);
+        if(!dir) dir = createDirectory(c.code, [m.id]);
+        else if(!(String(m.id) in dir.ids)){ dir.ids[String(m.id)] = "pending"; dir.total = Object.keys(dir.ids).length; saveDirectory(c.code, dir); }
+      }
+
+      // Traccia su quale network ogni membro è stato trovato
+      for(const m of members){
+        if(!memberNetworkMap[m.id]) memberNetworkMap[m.id] = [];
+        if(!memberNetworkMap[m.id].includes(networkDomain)) memberNetworkMap[m.id].push(networkDomain);
+      }
+
+      // Aggiorna tabella risultati
+      for(const m of members){
+        if(!discoveredMembers.find(d => d.id === m.id)){
+          discoveredMembers.push({id:m.id, name:m.name, networks:[networkDomain]});
+        }
+      }
+      document.getElementById("resultsCard").style.display = "block";
+      updateResultsTable();
+
+      // Filtra: solo quelli non già scaricati
+      const toDownload = members.filter(m => !doneIds.has(m.id));
+      if(toDownload.length === 0){
+        log(`✅ ${networkName}: tutti i ${members.length} membri già scaricati`,"ok");
+        continue;
+      }
+
+      log(`📥 ${networkName}: ${toDownload.length} da scaricare (${members.length - toDownload.length} già fatti)`,"ok");
+
+      // DOWNLOAD profili da QUESTO network
+      consecutiveFailures = 0;
+      for(let i = 0; i < toDownload.length && scraping; i++){
+        const member = toDownload[i];
+        if(doneIds.has(member.id)) continue; // scaricato da un network precedente
+
+        setStatus(`[${networkName}] ${c.name}: ${i+1}/${toDownload.length} — ${member.name||member.id}`, true);
+        setProgress(i+1, toDownload.length);
+        showActivity("📥", `${networkName} ${i+1}/${toDownload.length} — ${member.name||member.id}`);
+
+        const result = await downloadProfileNet(member, networkDomain, networkName, c.code);
+        if(result.ok){
+          doneIds.add(member.id);
+          consecutiveFailures = 0;
+        } else {
+          if(result.state === "not_found" || result.state === "not_in_network"){
+            log(`⏭ ${member.id}: non su ${networkName}, proverà fallback`,"warn");
+          } else {
+            log(`✗ ${member.id} su ${networkName}: ${result.error||result.state}`,"warn");
+            consecutiveFailures++;
+            markIdFailed(c.code, member.id);
+          }
           updateScrapeStats({ skipped: scrapeStats.skipped + 1 });
         }
-      } catch(e){
-        log(`⚠ Errore ${member.id}: ${e.message}`,"err");
+
+        if(consecutiveFailures >= 5){
+          log(`⛔ Troppi fallimenti su ${networkName} — passo al prossimo`,"err");
+          consecutiveFailures = 0;
+          break;
+        }
+
+        // Delay variabile
+        if(i + 1 < toDownload.length && scraping){
+          const nextDelay = getNextDelay();
+          await sleepWithActivity("⏳", `Pausa ${Math.round(nextDelay/1000)}s — ${networkName}`, nextDelay);
+        }
       }
 
-      // Delay variabile
-      if(i + 1 < toDownload.length && scraping){
+      log(`✅ ${networkName} completato per ${c.name}`,"ok");
+      notifyEvent(`${networkName} completato per ${c.name}`);
+    } // fine loop network per questo paese
+
+    // ─── FASE 2: FALLBACK wcaworld.com per membri non scaricati ───
+    if(scraping){
+      setActiveNetwork("wcaworld.com", "WCA (fallback)");
+      log(`═══ FALLBACK: wcaworld.com per ${c.name} — membri restanti ═══`);
+      setStatus(`${c.name}: discover wcaworld.com per membri mancanti...`, true);
+
+      let page = 1;
+      const searchTerm = document.getElementById("txtSearch").value.trim();
+      const searchBy = document.getElementById("selSearchBy").value;
+      const networks = getSelectedNetworks();
+      let wcaMembers = [];
+
+      while(scraping){
         const delay = getNextDelay();
-        await sleepWithActivity("📥", `Pausa ${Math.round(delay/1000)}s — ${networkName}`, delay);
+        await sleepWithActivity("📋", `wcaworld.com ${c.name} — pausa prima di pagina ${page}`, delay);
+        if(!scraping) break;
+
+        try {
+          const resp = await fetch(API+"/api/discover",{
+            method:"POST",headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({cookies:sessionCookies, wcaToken, page, filters:{country:c.code,searchTerm,searchBy,networks}})
+          });
+          const data = await resp.json();
+          if(!data.success){ log("Errore discover wcaworld: "+(data.error||"sconosciuto"),"err"); break; }
+          const newMembers = data.members || [];
+          wcaMembers.push(...newMembers);
+          const newIds = newMembers.filter(m => !doneIds.has(m.id));
+          log(`wcaworld.com pagina ${page}: +${newMembers.length} (${newIds.length} da scaricare)`);
+          if(newMembers.length === 0 || !data.hasNext) break;
+          page++;
+        } catch(e){ log("Errore discover: "+e.message,"err"); break; }
+      }
+
+      // Download solo chi NON è stato scaricato dai network
+      const wcaToDownload = wcaMembers.filter(m => !doneIds.has(m.id));
+      if(wcaToDownload.length > 0){
+        log(`📥 wcaworld.com fallback: ${wcaToDownload.length} membri da scaricare`,"ok");
+        const withNetwork = wcaToDownload.filter(m => memberNetworkMap[m.id]?.length > 0).length;
+        if(withNetwork > 0) log(`   ↳ ${withNetwork} di questi hanno un network noto — scaricherò da lì`,"ok");
+
+        for(let i = 0; i < wcaToDownload.length && scraping; i++){
+          const member = wcaToDownload[i];
+          if(doneIds.has(member.id)) continue;
+
+          // Se il membro è stato trovato su un network specifico, usa QUELLO
+          const knownNets = memberNetworkMap[member.id] || [];
+          const useNetwork = knownNets.length > 0 ? knownNets[0] : null;
+          const netLabel = useNetwork || "wcaworld.com";
+          setActiveNetwork(useNetwork || "wcaworld.com", netLabel);
+
+          setStatus(`${c.name} [${netLabel}] ${i+1}/${wcaToDownload.length} — ${member.name||member.id}`, true);
+          setProgress(i+1, wcaToDownload.length);
+          showActivity("📥", `${netLabel} ${i+1}/${wcaToDownload.length} — ${member.name||member.id}`);
+
+          const result = await downloadProfileNet(member, useNetwork, netLabel, c.code);
+          if(result.ok) doneIds.add(member.id);
+
+          if(i + 1 < wcaToDownload.length && scraping){
+            const nextDelay = getNextDelay();
+            await sleepWithActivity("⏳", `Pausa ${Math.round(nextDelay/1000)}s`, nextDelay);
+          }
+        }
+      } else {
+        log(`✅ wcaworld.com: tutti i membri già scaricati dai network`,"ok");
       }
     }
 
-    log(`✅ ${c.name} su ${networkName}: completato!`,"ok");
-    notifyEvent(`${c.name} su ${networkName} completato!`);
+    // ─── FASE 3: ARRICCHIMENTO — profili limitati ri-scaricati da network alternativi ───
+    const limitedProfiles = scrapedProfiles.filter(p => p.access_limited);
+    if(limitedProfiles.length > 0 && scraping){
+      // Mappa nomi network → domini
+      const NETWORK_DOMAIN_MAP = {};
+      ALL_NETWORKS.forEach(n => { NETWORK_DOMAIN_MAP[n.name] = n.domain; });
+      Object.entries(NETWORKS).forEach(([name, siteId]) => {
+        const net = ALL_NETWORKS.find(n => n.siteId === siteId);
+        if(net) NETWORK_DOMAIN_MAP[name] = net.domain;
+      });
 
-    // Pausa tra paesi
-    if(ci + 1 < countries.length && scraping){
-      log(`⏸ Pausa ${COUNTRY_PAUSE}s prima del prossimo paese...`);
-      await sleepWithActivity("⏳", `Pausa tra paesi — prossimo: ${countries[ci+1].name}`, COUNTRY_PAUSE * 1000);
+      const availableNetworks = networksToScrape.map(n => n.name);
+      log(`═══ FASE 3: ARRICCHIMENTO — ${limitedProfiles.length} profili limitati, ${availableNetworks.length} network disponibili ═══`);
+      setStatus(`FASE 3: Arricchimento ${limitedProfiles.length} profili limitati...`, true);
+
+      let enriched = 0, enrichFailed = 0;
+      for(let li = 0; li < limitedProfiles.length && scraping; li++){
+        const lp = limitedProfiles[li];
+        setStatus(`FASE 3: ${li+1}/${limitedProfiles.length} — ${lp.company_name}`, true);
+        setProgress(li, limitedProfiles.length);
+
+        const profileNetworks = lp.networks || [];
+        let targetNetworks = [];
+        for(const netName of availableNetworks){
+          if(profileNetworks.length > 0){
+            if(profileNetworks.some(pn => pn.toLowerCase().includes(netName.toLowerCase().split(" ")[0]))) targetNetworks.push(netName);
+          } else {
+            targetNetworks.push(netName);
+          }
+        }
+        targetNetworks = targetNetworks.filter(n => NETWORK_DOMAIN_MAP[n] !== "wcaworld.com");
+
+        if(targetNetworks.length === 0){ enrichFailed++; continue; }
+
+        let success = false;
+        for(const netName of targetNetworks){
+          if(!scraping) break;
+          const domain = NETWORK_DOMAIN_MAP[netName];
+          if(!domain) continue;
+
+          log(`Arricchimento ${lp.company_name} via ${netName} (${domain})...`);
+          try {
+            const resp = await fetch(API+"/api/scrape",{
+              method:"POST",headers:{"Content-Type":"application/json"},
+              body:JSON.stringify({ wcaIds: [lp.wca_id], networkDomain: domain })
+            });
+            const data = await resp.json();
+            const profile = data.success ? data.results?.[0] : null;
+            if(profile && profile.state === "ok" && !profile.access_limited){
+              const idx = scrapedProfiles.findIndex(p => p.wca_id === lp.wca_id);
+              if(idx >= 0){
+                profile.enriched_from = netName;
+                profile.enriched_domain = domain;
+                if(!profile.logo_url && lp.logo_url) profile.logo_url = lp.logo_url;
+                if(!profile.enrolled_offices?.length && lp.enrolled_offices?.length) profile.enrolled_offices = lp.enrolled_offices;
+                if(!profile.networks?.length && lp.networks?.length) profile.networks = lp.networks;
+                scrapedProfiles[idx] = profile;
+                refreshScrapedTab(idx, profile);
+                log(`✓ ARRICCHITO: ${profile.company_name} via ${netName} — ${profile.contacts?.length||0} contatti, email=${!!profile.email}`,"ok");
+                saveToSupabase(profile);
+                enriched++;
+                success = true;
+              }
+              break;
+            } else if(profile){
+              log(`${netName}: stato=${profile.state} limitato=${profile.access_limited}`,"warn");
+            } else {
+              log(`${netName}: ${data.error || "nessun risultato"}`,"warn");
+            }
+          } catch(e){
+            log(`Errore scrape ${netName}: ${e.message}`,"err");
+          }
+          await sleepWithActivity("🔗", `Pausa 5s — prossimo network per ${lp.company_name}`, 5000);
+        }
+        if(!success) enrichFailed++;
+        if(li + 1 < limitedProfiles.length && scraping) await sleepWithActivity("🔗", `Pausa 5s — prossimo profilo da arricchire`, 5000);
+      }
+
+      setProgress(limitedProfiles.length, limitedProfiles.length);
+      log(`═══ FASE 3 COMPLETATA: ${enriched} arricchiti, ${enrichFailed} ancora limitati ═══`,"ok");
     }
-  } // fine loop paesi
 
-  // Pausa tra network (se Tutti)
-  if(ni + 1 < networksToScrape.length && scraping){
-    const nextNet = networksToScrape[ni+1].name;
-    log(`⏸ Pausa ${COUNTRY_PAUSE}s prima del prossimo network: ${nextNet}...`);
-    await sleepWithActivity("⏳", `Prossimo network: ${nextNet}`, COUNTRY_PAUSE * 1000);
-  }
-  } // fine loop network
+    hideActivity();
+    log(`═══ ${c.name} COMPLETATO: ${doneIds.size} profili scaricati ═══`,"ok");
+    markCountryCompleted(c.code, doneIds.size);
+    removeSuspendedJob(c.code);
+    saveScrapingState();
+  } // fine loop paesi
 }
 
 function setStatus(text, online=false){

@@ -857,15 +857,20 @@ Rispondi SOLO con il JSON array.`;
           const existingNotes=(card.notes||"").replace(/\[AI Match\][^|]*(|\||$)/g,"").trim();
           const newNotes=existingNotes?(existingNotes+" | "+aiNote):aiNote;
 
-          // PATCH notes to Supabase
+          // PATCH notes + match result to Supabase
+          const patchData={notes:newNotes, ai_match_type:aiType, ai_match_confidence:aiConf};
+          if(res.wca_id) patchData.ai_match_wca_id=String(res.wca_id);
+          if(res.company_name_wca) patchData.ai_match_wca_name=res.company_name_wca;
           try{
             await fetch(`${SUPABASE_URL}/rest/v1/wca_business_cards?id=eq.${card.id}`,{
               method:"PATCH",
               headers:{...SB_HEADERS,"Content-Type":"application/json","Prefer":"return=minimal"},
-              body:JSON.stringify({notes:newNotes})
+              body:JSON.stringify(patchData)
             });
             card.notes=newNotes;
-          }catch(e){ console.error("PATCH notes error:",e); }
+            card.ai_match_type=aiType;
+            card.ai_match_confidence=aiConf;
+          }catch(e){ console.error("PATCH match error:",e); }
         }
       }
     }catch(e){ console.error("AI match batch error:",e); errors++; }
@@ -944,7 +949,18 @@ async function init(){
   }
   for(const card of allCards){
     if(!card.country_code&&card.country) card.country_code=resolveCountryCode(card.country.replace(" [presunto]",""));
+    // Match algoritmico
     try{ card._match=matchCard(card,allPartners); }catch(e){ card._match={type:"not-found",score:0,reason:"",partner:null}; }
+    // Se c'è un match AI salvato con confidenza superiore, usa quello
+    if(card.ai_match_type&&card.ai_match_confidence>card._match.score){
+      const aiPartner=card.ai_match_wca_id?allPartners.find(p=>String(p.wca_id)===String(card.ai_match_wca_id)):null;
+      card._match={
+        type:card.ai_match_type,
+        score:card.ai_match_confidence,
+        reason:"🤖 "+(card.ai_match_wca_name||"AI verificato"),
+        partner:aiPartner||card._match.partner
+      };
+    }
   }
   // Extract events from cards if events table empty
   buildEventsFromCards();
@@ -1024,9 +1040,30 @@ function sortCards(cards){
     default: return cards;
   }
 }
-// Estrae solo le note scritte dall'utente, esclude metadati di sistema
+// Estrae solo le note scritte dall'utente, esclude metadati di sistema e spazzatura OCR
 function getUserNotes(raw){
-  return (raw||"").replace(/\[AI Match\][^|]*/g,"").replace(/Evento:\s*[^|]*/g,"").replace(/\|/g,"").trim();
+  if(!raw) return "";
+  let s=raw;
+  // Rimuovi tag di sistema
+  s=s.replace(/\[AI Match\][^|]*/g,"");
+  s=s.replace(/Evento:\s*[^|]*/g,"");
+  s=s.replace(/\|/g," ");
+  // Rimuovi dati OCR/importazione: contengono pattern tipici di scansione biglietti
+  // Se la "nota" inizia con "Data:" seguita da dati grezzi → è spazzatura importata
+  s=s.replace(/Data:\s*\d{4}-\d{2}-\d{2}\s+.*/g,"");
+  // Rimuovi blocchi con UEN, Wechat, codici, sequenze di simboli/numeri
+  s=s.replace(/UEN:\s*\S+/gi,"");
+  s=s.replace(/Wechat:\s*\S+/gi,"");
+  s=s.replace(/WeChat:\s*\S+/gi,"");
+  s=s.trim();
+  // Se il testo residuo è troppo corto o è solo simboli/numeri → non è una nota utile
+  const clean=s.replace(/[^a-zA-ZÀ-ÿ]/g,"");
+  if(clean.length<3) return "";
+  // Se il rapporto simboli/lettere è troppo alto → probabile spazzatura OCR
+  const letters=s.replace(/[^a-zA-ZÀ-ÿ\s]/g,"").length;
+  const total=s.length;
+  if(total>20 && letters/total<0.4) return "";
+  return s;
 }
 function getFilteredCards(){
   let cards=[...allCards];
