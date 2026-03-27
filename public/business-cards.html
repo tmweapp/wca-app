@@ -91,7 +91,7 @@ body{font-family:"SF Pro Display","Geist",'Inter',system-ui,sans-serif;backgroun
 .bc-card.selected{border-color:rgba(165,180,252,0.4);background:rgba(99,102,241,0.08)}
 .list-view .bc-card{border-radius:10px;padding:10px 14px}
 .list-view .bc-card:hover{transform:none}
-.list-view .bc-card .card-fields{flex-direction:row;flex-wrap:wrap;gap:6px 16px}
+.list-view .bc-card .card-fields.visible{flex-direction:row;flex-wrap:wrap;gap:4px 14px}
 .bc-card .card-top{display:flex;align-items:flex-start;gap:10px;margin-bottom:6px}
 .bc-card .card-check{flex-shrink:0;width:18px;height:18px;border-radius:5px;border:2px solid rgba(165,180,252,0.3);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;padding:0;margin-top:6px}
 .bc-card .card-check:hover{border-color:#a5b4fc}
@@ -107,14 +107,21 @@ body{font-family:"SF Pro Display","Geist",'Inter',system-ui,sans-serif;backgroun
 .bc-card .card-company{font-size:.78rem;font-weight:600;color:#a5b4fc;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px}
 .bc-card .card-match{flex-shrink:0;margin-top:4px}
 .bc-card .card-person{display:none}
-.bc-card .card-fields{display:flex;flex-direction:column;gap:3px}
-.bc-card .card-field{font-size:.72rem;color:#64748b;display:flex;align-items:center;gap:6px;overflow:hidden}
-.bc-card .card-field .f-icon{flex-shrink:0;width:16px;text-align:center;font-size:.72rem;color:#a5b4fc}
-.bc-card .card-field .f-label{font-size:.62rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;min-width:42px;flex-shrink:0}
-.bc-card .card-field .f-val{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#e2e8f0}
+/* INFO TOGGLE + COLLAPSIBLE FIELDS */
+.bc-card .card-info-bar{display:flex;align-items:center;gap:8px;margin-top:4px}
+.bc-card .card-company-line{font-size:.72rem;font-weight:600;color:#a5b4fc;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0}
+.bc-card .info-toggle{background:none;border:1px solid rgba(165,180,252,0.2);cursor:pointer;font-size:.62rem;padding:2px 8px;color:#a5b4fc;border-radius:10px;transition:all .2s;white-space:nowrap;flex-shrink:0;display:flex;align-items:center;gap:3px;letter-spacing:.3px;font-weight:600}
+.bc-card .info-toggle:hover{background:rgba(165,180,252,0.12);border-color:rgba(165,180,252,0.4)}
+.bc-card .info-toggle.open{background:rgba(99,102,241,0.15);border-color:#6366f1}
+.bc-card .card-fields{display:none;flex-direction:column;gap:2px;margin-top:6px;padding:8px 0 4px;border-top:1px solid rgba(255,255,255,0.04);animation:fieldSlide .2s ease}
+.bc-card .card-fields.visible{display:flex}
+@keyframes fieldSlide{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+.bc-card .card-field{font-size:.7rem;color:#94a3b8;display:flex;align-items:center;gap:6px;overflow:hidden;padding:2px 0}
+.bc-card .card-field .f-icon{flex-shrink:0;width:14px;text-align:center;font-size:.68rem;color:#a5b4fc}
+.bc-card .card-field .f-val{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#e2e8f0;font-size:.7rem}
 .bc-card .card-field a{color:#a5b4fc;text-decoration:none}
 .bc-card .card-field a:hover{text-decoration:underline}
-.bc-card .card-bottom{display:flex;align-items:center;justify-content:space-between;margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.05)}
+.bc-card .card-bottom{display:flex;align-items:center;justify-content:space-between;margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.05)}
 .bc-card .card-date{font-size:.6rem;color:#64748b}
 .bc-card .inferred{opacity:.7;font-style:italic}
 .bc-card .inferred::after{content:" ~";color:#a5b4fc;font-size:.55rem}
@@ -251,9 +258,9 @@ body{font-family:"SF Pro Display","Geist",'Inter',system-ui,sans-serif;backgroun
   .bc-card .card-city{font-size:.62rem}
   .bc-card .card-contact-name{font-size:.82rem}
   .bc-card .card-contact-role{font-size:.6rem}
-  .bc-card .card-fields{display:flex!important;flex-direction:column;gap:2px}
-  .bc-card .card-field{font-size:.68rem}
-  .bc-card .card-field .f-icon{font-size:.68rem}
+  .bc-card .card-fields.visible{display:flex!important;flex-direction:column;gap:2px}
+  .bc-card .card-field{font-size:.66rem}
+  .bc-card .card-field .f-icon{font-size:.66rem}
   .match-badge{font-size:.58rem;padding:2px 8px}
   .match-sub{font-size:.5rem;max-width:120px}
 
@@ -928,6 +935,13 @@ function setView(v){
   lines.classList.toggle("list-view",v==="list");
   renderPage();
 }
+function toggleCardInfo(btn){
+  const fields=btn.closest(".bc-card").querySelector(".card-fields");
+  if(!fields) return;
+  const open=fields.classList.toggle("visible");
+  btn.classList.toggle("open",open);
+  btn.innerHTML=open?"ℹ Chiudi":"ℹ Dettagli";
+}
 function toggleSelect(id){
   if(selectedIds.has(id)) selectedIds.delete(id); else selectedIds.add(id);
   updateSelectionBar();
@@ -1118,19 +1132,21 @@ function renderPage(){
     const infCls=s=>isInferred(s)?' class="inferred"':"";
 
     const fields=[];
-    if(c.email) fields.push(`<div class="card-field"><span class="f-icon">✉</span><span class="f-label">Email</span><a href="mailto:${esc(c.email)}" class="f-val">${esc(c.email)}</a></div>`);
-    if(c.phone) fields.push(`<div class="card-field"><span class="f-icon">☏</span><span class="f-label">Tel</span><a href="tel:${esc(c.phone)}" class="f-val">${esc(c.phone)}</a></div>`);
-    if(c.website) fields.push(`<div class="card-field"><span class="f-icon">◎</span><span class="f-label">Web</span><a href="${esc(c.website.startsWith('http')?c.website:'https://'+c.website)}" target="_blank" class="f-val">${esc(c.website)}</a></div>`);
-    if(c.company_name) fields.push(`<div class="card-field"><span class="f-icon" style="color:#a5b4fc">⬡</span><span class="f-label">Azienda</span><span class="f-val" style="font-weight:600">${esc(c.company_name)}</span></div>`);
+    if(c.email) fields.push(`<div class="card-field"><span class="f-icon">✉</span><a href="mailto:${esc(c.email)}" class="f-val">${esc(c.email)}</a></div>`);
+    if(c.phone) fields.push(`<div class="card-field"><span class="f-icon">☏</span><a href="tel:${esc(c.phone)}" class="f-val">${esc(c.phone)}</a></div>`);
+    if(c.website){const w=c.website;fields.push(`<div class="card-field"><span class="f-icon">◎</span><a href="${esc(w.startsWith('http')?w:'https://'+w)}" target="_blank" class="f-val">${esc(w.replace(/^https?:\/\/(www\.)?/,""))}</a></div>`);}
+    if(c.address) fields.push(`<div class="card-field"><span class="f-icon">⌂</span><span class="f-val">${esc(c.address)}</span></div>`);
 
     const cityDisplay=c.city?esc(cleanInf(c.city)):"";
     const cityInf=isInferred(c.city);
     const hasNotes=!!(c.notes||"").trim();
     const notesBtnCls=hasNotes?"notes-btn has-notes":"notes-btn";
+    const hasFields=fields.length>0;
+    const cardId=c.id||"";
 
-    html+=`<div class="bc-card${isSel?" selected":""}${hasNotes?" has-notes-card":""}" data-id="${c.id||""}" data-letter="${(c.company_name||"#")[0].toUpperCase()}">
+    html+=`<div class="bc-card${isSel?" selected":""}${hasNotes?" has-notes-card":""}" data-id="${cardId}" data-letter="${(c.company_name||"#")[0].toUpperCase()}">
       <div class="card-top">
-        <button class="card-check${isSel?" checked":""}" onclick="toggleSelect('${c.id||""}')"></button>
+        <button class="card-check${isSel?" checked":""}" onclick="toggleSelect('${cardId}')"></button>
         <span class="card-flag">${flag}</span>
         <div class="card-header-block">
           <div class="card-header-row">
@@ -1142,11 +1158,15 @@ function renderPage(){
         </div>
         <div class="card-match">${matchHtml}</div>
       </div>
-      <div class="card-fields">${fields.join("")}</div>
+      <div class="card-info-bar">
+        ${c.company_name?`<span class="card-company-line">⬡ ${esc(c.company_name)}</span>`:'<span class="card-company-line"></span>'}
+        ${hasFields?`<button class="info-toggle" onclick="toggleCardInfo(this)" title="Mostra dettagli">ℹ Dettagli</button>`:''}
+      </div>
+      ${hasFields?`<div class="card-fields">${fields.join("")}</div>`:''}
       <div class="card-bottom">
         <span class="card-date">${fmtDate(c.created_at)}</span>
-        <button class="${notesBtnCls}" onclick="openNotes('${c.id||""}')" title="${hasNotes?"Modifica note":"Aggiungi note"}">✎</button>
-      </div>${hasNotes?`<div class="notes-preview" onclick="openNotes('${c.id||""}')">${esc((c.notes||"").substring(0,120))}${(c.notes||"").length>120?"…":""}</div>`:""}
+        <button class="${notesBtnCls}" onclick="openNotes('${cardId}')" title="${hasNotes?"Modifica note":"Aggiungi note"}">✎</button>
+      </div>${hasNotes?`<div class="notes-preview" onclick="openNotes('${cardId}')">${esc((c.notes||"").substring(0,120))}${(c.notes||"").length>120?"…":""}</div>`:""}
     </div>`;
   }
   lines.innerHTML=html; lines.scrollTop=0; buildLetterIndex(); updateSelectionBar();
