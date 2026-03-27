@@ -1394,9 +1394,9 @@ tr:hover td {
   <div style="display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap">
 
     <!-- ══ COLONNA SINISTRA: Command Bar ══ -->
-    <div class="cmd-bar" style="flex:1;min-width:300px">
+    <div class="cmd-bar" style="flex:1;min-width:300px;min-height:160px">
 
-      <!-- ROW A: Country picker + paesi + azioni inline -->
+      <!-- ROW A: Country picker + paesi selezionati -->
       <div style="display:flex;align-items:center;gap:8px;width:100%">
         <button onclick="openCountryPopup()" style="position:relative;background:none;border:none;cursor:pointer;padding:0;flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:1px" title="Seleziona paesi">
           <img src="https://dlldkrzoxvjxpgkkttxu.supabase.co/storage/v1/object/public/icons/pinpoint.png?v=2" style="width:36px;height:36px;object-fit:contain;filter:drop-shadow(0 3px 8px rgba(0,0,0,0.3));transition:all 0.2s" onmouseover="this.style.transform='scale(1.08)'" onmouseout="this.style.transform='scale(1)'" alt="Paesi">
@@ -1404,60 +1404,71 @@ tr:hover td {
           <span id="countrySelBadge" style="position:absolute;top:-3px;right:-5px;font-size:.55rem;min-width:16px;height:16px;line-height:16px;text-align:center;padding:0 3px;border-radius:8px;background:linear-gradient(135deg,#6366f1,#818cf8);color:white;font-weight:700;box-shadow:0 2px 6px rgba(99,102,241,0.4);display:none"></span>
         </button>
         <div id="selectedCountriesPreview" style="display:none;align-items:center;gap:3px;flex:1;min-width:0;overflow-x:auto;overflow-y:hidden;white-space:nowrap;scrollbar-width:thin;scrollbar-color:rgba(99,102,241,0.3) transparent;padding:1px 0"></div>
-        <!-- Action icons inline -->
-        <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;margin-left:auto">
-          <button id="btnStart" onclick="startScraping()" disabled title="Avvia" style="background:none;border:none;cursor:pointer;padding:0;opacity:.4;transition:all .2s;display:flex" onmouseover="this.style.opacity=this.disabled?'.4':'1'" onmouseout="this.style.opacity=this.disabled?'.4':'.6'">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="1.5"><polygon points="5 3 19 12 5 21 5 3" fill="#10b981" opacity=".15"/><polygon points="5 3 19 12 5 21 5 3"/></svg>
-          </button>
-          <button id="btnResume" onclick="resumeScraping()" style="display:none;background:none;border:none;cursor:pointer;padding:0;opacity:.7;transition:all .2s" title="Continua">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" stroke-width="1.5"><polygon points="5 3 19 12 5 21 5 3"/><line x1="19" y1="3" x2="19" y2="21"/></svg>
-          </button>
-          <button id="btnStartBg" onclick="startBackgroundJob()" title="Background" style="background:none;border:none;cursor:pointer;padding:0;opacity:.45;transition:all .2s" onmouseover="this.style.opacity='.9'" onmouseout="this.style.opacity='.45'">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" stroke-width="1.5"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-          </button>
-          <button id="btnStop" onclick="stopScraping()" disabled title="Stop" style="background:none;border:none;cursor:pointer;padding:0;opacity:.2;transition:all .2s" onmouseover="this.style.opacity=this.disabled?'.2':'.9'" onmouseout="this.style.opacity=this.disabled?'.2':'.45'">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="1.5"><rect x="6" y="6" width="12" height="12" rx="2" fill="#ef4444" opacity=".1"/><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
-          </button>
-          <div style="width:1px;height:14px;background:rgba(255,255,255,0.06)"></div>
-          <button id="btnSyncDir" onclick="syncAllDirectories()" title="Scarica directory" style="background:none;border:none;cursor:pointer;padding:0;opacity:.45;transition:all .2s;display:flex" onmouseover="this.style.opacity='.9'" onmouseout="this.style.opacity='.45'">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0ea5e9" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          </button>
-          <button id="btnBell" onclick="toggleNotifications()" style="position:relative;background:none;border:none;cursor:pointer;padding:0;opacity:.35;transition:all .2s" title="Notifiche" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='.35'">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" stroke-width="1.5"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
-            <span id="bellBadge" style="position:absolute;top:-4px;right:-6px;font-size:.48rem;min-width:11px;height:11px;line-height:11px;text-align:center;padding:0 2px;border-radius:6px;background:#ef4444;color:white;font-weight:700;display:none"></span>
-          </button>
-          <label style="display:flex;align-items:center;gap:3px;cursor:pointer;white-space:nowrap;font-size:.58rem;color:var(--text-muted)">
-            <input type="checkbox" id="chkUpdateAddress" style="accent-color:var(--accent);width:12px;height:12px"> Agg.
-          </label>
-          <button class="btn btn-danger btn-sm" onclick="resetCountryAndRestart()" style="font-size:.5rem;padding:1px 4px;line-height:1.2">Reset</button>
-        </div>
       </div>
 
-      <!-- ROW B: Status + Country badge + Network completati + Network attivo -->
-      <div id="activeDownloadRow" style="display:none;align-items:center;gap:8px;width:100%;padding:3px 0;border-top:1px solid rgba(255,255,255,0.04)">
-        <div class="status-dot off" id="statusDot"></div>
-        <div id="activeCountryBadge" style="display:none;align-items:center;gap:6px;flex-shrink:0;background:rgba(99,102,241,0.08);border:1px solid rgba(165,180,252,0.18);border-radius:8px;padding:3px 10px">
-          <span id="activeCountryFlag" style="font-size:1.6rem;line-height:1;filter:drop-shadow(0 1px 3px rgba(0,0,0,0.3))"></span>
-          <div style="display:flex;flex-direction:column;gap:0px">
-            <span id="activeCountryName" style="font-size:.68rem;color:#e2e8f0;font-weight:700"></span>
-            <span id="statusText" style="font-size:.58rem;color:var(--text-secondary);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Pronto</span>
+      <!-- ROW B: Action buttons — bordati, uniformi, gap 6px -->
+      <div style="display:flex;align-items:center;gap:6px;width:100%;padding:6px 0;border-top:1px solid rgba(255,255,255,0.04);flex-wrap:wrap">
+        <button id="btnStart" onclick="startScraping()" disabled title="Avvia Scraping" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:30px;border:1px solid rgba(255,255,255,0.12);border-radius:6px;background:rgba(255,255,255,0.02);cursor:pointer;opacity:.5;transition:all .2s" onmouseover="if(!this.disabled)this.style.opacity='1';this.style.background='rgba(16,185,129,0.08)'" onmouseout="this.style.opacity=this.disabled?'.5':'.6';this.style.background='rgba(255,255,255,0.02)'">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="1.5"><polygon points="5 3 19 12 5 21 5 3" fill="#10b981" opacity=".15"/><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        </button>
+        <button id="btnResume" onclick="resumeScraping()" style="display:none;align-items:center;justify-content:center;width:36px;height:30px;border:1px solid rgba(255,255,255,0.12);border-radius:6px;background:rgba(255,255,255,0.02);cursor:pointer;opacity:.7;transition:all .2s" title="Continua download" onmouseover="this.style.opacity='1';this.style.background='rgba(99,102,241,0.08)'" onmouseout="this.style.opacity='.7';this.style.background='rgba(255,255,255,0.02)'">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" stroke-width="1.5"><polygon points="5 3 19 12 5 21 5 3"/><line x1="19" y1="3" x2="19" y2="21"/></svg>
+        </button>
+        <button id="btnStartBg" onclick="startBackgroundJob()" title="Background Job" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:30px;border:1px solid rgba(255,255,255,0.12);border-radius:6px;background:rgba(255,255,255,0.02);cursor:pointer;opacity:.5;transition:all .2s" onmouseover="this.style.opacity='1';this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.opacity='.5';this.style.background='rgba(255,255,255,0.02)'">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" stroke-width="1.5"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        </button>
+        <button id="btnStop" onclick="stopScraping()" disabled title="Stop" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:30px;border:1px solid rgba(255,255,255,0.12);border-radius:6px;background:rgba(255,255,255,0.02);cursor:pointer;opacity:.3;transition:all .2s" onmouseover="if(!this.disabled){this.style.opacity='1';this.style.background='rgba(239,68,68,0.08)'}" onmouseout="this.style.opacity=this.disabled?'.3':'.5';this.style.background='rgba(255,255,255,0.02)'">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="1.5"><rect x="6" y="6" width="12" height="12" rx="2" fill="#ef4444" opacity=".1"/><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+        </button>
+        <div style="width:1px;height:22px;background:rgba(255,255,255,0.08);margin:0 4px"></div>
+        <button id="btnSyncDir" onclick="syncAllDirectories()" title="Scarica Directory Globale (tutti i paesi)" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:30px;border:1px solid rgba(255,255,255,0.12);border-radius:6px;background:rgba(255,255,255,0.02);cursor:pointer;opacity:.5;transition:all .2s" onmouseover="this.style.opacity='1';this.style.background='rgba(14,165,233,0.08)'" onmouseout="this.style.opacity='.5';this.style.background='rgba(255,255,255,0.02)'">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0ea5e9" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        </button>
+        <button id="btnBell" onclick="toggleNotifications()" style="position:relative;display:inline-flex;align-items:center;justify-content:center;width:36px;height:30px;border:1px solid rgba(255,255,255,0.12);border-radius:6px;background:rgba(255,255,255,0.02);cursor:pointer;opacity:.4;transition:all .2s" title="Notifiche" onmouseover="this.style.opacity='.9';this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.opacity='.4';this.style.background='rgba(255,255,255,0.02)'">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" stroke-width="1.5"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+          <span id="bellBadge" style="position:absolute;top:-2px;right:-2px;font-size:.48rem;min-width:11px;height:11px;line-height:11px;text-align:center;padding:0 2px;border-radius:6px;background:#ef4444;color:white;font-weight:700;display:none"></span>
+        </button>
+        <div style="width:1px;height:22px;background:rgba(255,255,255,0.08);margin:0 4px"></div>
+        <label style="display:inline-flex;align-items:center;gap:4px;cursor:pointer;white-space:nowrap;font-size:.62rem;color:var(--text-muted);padding:4px 10px;border:1px solid rgba(255,255,255,0.12);border-radius:6px;background:rgba(255,255,255,0.02);height:30px" title="Aggiorna indirizzo partner esistenti">
+          <input type="checkbox" id="chkUpdateAddress" style="accent-color:var(--accent);width:13px;height:13px"> Aggiorna
+        </label>
+        <button class="btn btn-sm" onclick="resetCountryAndRestart()" style="font-size:.62rem;padding:4px 12px;height:30px;line-height:1;border:1px solid rgba(239,68,68,0.2);border-radius:6px;background:rgba(239,68,68,0.06);color:#fca5a5;cursor:pointer;transition:all .2s" onmouseover="this.style.background='rgba(239,68,68,0.12)'" onmouseout="this.style.background='rgba(239,68,68,0.06)'" title="Reset dati locali paesi selezionati">Reset</button>
+      </div>
+
+      <!-- ROW C: Download attivo — logo paese grande + info + network completati -->
+      <div id="activeDownloadRow" style="display:none;align-items:flex-start;gap:12px;width:100%;padding:8px 0;border-top:1px solid rgba(255,255,255,0.04)">
+        <!-- Sinistra: Logo paese grande + info -->
+        <div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0">
+          <div id="activeCountryBadge" style="display:none;flex-direction:column;align-items:center;gap:2px;background:rgba(99,102,241,0.06);border:1px solid rgba(165,180,252,0.15);border-radius:10px;padding:8px 14px">
+            <span id="activeCountryFlag" style="font-size:3rem;line-height:1;filter:drop-shadow(0 2px 6px rgba(0,0,0,0.3))"></span>
+            <span id="activeCountryName" style="font-size:.7rem;color:#e2e8f0;font-weight:700;text-align:center"></span>
           </div>
         </div>
-        <span id="statusTextFallback" style="font-size:.65rem;color:var(--text-secondary);flex-shrink:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Pronto</span>
-        <div id="completedNetworksRow" style="display:flex;align-items:center;gap:3px;flex:1;min-width:0;overflow-x:auto;scrollbar-width:none"></div>
-        <div id="activityBar" style="display:none;font-size:.6rem;font-family:'JetBrains Mono',monospace;color:var(--text-secondary);align-items:center;gap:3px;flex-shrink:0">
-          <span id="activityIcon" style="font-size:.7rem">⏳</span>
-          <span id="activityText" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px"></span>
-          <span id="activityTimer" style="color:var(--text-muted);font-size:.52rem;white-space:nowrap"></span>
+        <!-- Centro: Status + network completati + network attivo -->
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px">
+          <div style="display:flex;align-items:center;gap:6px">
+            <div class="status-dot off" id="statusDot"></div>
+            <span id="statusText" style="font-size:.7rem;color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Pronto</span>
+          </div>
+          <span id="statusTextFallback" style="font-size:.65rem;color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:none">Pronto</span>
+          <!-- Network completati — icone accumulate a sinistra -->
+          <div id="completedNetworksRow" style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;min-height:32px"></div>
+          <!-- Activity bar -->
+          <div id="activityBar" style="display:none;font-size:.6rem;font-family:'JetBrains Mono',monospace;color:var(--text-secondary);align-items:center;gap:4px">
+            <span id="activityIcon" style="font-size:.7rem">⏳</span>
+            <span id="activityText" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px"></span>
+            <span id="activityTimer" style="color:var(--text-muted);font-size:.52rem;white-space:nowrap"></span>
+          </div>
         </div>
-        <div id="activeNetworkBadge" style="display:none;flex-direction:column;align-items:center;gap:1px;flex-shrink:0;margin-left:auto">
-          <img id="activeNetworkLogo" src="" alt="" style="height:40px;width:40px;object-fit:contain;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.3))" onerror="this.style.display='none'">
-          <span id="activeNetworkName" style="font-size:.5rem;color:var(--text-muted);max-width:60px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center"></span>
+        <!-- Destra: Network attivo (logo grande) -->
+        <div id="activeNetworkBadge" style="display:none;flex-direction:column;align-items:center;gap:2px;flex-shrink:0;margin-left:auto">
+          <img id="activeNetworkLogo" src="" alt="" style="height:48px;width:48px;object-fit:contain;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.3))" onerror="this.style.display='none'">
+          <span id="activeNetworkName" style="font-size:.5rem;color:var(--text-muted);max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center"></span>
         </div>
       </div>
 
-      <!-- ROW C: Progress + completamento -->
-      <div style="display:flex;align-items:center;gap:8px;width:100%">
+      <!-- ROW D: Progress bars + stats -->
+      <div style="display:flex;align-items:center;gap:8px;width:100%;padding-top:4px">
         <div style="flex:1;display:flex;flex-direction:column;gap:2px">
           <div style="display:flex;align-items:center;gap:6px;width:100%">
             <div class="progress-bar" style="flex:1"><div class="progress-fill" id="progressFill"></div></div>
@@ -1821,37 +1832,65 @@ async function discoverFullDirectory(countryCode, countryName, forceRefresh = fa
   return result;
 }
 
-// Scarica directory per TUTTI i paesi selezionati (o tutti se nessuno selezionato)
+// Scarica directory GLOBALE — TUTTI i paesi del mondo (non solo selezionati)
+// Se ci sono paesi selezionati, fa quelli prima, poi tutti gli altri
+// La directory viene cachata 24h, quindi il secondo giro è istantaneo
 async function syncAllDirectories(){
-  const countries = selectedCountries.length > 0 ? [...selectedCountries] : [];
-  if(countries.length === 0){
-    log("⚠ Seleziona almeno un paese per scaricare le directory","warn");
-    alert("Seleziona almeno un paese prima di scaricare le directory.");
-    return;
+  // Costruisci lista COMPLETA di tutti i paesi
+  const allCountryList = [];
+  for(const group of ALL_COUNTRIES){
+    for(const [code, name] of group.items){
+      allCountryList.push({code, name});
+    }
   }
+
+  // Se ci sono paesi selezionati, mettili in cima
+  const selectedCodes = new Set(selectedCountries.map(c => c.code));
+  const orderedCountries = [
+    ...selectedCountries,
+    ...allCountryList.filter(c => !selectedCodes.has(c.code))
+  ];
+
+  const total = orderedCountries.length;
+  const skipCached = !confirm(`📂 DIRECTORY GLOBALE\n\nScaricherà la directory di TUTTI i ${total} paesi del mondo.\nI paesi già in cache (<24h) verranno saltati.\n\nI ${selectedCountries.length} paesi selezionati hanno priorità.\n\nVuoi procedere?`);
+  if(skipCached === undefined) return; // cancel
+
   scraping = true;
   const btn = document.getElementById("btnSyncDir");
   if(btn) btn.style.opacity = "1";
   const dlRow = document.getElementById("activeDownloadRow");
   if(dlRow) dlRow.style.display = "flex";
 
-  log(`📂 Inizio sincronizzazione directory per ${countries.length} paesi...`,"ok");
+  let synced = 0, skipped = 0;
+  log(`📂 Sincronizzazione directory GLOBALE: ${total} paesi...`,"ok");
 
-  for(let i = 0; i < countries.length && scraping; i++){
-    const c = countries[i];
+  for(let i = 0; i < orderedCountries.length && scraping; i++){
+    const c = orderedCountries[i];
+
+    // Salta se già in cache recente (< 24h) e non è nei selezionati
+    const age = getFullDirAge(c.code);
+    if(age < 24 && !selectedCodes.has(c.code)){
+      skipped++;
+      continue;
+    }
+
     setActiveCountry(c.code, c.name);
-    setStatus(`Directory ${i+1}/${countries.length}: ${c.name}...`, true);
-    setProgress(i+1, countries.length);
+    setStatus(`Directory ${i+1}/${total}: ${c.name}${selectedCodes.has(c.code) ? ' ★' : ''}...`, true);
+    setProgress(i+1, total);
 
     await discoverFullDirectory(c.code, c.name, false);
+    synced++;
+
+    // Pausa 2s tra paesi per non stressare WCA
+    if(i + 1 < orderedCountries.length && scraping) await sleep(2000);
   }
 
   scraping = false;
   hideActiveCountry();
   hideDownloadRow();
   if(btn) btn.style.opacity = ".5";
-  setStatus("Directory sincronizzate!", false);
-  log(`✅ Directory completate per ${countries.length} paesi`,"ok");
+  setStatus(`Directory globale completata! ${synced} sincronizzati, ${skipped} già in cache`, false);
+  log(`✅ Directory globale: ${synced} paesi sincronizzati, ${skipped} saltati (cache recente)`,"ok");
 }
 
 // === JOBS SOSPESI ===
@@ -2861,9 +2900,9 @@ function addCompletedNetworkLogo(networkDomain, networkName){
   img.src = logo;
   img.alt = networkName;
   img.title = `✓ ${networkName}`;
-  img.style.cssText = "width:28px;height:28px;object-fit:contain;border-radius:4px;opacity:.6;filter:grayscale(0.3);transition:all .2s";
-  img.onmouseover = function(){ this.style.opacity="1"; this.style.filter="none"; this.style.transform="scale(1.15)"; };
-  img.onmouseout = function(){ this.style.opacity=".6"; this.style.filter="grayscale(0.3)"; this.style.transform="scale(1)"; };
+  img.style.cssText = "width:32px;height:32px;object-fit:contain;border-radius:6px;border:1px solid rgba(16,185,129,0.25);padding:2px;background:rgba(16,185,129,0.05);opacity:.7;filter:none;transition:all .2s;box-shadow:0 1px 4px rgba(0,0,0,0.2)";
+  img.onmouseover = function(){ this.style.opacity="1"; this.style.transform="scale(1.15)"; this.style.borderColor="rgba(16,185,129,0.5)"; };
+  img.onmouseout = function(){ this.style.opacity=".7"; this.style.transform="scale(1)"; this.style.borderColor="rgba(16,185,129,0.25)"; };
   row.appendChild(img);
 }
 
