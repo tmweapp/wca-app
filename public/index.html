@@ -1403,6 +1403,12 @@ tr:hover td {
   <button id="btnStop" onclick="stopScraping()" disabled title="Stop" style="background:none;border:none;cursor:pointer;padding:0;opacity:.25;transition:all .25s" onmouseover="this.style.opacity=this.disabled?'.25':'.9'" onmouseout="this.style.opacity=this.disabled?'.25':'.5'">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="1.5"><rect x="6" y="6" width="12" height="12" rx="2" fill="#ef4444" opacity=".1"/><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
   </button>
+  <!-- Separatore sottile -->
+  <div style="width:1px;height:16px;background:rgba(255,255,255,0.08)"></div>
+  <!-- Scarica Directory -->
+  <button id="btnSyncDir" onclick="syncAllDirectories()" title="Scarica directory paesi selezionati" style="background:none;border:none;cursor:pointer;padding:0;opacity:.5;transition:all .25s;display:flex;align-items:center" onmouseover="this.style.opacity='.9'" onmouseout="this.style.opacity='.5'">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0ea5e9" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+  </button>
   <!-- Campana notifiche -->
   <button id="btnBell" onclick="toggleNotifications()" style="position:relative;background:none;border:none;cursor:pointer;padding:0;opacity:.4;transition:all .25s" title="Notifiche sonore" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='.4'">
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" stroke-width="1.5"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
@@ -1757,6 +1763,39 @@ async function discoverFullDirectory(countryCode, countryName, forceRefresh = fa
   }
 
   return result;
+}
+
+// Scarica directory per TUTTI i paesi selezionati (o tutti se nessuno selezionato)
+async function syncAllDirectories(){
+  const countries = selectedCountries.length > 0 ? [...selectedCountries] : [];
+  if(countries.length === 0){
+    log("⚠ Seleziona almeno un paese per scaricare le directory","warn");
+    alert("Seleziona almeno un paese prima di scaricare le directory.");
+    return;
+  }
+  scraping = true;
+  const btn = document.getElementById("btnSyncDir");
+  if(btn) btn.style.opacity = "1";
+  const dlRow = document.getElementById("activeDownloadRow");
+  if(dlRow) dlRow.style.display = "flex";
+
+  log(`📂 Inizio sincronizzazione directory per ${countries.length} paesi...`,"ok");
+
+  for(let i = 0; i < countries.length && scraping; i++){
+    const c = countries[i];
+    setActiveCountry(c.code, c.name);
+    setStatus(`Directory ${i+1}/${countries.length}: ${c.name}...`, true);
+    setProgress(i+1, countries.length);
+
+    await discoverFullDirectory(c.code, c.name, false);
+  }
+
+  scraping = false;
+  hideActiveCountry();
+  hideDownloadRow();
+  if(btn) btn.style.opacity = ".5";
+  setStatus("Directory sincronizzate!", false);
+  log(`✅ Directory completate per ${countries.length} paesi`,"ok");
 }
 
 // === JOBS SOSPESI ===
