@@ -1430,6 +1430,23 @@ tr:hover td {
     </div>
   </div>
 
+  <!-- ════════ DOWNLOAD MANAGER ════════ -->
+  <div id="downloadManagerPanel" class="card" style="display:none;padding:14px 18px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:1.1rem">📥</span>
+        <span style="font-size:.82rem;font-weight:700;color:var(--text-primary)">Download Manager</span>
+        <span id="dmJobCount" style="font-size:.65rem;padding:2px 8px;border-radius:8px;background:rgba(99,102,241,0.12);color:#a5b4fc;font-weight:600"></span>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-secondary btn-sm" onclick="clearCompletedJobs()" style="font-size:.62rem">Pulisci completati</button>
+        <button class="btn btn-danger btn-sm" onclick="clearAllJobs()" style="font-size:.62rem">Cancella tutto</button>
+      </div>
+    </div>
+    <div id="dmJobList" style="display:flex;flex-direction:column;gap:6px;max-height:240px;overflow-y:auto;scrollbar-width:thin"></div>
+    <div id="dmEmpty" style="display:none;text-align:center;padding:12px;font-size:.75rem;color:var(--text-muted)">Nessun download in coda</div>
+  </div>
+
   <!-- ════════ CONFIG CARD ════════ -->
   <div class="card" style="position:relative;z-index:100">
 
@@ -1673,8 +1690,8 @@ function isCountryCompleted(code){
   return pending === 0;
 }
 function markCountryCompleted(code, count){
-  // La directory stessa è il flag — se tutti done/failed, è completo
-  // Non serve fare nulla di extra, isCountryCompleted() legge lo stato
+  const cName = selectedCountries.find(c => c.code === code)?.name || code;
+  addCompletedJob(code, cName, count, currentMode);
 }
 
 // === JOBS SOSPESI ===
@@ -1694,10 +1711,141 @@ function saveSuspendedJob(countryCode, countryName, pendingIds, allMembers, netw
     networkMap: networkMap || {}, // mappa wcaId → {networks:[...]}
   });
   try { localStorage.setItem("wca_suspended_jobs", JSON.stringify(jobs)); } catch(e){}
+  renderDownloadManager();
 }
 function removeSuspendedJob(countryCode){
   const jobs = getSuspendedJobs().filter(j => j.code !== countryCode);
   try { localStorage.setItem("wca_suspended_jobs", JSON.stringify(jobs)); } catch(e){}
+  renderDownloadManager();
+}
+
+// === DOWNLOAD HISTORY (completati) ===
+function getCompletedJobs(){
+  try { return JSON.parse(localStorage.getItem("wca_completed_jobs")||"[]"); } catch(e){ return []; }
+}
+function addCompletedJob(countryCode, countryName, totalSaved, mode, networks){
+  const jobs = getCompletedJobs();
+  // Aggiorna se esiste già per lo stesso paese
+  const idx = jobs.findIndex(j => j.code === countryCode);
+  const entry = {
+    code: countryCode,
+    name: countryName,
+    total: totalSaved,
+    mode: mode || currentMode || "discover",
+    networks: networks || [],
+    ts: Date.now()
+  };
+  if(idx >= 0) jobs[idx] = entry;
+  else jobs.unshift(entry);
+  // Tieni max 100
+  if(jobs.length > 100) jobs.length = 100;
+  try { localStorage.setItem("wca_completed_jobs", JSON.stringify(jobs)); } catch(e){}
+  renderDownloadManager();
+}
+function clearCompletedJobs(){
+  try { localStorage.setItem("wca_completed_jobs", "[]"); } catch(e){}
+  renderDownloadManager();
+}
+function clearAllJobs(){
+  try {
+    localStorage.setItem("wca_completed_jobs", "[]");
+    localStorage.setItem("wca_suspended_jobs", "[]");
+    localStorage.removeItem("wca_scraping_state");
+  } catch(e){}
+  document.getElementById("btnResume").style.display = "none";
+  renderDownloadManager();
+}
+
+// === DOWNLOAD MANAGER — render ===
+function renderDownloadManager(){
+  const panel = document.getElementById("downloadManagerPanel");
+  const listEl = document.getElementById("dmJobList");
+  const emptyEl = document.getElementById("dmEmpty");
+  const countEl = document.getElementById("dmJobCount");
+  if(!panel || !listEl) return;
+
+  const suspended = getSuspendedJobs();
+  const completed = getCompletedJobs();
+  const total = suspended.length + completed.length;
+
+  if(total === 0){
+    panel.style.display = "none";
+    return;
+  }
+  panel.style.display = "block";
+  countEl.textContent = suspended.length > 0
+    ? `${suspended.length} sospesi · ${completed.length} completati`
+    : `${completed.length} completati`;
+
+  let html = "";
+
+  // Job attivo (se scraping in corso)
+  if(scraping && currentScrapingCountry){
+    const flag = countryFlag(currentScrapingCountry);
+    const cName = selectedCountries.find(c => c.code === currentScrapingCountry)?.name || currentScrapingCountry;
+    html += `<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2)">
+      <span style="font-size:1.4rem">${flag}</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:.78rem;font-weight:700;color:#6ee7b7">${cName}</div>
+        <div style="font-size:.65rem;color:var(--text-muted)">In corso...</div>
+      </div>
+      <span style="font-size:.6rem;padding:2px 8px;border-radius:6px;background:rgba(16,185,129,0.15);color:#6ee7b7;font-weight:600;animation:pulse 2s infinite">● ATTIVO</span>
+    </div>`;
+  }
+
+  // Job sospesi
+  for(const job of suspended){
+    const flag = countryFlag(job.code);
+    const ageMin = Math.round((Date.now() - job.ts) / 60000);
+    const ageStr = ageMin < 60 ? ageMin+"min fa" : Math.round(ageMin/60)+"h fa";
+    const pct = job.total > 0 ? Math.round(job.done / job.total * 100) : 0;
+    html += `<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.18)">
+      <span style="font-size:1.4rem">${flag}</span>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="font-size:.78rem;font-weight:700;color:#fbbf24">${job.name}</span>
+          <span style="font-size:.6rem;color:var(--text-muted)">${ageStr}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:3px">
+          <div style="flex:1;height:4px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden;max-width:120px">
+            <div style="height:100%;width:${pct}%;background:#fbbf24;border-radius:2px"></div>
+          </div>
+          <span style="font-size:.62rem;color:var(--text-muted)">${job.done}/${job.total} (${pct}%)</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:4px;flex-shrink:0">
+        <button onclick="resumeScraping('${job.code}')" class="btn btn-sm" style="font-size:.62rem;padding:4px 10px;background:rgba(99,102,241,0.15);color:#a5b4fc;border:1px solid rgba(99,102,241,0.3);border-radius:6px">▶ Riprendi</button>
+        <button onclick="removeJobAndRefresh('${job.code}')" class="btn btn-sm" style="font-size:.62rem;padding:4px 8px;background:rgba(239,68,68,0.1);color:#fca5a5;border:1px solid rgba(239,68,68,0.2);border-radius:6px">✕</button>
+      </div>
+    </div>`;
+  }
+
+  // Job completati
+  for(const job of completed.slice(0, 20)){
+    const flag = countryFlag(job.code);
+    const ageMin = Math.round((Date.now() - job.ts) / 60000);
+    const ageStr = ageMin < 60 ? ageMin+"min fa" : ageMin < 1440 ? Math.round(ageMin/60)+"h fa" : Math.round(ageMin/1440)+"g fa";
+    html += `<div style="display:flex;align-items:center;gap:10px;padding:6px 12px;border-radius:8px;background:rgba(16,185,129,0.04);border:1px solid rgba(16,185,129,0.1)">
+      <span style="font-size:1.2rem">${flag}</span>
+      <div style="flex:1;min-width:0">
+        <span style="font-size:.75rem;font-weight:600;color:#6ee7b7">${job.name}</span>
+        <span style="font-size:.6rem;color:var(--text-muted);margin-left:6px">${job.total} partner · ${ageStr}</span>
+      </div>
+      <span style="font-size:.58rem;padding:2px 6px;border-radius:4px;background:rgba(16,185,129,0.1);color:#6ee7b7;font-weight:600">✓</span>
+    </div>`;
+  }
+
+  listEl.innerHTML = html;
+  emptyEl.style.display = total === 0 ? "block" : "none";
+
+  // Mostra/nascondi il tasto Resume
+  if(suspended.length > 0) document.getElementById("btnResume").style.display = "inline-flex";
+}
+function removeJobAndRefresh(code){
+  removeSuspendedJob(code);
+  renderDownloadManager();
+  const jobs = getSuspendedJobs();
+  if(jobs.length === 0) document.getElementById("btnResume").style.display = "none";
 }
 
 // Pattern di delay variabile (in secondi) — simula un umano al PC
@@ -3031,16 +3179,18 @@ async function resumeScraping(jobCode){
 
 // Controlla se c'è un download interrotto all'avvio
 (function checkSavedState(){
-  // Mostra jobs sospesi
+  // Mostra jobs sospesi nel log
   const jobs = getSuspendedJobs();
   if(jobs.length > 0){
-    document.getElementById("btnResume").style.display = "inline-block";
+    document.getElementById("btnResume").style.display = "inline-flex";
     for(const job of jobs){
       const ageMin = Math.round((Date.now() - job.ts) / 60000);
       const ageStr = ageMin < 60 ? ageMin+"min" : Math.round(ageMin/60)+"h";
       log(`⏸ Job sospeso: ${countryFlag(job.code)} ${job.name} — ${job.done}/${job.total} fatti, ${job.pending} rimanenti (${ageStr} fa)`,"warn");
     }
   }
+  // Render Download Manager
+  renderDownloadManager();
 })();
 
 function getSelectedNetworks(){
