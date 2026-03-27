@@ -174,7 +174,8 @@ body{font-family:"SF Pro Display","Geist",'Inter',system-ui,sans-serif;backgroun
 .flag-chip .flag-label{font-size:.5rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;max-width:52px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .flag-chip.selected .flag-label{color:#a5b4fc}
 .flag-chip .flag-count{font-size:.6rem;font-weight:700;padding:1px 6px;border-radius:6px;min-width:18px;text-align:center;background:rgba(99,102,241,0.2);color:#a5b4fc}
-.match-badge{font-size:.62rem;font-weight:700;padding:3px 10px;border-radius:8px;white-space:nowrap;letter-spacing:.3px}
+.match-badge{font-size:.62rem;font-weight:700;padding:3px 10px;border-radius:8px;white-space:nowrap;letter-spacing:.3px;cursor:pointer;transition:all .2s}
+.match-badge:hover{transform:scale(1.08);filter:brightness(1.2)}
 .match-badge.found{background:linear-gradient(135deg,rgba(16,185,129,0.15),rgba(16,185,129,0.08));color:#6ee7b7;border:1px solid rgba(16,185,129,0.3);box-shadow:0 2px 8px rgba(16,185,129,0.1)}
 .match-badge.partial{background:linear-gradient(135deg,rgba(245,158,11,0.15),rgba(245,158,11,0.08));color:#fbbf24;border:1px solid rgba(245,158,11,0.3);box-shadow:0 2px 8px rgba(245,158,11,0.1)}
 .match-badge.not-found{background:rgba(239,68,68,0.06);color:#fca5a5;border:1px solid rgba(239,68,68,0.12)}
@@ -366,10 +367,10 @@ body{font-family:"SF Pro Display","Geist",'Inter',system-ui,sans-serif;backgroun
 
     <!-- STATS BAR -->
     <div class="stats-bar" id="statsBar" style="display:none">
-      <span class="stat-chip total" id="chipTotal">0 contatti</span>
-      <span class="stat-chip matched" id="chipMatched">0 in WCA</span>
-      <span class="stat-chip partial-stat" id="chipPartial">0 parziali</span>
-      <span class="stat-chip unmatched" id="chipUnmatched">0 non trovati</span>
+      <span class="stat-chip total" id="chipTotal" style="cursor:pointer" onclick="setMatchFilter('all')" title="Mostra tutti">0 contatti</span>
+      <span class="stat-chip matched" id="chipMatched" style="cursor:pointer" onclick="setMatchFilter('found')" title="Filtra: solo trovati in WCA">0 in WCA</span>
+      <span class="stat-chip partial-stat" id="chipPartial" style="cursor:pointer" onclick="setMatchFilter('partial')" title="Filtra: solo match parziali">0 parziali</span>
+      <span class="stat-chip unmatched" id="chipUnmatched" style="cursor:pointer" onclick="setMatchFilter('not-found')" title="Filtra: solo non trovati">0 non trovati</span>
       <span class="stat-chip" id="chipNotes" style="background:rgba(165,180,252,0.1);color:#a5b4fc;cursor:pointer" onclick="toggleNotesFilter()" title="Filtra contatti con note">📝 0 con note</span>
       <span class="stat-chip" id="chipCountries" style="margin-left:auto;background:linear-gradient(135deg,rgba(99,102,241,0.15),rgba(165,180,252,0.1));color:#a5b4fc;font-weight:700;letter-spacing:.3px;border:1px solid rgba(165,180,252,0.2)">🌍 0 paesi</span>
     </div>
@@ -1127,13 +1128,13 @@ function renderPage(){
     const isAI=(m.reason||"").startsWith("🤖");
     let matchHtml="";
     if(m.type==="found"){
-      matchHtml=`<span class="match-badge found">${isAI?"🤖":"✦"} WCA</span>
+      matchHtml=`<span class="match-badge found" onclick="event.stopPropagation();setMatchFilter('found')" title="Filtra: trovati in WCA">${isAI?"🤖":"✦"} WCA</span>
         <div class="match-sub" title="${esc(m.reason)}">${esc(m.partner?.company_name||"")}</div>`;
     } else if(m.type==="partial"){
-      matchHtml=`<span class="match-badge partial">${isAI?"🤖":"~"} PARZIALE</span>
+      matchHtml=`<span class="match-badge partial" onclick="event.stopPropagation();setMatchFilter('partial')" title="Filtra: match parziali">${isAI?"🤖":"~"} PARZIALE</span>
         <div class="match-sub" title="${esc(m.reason)}">${esc(m.partner?.company_name||"")}</div>`;
     } else {
-      matchHtml=`<span class="match-badge not-found">✗</span>`;
+      matchHtml=`<span class="match-badge not-found" onclick="event.stopPropagation();setMatchFilter('not-found')" title="Filtra: non trovati">✗</span>`;
     }
 
     const isInferred=s=>(s||"").includes("[presunto]");
@@ -1216,7 +1217,27 @@ function onSearch(){ renderPage(); }
 function toggleMobileSidebar(){
   document.getElementById("filterSidebar").classList.toggle("mobile-open");
 }
-function onFilterChange(){ currentFilter=document.getElementById("filterMatch").value; renderPage(); }
+function onFilterChange(){ currentFilter=document.getElementById("filterMatch").value; renderPage(); highlightActiveChip(); }
+function setMatchFilter(type){
+  // Toggle: se clicchi lo stesso filtro attivo, torna a "all"
+  if(currentFilter===type) currentFilter="all";
+  else currentFilter=type;
+  // Sincronizza anche il select se presente
+  const sel=document.getElementById("filterMatch");
+  if(sel) sel.value=currentFilter;
+  renderPage();
+  highlightActiveChip();
+}
+function highlightActiveChip(){
+  const chips={all:"chipTotal",found:"chipMatched",partial:"chipPartial","not-found":"chipUnmatched"};
+  Object.entries(chips).forEach(([type,id])=>{
+    const el=document.getElementById(id);
+    if(!el) return;
+    const active=currentFilter===type||(currentFilter==="all"&&type==="all");
+    el.style.outline=active&&currentFilter!=="all"?"2px solid rgba(255,255,255,0.4)":"none";
+    el.style.transform=active&&currentFilter!=="all"?"scale(1.05)":"none";
+  });
+}
 
 // ==================== FILE IMPORT ====================
 function handleDrop(e){
