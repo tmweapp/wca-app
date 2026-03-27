@@ -334,7 +334,6 @@ body{font-family:"SF Pro Display","Geist",'Inter',system-ui,sans-serif;backgroun
           <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4m4-5 5-5 5 5m-5-5v12"/></svg>
           Importa File <input type="file" accept=".csv,.xlsx,.xls,.tsv" id="fileInput" onchange="onFileSelected(this.files[0])" style="display:none">
         </label>
-        <button class="btn btn-accent" onclick="aiMatchAll()" id="btnAiMatch" style="display:none" title="Verifica AI corrispondenza WCA">🤖 AI Match</button>
         <button class="btn btn-danger" onclick="clearAll()" id="btnClear" style="display:none">Cancella tutto</button>
       </div>
     </div>
@@ -396,7 +395,10 @@ body{font-family:"SF Pro Display","Geist",'Inter',system-ui,sans-serif;backgroun
       <button class="sort-btn" onclick="setSort('city')" id="sortCity">Città</button>
       <button class="sort-btn" onclick="setSort('match')" id="sortMatch">Match</button>
       <button class="sort-btn" onclick="toggleNotesFilter()" id="filterNotes" title="Mostra solo contatti con note">📝 Con note</button>
-      <span style="margin-left:auto;display:flex;gap:4px">
+      <span style="margin-left:auto;display:flex;gap:4px;align-items:center">
+        <button class="sort-btn" onclick="refreshData()" id="btnRefresh" title="Aggiorna dati da database" style="color:#6ee7b7;border-color:rgba(16,185,129,0.3)">🔄 Aggiorna</button>
+        <button class="sort-btn" onclick="aiMatchAll()" id="btnAiMatch" style="display:none;color:#c4b5fd;border-color:rgba(165,140,252,0.3)" title="Screening AI: verifica corrispondenza con WCA">🤖 AI Screening</button>
+        <span style="width:1px;height:16px;background:rgba(255,255,255,0.08);margin:0 2px"></span>
         <button class="sort-btn" onclick="setView('grid')" id="viewGrid" title="Griglia">▦</button>
         <button class="sort-btn active" onclick="setView('list')" id="viewList" title="Elenco">☰</button>
       </span>
@@ -896,6 +898,38 @@ async function loadEvents(){
     const r=await fetch(`${SUPABASE_URL}/rest/v1/wca_bc_events?select=*&order=event_date.desc&limit=100`,{headers:SB_HEADERS});
     if(r.ok) allEvents=await r.json();
   }catch(e){ allEvents=[]; }
+}
+
+async function refreshData(){
+  const btn=document.getElementById("btnRefresh");
+  const orig=btn.innerHTML;
+  btn.disabled=true;
+  btn.innerHTML="⏳ Aggiornamento...";
+  try{
+    await Promise.all([loadPartners(), loadCards(), loadEvents()]);
+    // Normalizza partner
+    for(const p of allPartners){
+      if(p.contacts&&typeof p.contacts==="string"){ try{p.contacts=JSON.parse(p.contacts);}catch(e){p.contacts=[];} }
+      if(!Array.isArray(p.contacts)) p.contacts=[];
+    }
+    // Ri-esegui matching su tutti i biglietti
+    let reMatched=0;
+    for(const card of allCards){
+      if(!card.country_code&&card.country) card.country_code=resolveCountryCode(card.country.replace(" [presunto]",""));
+      const oldType=card._match?.type||"not-found";
+      try{ card._match=matchCard(card,allPartners); }catch(e){ card._match={type:"not-found",score:0,reason:"",partner:null}; }
+      if(card._match.type!==oldType) reMatched++;
+    }
+    buildEventsFromCards();
+    renderAll();
+    btn.innerHTML="✅ Aggiornato!";
+    setTimeout(()=>{ btn.innerHTML=orig; btn.disabled=false; },2000);
+    console.log(`Refresh: ${allCards.length} cards, ${allPartners.length} partners, ${reMatched} re-matched`);
+  }catch(e){
+    console.error("Refresh error:",e);
+    btn.innerHTML="⚠ Errore";
+    setTimeout(()=>{ btn.innerHTML=orig; btn.disabled=false; },2000);
+  }
 }
 
 async function init(){
