@@ -84,54 +84,62 @@ body{font-family:"SF Pro Display","Geist",'Inter',system-ui,sans-serif;backgroun
 /* CARDS GRID — glassmorphism */
 .card-lines{flex:1;overflow-y:auto;padding:16px 20px;display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px;align-content:start}
 .card-lines.list-view{grid-template-columns:1fr;gap:6px}
-.bc-card{background:rgba(255,255,255,0.04);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:16px 18px;transition:all .25s;cursor:default;position:relative;overflow:hidden}
+/* === CARD SHELL === */
+.bc-card{background:rgba(255,255,255,0.04);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:14px 16px;transition:all .25s;cursor:default;position:relative;overflow:hidden;display:flex;flex-direction:column;gap:0}
 .bc-card::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,rgba(165,180,252,0.4),transparent);opacity:0;transition:opacity .3s}
 .bc-card:hover{background:rgba(99,102,241,0.06);border-color:rgba(165,180,252,0.25);transform:translateY(-2px);box-shadow:0 8px 32px rgba(0,0,0,0.3),0 0 20px rgba(99,102,241,0.06)}
 .bc-card:hover::before{opacity:1}
-.bc-card.selected{border-color:rgba(165,180,252,0.4);background:rgba(99,102,241,0.08)}
+.bc-card.selected{border-color:rgba(129,140,248,0.6);background:rgba(99,102,241,0.1);box-shadow:0 0 16px rgba(99,102,241,0.15)}
 .list-view .bc-card{border-radius:10px;padding:10px 14px}
 .list-view .bc-card:hover{transform:none}
 .list-view .bc-card .card-fields.visible{flex-direction:row;flex-wrap:wrap;gap:4px 14px}
-.bc-card .card-top{display:flex;align-items:flex-start;gap:10px;margin-bottom:6px}
-.bc-card .card-check{flex-shrink:0;width:18px;height:18px;border-radius:5px;border:2px solid rgba(165,180,252,0.3);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;padding:0;margin-top:6px}
-.bc-card .card-check:hover{border-color:#a5b4fc}
-.bc-card .card-check.checked{background:#6366f1;border-color:#6366f1}
-.bc-card .card-check.checked::after{content:"✓";color:#fff;font-size:.7rem;font-weight:700}
-.bc-card .card-flag{font-size:2.2rem;filter:drop-shadow(0 2px 6px rgba(0,0,0,0.35));flex-shrink:0;line-height:1}
-.bc-card .card-header-block{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
-.bc-card .card-header-row{display:flex;align-items:baseline;gap:8px}
-.bc-card .card-country-name{font-size:.72rem;font-weight:700;color:#a5b4fc;text-transform:uppercase;letter-spacing:.8px;white-space:nowrap}
-.bc-card .card-city{font-size:.72rem;color:#e2e8f0;margin-left:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:45%}
-.bc-card .card-contact-name{font-size:.92rem;font-weight:700;color:#e2e8f0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:.2px;margin-top:2px}
-.bc-card .card-contact-role{font-size:.68rem;color:#64748b;font-style:italic;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.bc-card .card-company{font-size:.78rem;font-weight:600;color:#a5b4fc;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px}
-.bc-card .card-match{flex-shrink:0;margin-top:4px}
+/* === CARD LAYOUT: flag left | content center | match right === */
+.bc-card .card-top{display:flex;align-items:stretch;gap:0;margin-bottom:0}
+/* FLAG — big, clickable, acts as select */
+.bc-card .card-flag-wrap{flex-shrink:0;width:60px;display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:12px;transition:all .2s;margin-right:12px;position:relative}
+.bc-card .card-flag-wrap:hover{background:rgba(165,180,252,0.08)}
+.bc-card.selected .card-flag-wrap{background:rgba(99,102,241,0.15)}
+.bc-card.selected .card-flag-wrap::after{content:"✓";position:absolute;bottom:2px;right:2px;font-size:.5rem;color:#fff;background:#6366f1;width:14px;height:14px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700}
+.bc-card .card-flag{font-size:2.8rem;filter:drop-shadow(0 3px 8px rgba(0,0,0,0.4));line-height:1}
+/* CONTENT — left aligned column */
+.bc-card .card-body{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:1px}
+.bc-card .card-company-name{font-size:.88rem;font-weight:700;color:#f1f5f9;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;letter-spacing:.2px;line-height:1.3}
+.bc-card .card-contact-name{font-size:.74rem;font-weight:500;color:#cbd5e1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.bc-card .card-contact-role{font-size:.64rem;color:#64748b;font-style:italic;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.bc-card .card-geo{display:flex;align-items:center;gap:6px;margin-top:3px;font-size:.64rem;color:#94a3b8}
+.bc-card .card-country-name{font-weight:600;color:#a5b4fc;text-transform:uppercase;letter-spacing:.6px;font-size:.6rem}
+.bc-card .card-city{color:#94a3b8;font-size:.6rem}
+.bc-card .card-city::before{content:"·";margin-right:0;color:#475569}
+/* MATCH — top right */
+.bc-card .card-match{flex-shrink:0;margin-left:auto;padding-left:8px;display:flex;flex-direction:column;align-items:flex-end;gap:2px}
 .bc-card .card-person{display:none}
-/* INFO TOGGLE + COLLAPSIBLE FIELDS */
-.bc-card .card-info-bar{display:flex;align-items:center;gap:8px;margin-top:4px}
-.bc-card .card-company-line{font-size:.72rem;font-weight:600;color:#a5b4fc;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0}
-.bc-card .info-toggle{background:none;border:1px solid rgba(165,180,252,0.2);cursor:pointer;font-size:.62rem;padding:2px 8px;color:#a5b4fc;border-radius:10px;transition:all .2s;white-space:nowrap;flex-shrink:0;display:flex;align-items:center;gap:3px;letter-spacing:.3px;font-weight:600}
-.bc-card .info-toggle:hover{background:rgba(165,180,252,0.12);border-color:rgba(165,180,252,0.4)}
-.bc-card .info-toggle.open{background:rgba(99,102,241,0.15);border-color:#6366f1}
-.bc-card .card-fields{display:none;flex-direction:column;gap:2px;margin-top:6px;padding:8px 0 4px;border-top:1px solid rgba(255,255,255,0.04);animation:fieldSlide .2s ease}
+.bc-card .inferred{opacity:.7;font-style:italic}
+.bc-card .inferred::after{content:" ~";color:#a5b4fc;font-size:.5rem}
+/* === INFO TOGGLE + COLLAPSIBLE FIELDS === */
+.bc-card .card-details-row{display:flex;align-items:center;margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.04)}
+.bc-card .info-toggle{background:none;border:none;cursor:pointer;font-size:.6rem;padding:2px 0;color:#64748b;transition:all .2s;display:flex;align-items:center;gap:4px;letter-spacing:.3px;font-weight:600}
+.bc-card .info-toggle:hover{color:#a5b4fc}
+.bc-card .info-toggle.open{color:#a5b4fc}
+.bc-card .info-toggle .arrow{display:inline-block;transition:transform .2s;font-size:.5rem}
+.bc-card .info-toggle.open .arrow{transform:rotate(90deg)}
+.bc-card .card-fields{display:none;flex-direction:column;gap:1px;margin-top:4px;padding:6px 0 2px;animation:fieldSlide .2s ease}
 .bc-card .card-fields.visible{display:flex}
 @keyframes fieldSlide{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
-.bc-card .card-field{font-size:.7rem;color:#94a3b8;display:flex;align-items:center;gap:6px;overflow:hidden;padding:2px 0}
-.bc-card .card-field .f-icon{flex-shrink:0;width:14px;text-align:center;font-size:.68rem;color:#a5b4fc}
-.bc-card .card-field .f-val{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#e2e8f0;font-size:.7rem}
+.bc-card .card-field{font-size:.68rem;color:#94a3b8;display:flex;align-items:center;gap:6px;overflow:hidden;padding:2px 0}
+.bc-card .card-field .f-icon{flex-shrink:0;width:14px;text-align:center;font-size:.64rem;color:rgba(165,180,252,0.7)}
+.bc-card .card-field .f-val{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#e2e8f0;font-size:.68rem}
 .bc-card .card-field a{color:#a5b4fc;text-decoration:none}
 .bc-card .card-field a:hover{text-decoration:underline}
-.bc-card .card-bottom{display:flex;align-items:center;justify-content:space-between;margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.05)}
-.bc-card .card-date{font-size:.6rem;color:#64748b}
-.bc-card .inferred{opacity:.7;font-style:italic}
-.bc-card .inferred::after{content:" ~";color:#a5b4fc;font-size:.55rem}
+/* === BOTTOM BAR === */
+.bc-card .card-bottom{display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding-top:6px}
+.bc-card .card-date{font-size:.56rem;color:#475569}
 /* NOTES ICON + PREVIEW */
-.bc-card .notes-btn{background:none;border:none;cursor:pointer;font-size:.78rem;padding:4px 6px;opacity:.4;transition:all .2s;color:#a5b4fc;border-radius:6px}
+.bc-card .notes-btn{background:none;border:none;cursor:pointer;font-size:.72rem;padding:3px 5px;opacity:.35;transition:all .2s;color:#a5b4fc;border-radius:6px}
 .bc-card .notes-btn:hover{opacity:1;background:rgba(165,180,252,0.1)}
-.bc-card .notes-btn.has-notes{opacity:.9}
-.bc-card.has-notes-card{border-left:3px solid rgba(165,180,252,0.45)}
-.bc-card .notes-preview{font-size:.65rem;color:#64748b;line-height:1.4;margin-top:6px;padding:6px 10px;background:rgba(165,180,252,0.04);border-radius:8px;border-left:2px solid rgba(165,180,252,0.2);overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;cursor:pointer;transition:background .2s}
-.bc-card .notes-preview:hover{background:rgba(165,180,252,0.08)}
+.bc-card .notes-btn.has-notes{opacity:.85}
+.bc-card.has-notes-card{border-left:3px solid rgba(165,180,252,0.35)}
+.bc-card .notes-preview{font-size:.62rem;color:#94a3b8;line-height:1.4;padding:5px 0 0;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;cursor:pointer;transition:color .2s}
+.bc-card .notes-preview:hover{color:#cbd5e1}
 .notes-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:500;align-items:center;justify-content:center}
 .notes-overlay.open{display:flex}
 .notes-modal{background:#1a1a2e;border:1px solid rgba(165,180,252,0.2);border-radius:16px;padding:20px;width:90%;max-width:440px;box-shadow:0 20px 60px rgba(0,0,0,0.5)}
@@ -251,16 +259,14 @@ body{font-family:"SF Pro Display","Geist",'Inter',system-ui,sans-serif;backgroun
   /* CARDS: single column, show fields */
   .card-lines{grid-template-columns:1fr;padding:10px 12px;gap:10px}
   .bc-card{padding:12px 14px;border-radius:12px}
-  .bc-card .card-top{gap:8px;margin-bottom:6px}
-  .bc-card .card-check{width:16px;height:16px}
-  .bc-card .card-flag{font-size:1.8rem}
-  .bc-card .card-country-name{font-size:.62rem}
-  .bc-card .card-city{font-size:.62rem}
-  .bc-card .card-contact-name{font-size:.82rem}
-  .bc-card .card-contact-role{font-size:.6rem}
+  .bc-card .card-flag-wrap{width:50px;margin-right:10px}
+  .bc-card .card-flag{font-size:2.2rem}
+  .bc-card .card-company-name{font-size:.8rem}
+  .bc-card .card-contact-name{font-size:.68rem}
+  .bc-card .card-contact-role{font-size:.58rem}
   .bc-card .card-fields.visible{display:flex!important;flex-direction:column;gap:2px}
-  .bc-card .card-field{font-size:.66rem}
-  .bc-card .card-field .f-icon{font-size:.66rem}
+  .bc-card .card-field{font-size:.64rem}
+  .bc-card .card-field .f-icon{font-size:.62rem}
   .match-badge{font-size:.58rem;padding:2px 8px}
   .match-sub{font-size:.5rem;max-width:120px}
 
@@ -897,6 +903,10 @@ function sortCards(cards){
     default: return cards;
   }
 }
+// Estrae solo le note scritte dall'utente, esclude metadati di sistema
+function getUserNotes(raw){
+  return (raw||"").replace(/\[AI Match\][^|]*/g,"").replace(/Evento:\s*[^|]*/g,"").replace(/\|/g,"").trim();
+}
 function getFilteredCards(){
   let cards=[...allCards];
   const q=(document.getElementById("searchInput").value||"").toLowerCase();
@@ -910,7 +920,7 @@ function getFilteredCards(){
   );
   if(currentFilter!=="all") cards=cards.filter(c=>c._match?.type===currentFilter);
   if(currentCountryFilter) cards=cards.filter(c=>(c.country_code||"").toUpperCase()===currentCountryFilter);
-  if(notesFilterActive) cards=cards.filter(c=>(c.notes||"").trim());
+  if(notesFilterActive) cards=cards.filter(c=>getUserNotes(c.notes));
   cards=sortCards(cards);
   return cards;
 }
@@ -940,14 +950,13 @@ function toggleCardInfo(btn){
   if(!fields) return;
   const open=fields.classList.toggle("visible");
   btn.classList.toggle("open",open);
-  btn.innerHTML=open?"ℹ Chiudi":"ℹ Dettagli";
+  btn.querySelector(".arrow").textContent=open?"▾":"▸";
 }
 function toggleSelect(id){
   if(selectedIds.has(id)) selectedIds.delete(id); else selectedIds.add(id);
   updateSelectionBar();
-  // Toggle visual
   const el=document.querySelector(`.bc-card[data-id="${id}"]`);
-  if(el){ el.classList.toggle("selected",selectedIds.has(id)); el.querySelector(".card-check")?.classList.toggle("checked",selectedIds.has(id)); }
+  if(el) el.classList.toggle("selected",selectedIds.has(id));
 }
 function selectAllVisible(){
   const cards=getFilteredCards();
@@ -1095,7 +1104,7 @@ function renderPage(){
   document.getElementById("chipMatched").textContent=matched+" in WCA";
   document.getElementById("chipPartial").textContent=partial+" parziali";
   document.getElementById("chipUnmatched").textContent=(total-matched-partial)+" non trovati";
-  const withNotes=allCards.filter(c=>(c.notes||"").trim()).length;
+  const withNotes=allCards.filter(c=>getUserNotes(c.notes)).length;
   const chipN=document.getElementById("chipNotes");
   chipN.textContent="📝 "+withNotes+" con note";
   chipN.style.outline=notesFilterActive?"2px solid rgba(165,180,252,0.5)":"none";
@@ -1139,34 +1148,38 @@ function renderPage(){
 
     const cityDisplay=c.city?esc(cleanInf(c.city)):"";
     const cityInf=isInferred(c.city);
-    const hasNotes=!!(c.notes||"").trim();
-    const notesBtnCls=hasNotes?"notes-btn has-notes":"notes-btn";
+    // Filtra note reali: rimuovi [AI Match] e metadati di sistema
+    const rawNotes=(c.notes||"");
+    const userNotes=rawNotes.replace(/\[AI Match\][^|]*/g,"").replace(/Evento:\s*[^|]*/g,"").replace(/\|/g,"").trim();
+    const hasUserNotes=!!userNotes;
+    const notesBtnCls=hasUserNotes?"notes-btn has-notes":"notes-btn";
     const hasFields=fields.length>0;
     const cardId=c.id||"";
 
-    html+=`<div class="bc-card${isSel?" selected":""}${hasNotes?" has-notes-card":""}" data-id="${cardId}" data-letter="${(c.company_name||"#")[0].toUpperCase()}">
+    html+=`<div class="bc-card${isSel?" selected":""}${hasUserNotes?" has-notes-card":""}" data-id="${cardId}" data-letter="${(c.company_name||"#")[0].toUpperCase()}">
       <div class="card-top">
-        <button class="card-check${isSel?" checked":""}" onclick="toggleSelect('${cardId}')"></button>
-        <span class="card-flag">${flag}</span>
-        <div class="card-header-block">
-          <div class="card-header-row">
-            <span class="card-country-name"${infCls(c.country)}>${esc(cleanInf(countryName)||"—")}</span>
-            ${cityDisplay?`<span class="card-city"${cityInf?' class="inferred"':''}>⌖ ${cityDisplay}</span>`:''}
-          </div>
+        <div class="card-flag-wrap" onclick="toggleSelect('${cardId}')" title="Seleziona">
+          <span class="card-flag">${flag}</span>
+        </div>
+        <div class="card-body">
+          <div class="card-company-name">${esc(c.company_name||"—")}</div>
           <div class="card-contact-name">${esc(c.contact_name||"—")}</div>
           ${c.position?`<div class="card-contact-role">${esc(c.position)}</div>`:''}
+          <div class="card-geo">
+            <span class="card-country-name"${infCls(c.country)}>${esc(cleanInf(countryName)||"—")}</span>
+            ${cityDisplay?`<span class="card-city"${cityInf?' class="inferred"':''}>  ${cityDisplay}</span>`:''}
+          </div>
         </div>
         <div class="card-match">${matchHtml}</div>
       </div>
-      <div class="card-info-bar">
-        ${c.company_name?`<span class="card-company-line">⬡ ${esc(c.company_name)}</span>`:'<span class="card-company-line"></span>'}
-        ${hasFields?`<button class="info-toggle" onclick="toggleCardInfo(this)" title="Mostra dettagli">ℹ Dettagli</button>`:''}
+      ${hasFields?`<div class="card-details-row">
+        <button class="info-toggle" onclick="toggleCardInfo(this)"><span class="arrow">▸</span> Dettagli</button>
       </div>
-      ${hasFields?`<div class="card-fields">${fields.join("")}</div>`:''}
+      <div class="card-fields">${fields.join("")}</div>`:''}
       <div class="card-bottom">
         <span class="card-date">${fmtDate(c.created_at)}</span>
-        <button class="${notesBtnCls}" onclick="openNotes('${cardId}')" title="${hasNotes?"Modifica note":"Aggiungi note"}">✎</button>
-      </div>${hasNotes?`<div class="notes-preview" onclick="openNotes('${cardId}')">${esc((c.notes||"").substring(0,120))}${(c.notes||"").length>120?"…":""}</div>`:""}
+        <button class="${notesBtnCls}" onclick="openNotes('${cardId}')" title="${hasUserNotes?"Modifica note":"Aggiungi note"}">✎</button>
+      </div>${hasUserNotes?`<div class="notes-preview" onclick="openNotes('${cardId}')">${esc(userNotes.substring(0,120))}${userNotes.length>120?"…":""}</div>`:""}
     </div>`;
   }
   lines.innerHTML=html; lines.scrollTop=0; buildLetterIndex(); updateSelectionBar();
