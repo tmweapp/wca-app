@@ -222,63 +222,54 @@ body {
   font-weight: 600;
 }
 
-/* === MODE BUTTONS — floating 3D icons, no borders === */
+/* === MODE BUTTONS — inline compact, horizontal === */
 .mode-btn {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  gap: 6px;
-  padding: 8px 12px;
-  border-radius: 16px;
-  border: none;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  border: 1px solid transparent;
   background: transparent;
   color: var(--text-secondary);
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  min-width: 80px;
+  transition: all 0.2s;
+  min-width: auto;
   position: relative;
 }
 .mode-btn:hover {
-  background: transparent;
-  transform: translateY(-4px) scale(1.05);
+  background: rgba(99,102,241,0.08);
   color: #c7d2fe;
 }
 .mode-btn:hover .mode-icon-img {
-  filter: drop-shadow(0 8px 24px rgba(99,102,241,0.4));
+  filter: drop-shadow(0 2px 8px rgba(99,102,241,0.3));
 }
 .mode-btn.active {
-  background: transparent;
+  background: rgba(99,102,241,0.12);
+  border-color: rgba(99,102,241,0.3);
   color: #a5b4fc;
 }
 .mode-btn.active .mode-icon-img {
-  filter: drop-shadow(0 6px 20px rgba(99,102,241,0.5)) brightness(1.1);
-  transform: scale(1.08);
+  filter: drop-shadow(0 2px 8px rgba(99,102,241,0.4)) brightness(1.1);
 }
 .mode-btn.active::after {
-  content: "";
-  position: absolute;
-  bottom: -2px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 24px;
-  height: 3px;
-  border-radius: 2px;
-  background: linear-gradient(90deg, #6366f1, #a5b4fc);
+  display: none;
 }
 .mode-icon-img {
-  width: 64px;
-  height: 64px;
+  width: 28px;
+  height: 28px;
   object-fit: contain;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  filter: drop-shadow(0 4px 12px rgba(0,0,0,0.3));
+  transition: all 0.2s;
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,0.2));
 }
 .mode-name {
-  font-size: 0.68rem;
+  font-size: 0.62rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
   opacity: 0.7;
-  transition: opacity 0.25s;
+  transition: opacity 0.2s;
 }
 .mode-btn:hover .mode-name,
 .mode-btn.active .mode-name {
@@ -302,42 +293,42 @@ body {
   background: rgba(99,102,241,0.05);
 }
 
-/* === PICKER BUTTONS — floating, no borders === */
+/* === PICKER BUTTONS — compact inline === */
 .picker-btn {
   position: relative;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
   gap: 4px;
-  padding: 6px 12px;
-  border-radius: 16px;
-  border: none;
-  background: transparent;
+  padding: 3px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(99,102,241,0.15);
+  background: rgba(99,102,241,0.05);
   color: #a5b4fc;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  min-width: 70px;
+  transition: all 0.2s;
+  min-width: auto;
 }
 .picker-btn:hover {
-  background: transparent;
-  transform: translateY(-4px) scale(1.05);
+  background: rgba(99,102,241,0.12);
+  border-color: rgba(99,102,241,0.3);
 }
 .picker-btn:hover .picker-icon-img {
-  filter: drop-shadow(0 8px 24px rgba(99,102,241,0.4));
+  filter: drop-shadow(0 2px 8px rgba(99,102,241,0.3));
 }
 .picker-icon-img {
-  width: 56px;
-  height: 56px;
+  width: 24px;
+  height: 24px;
   object-fit: contain;
-  transition: all 0.3s;
-  filter: drop-shadow(0 4px 12px rgba(0,0,0,0.3));
+  transition: all 0.2s;
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,0.2));
 }
 .picker-label {
-  font-size: 0.65rem;
+  font-size: 0.62rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  opacity: 0.7;
+  letter-spacing: 0.3px;
+  opacity: 0.8;
 }
 .picker-badge {
   position: absolute;
@@ -1322,12 +1313,77 @@ tr:hover td {
       <button class="btn btn-danger btn-sm" onclick="resetDatabase()" data-tip="Cancella TUTTI i dati dal database e riparti da zero" style="font-size:.62rem">Reset DB</button>
       <a href="/wca-extension.zip" download class="btn btn-secondary btn-sm" style="text-decoration:none" data-tip="Scarica l'estensione Chrome per catturare i cookies WCA">Estensione</a>
       <button class="btn btn-secondary btn-sm" onclick="openVerifica()" data-tip="Rivedi i profili non trovati e ritenta il download">Non trovati <span id="failedCountHeader">0</span></button>
-      <!-- LOGIN ICON — rosso disconnesso, verde connesso -->
       <button class="login-icon-btn off" id="btnLogin" onclick="doLogin()" data-tip="Login WCA — clicca per autenticarti">
         <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
       </button>
     </div>
   </div>
+
+  <!-- ═══ MODE STRIP: icone mode + config inline — compatto orizzontale ═══ -->
+  <div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-top:1px solid rgba(255,255,255,0.04);flex-wrap:wrap">
+    <!-- Mode buttons — piccoli, orizzontali -->
+    <div style="display:flex;gap:2px;flex-shrink:0">
+      <button class="mode-btn active" data-mode="discover" onclick="setMode('discover',this)" style="padding:4px 8px;min-width:auto;gap:3px;flex-direction:row;border-radius:8px">
+        <img src="https://dlldkrzoxvjxpgkkttxu.supabase.co/storage/v1/object/public/icons/lente.png?v=2" class="mode-icon-img" alt="Discover" style="width:28px;height:28px">
+        <span class="mode-name" style="font-size:.6rem">Discover</span>
+      </button>
+      <button class="mode-btn" data-mode="network" onclick="setMode('network',this)" style="padding:4px 8px;min-width:auto;gap:3px;flex-direction:row;border-radius:8px">
+        <img src="https://dlldkrzoxvjxpgkkttxu.supabase.co/storage/v1/object/public/icons/mondo.png?v=2" class="mode-icon-img" alt="Per Network" style="width:28px;height:28px">
+        <span class="mode-name" style="font-size:.6rem">Network</span>
+      </button>
+      <button class="mode-btn" data-mode="range" onclick="setMode('range',this)" style="padding:4px 8px;min-width:auto;gap:3px;flex-direction:row;border-radius:8px">
+        <img src="https://dlldkrzoxvjxpgkkttxu.supabase.co/storage/v1/object/public/icons/tastiera.png?v=2" class="mode-icon-img" alt="Range ID" style="width:28px;height:28px">
+        <span class="mode-name" style="font-size:.6rem">Range</span>
+      </button>
+    </div>
+
+    <div style="width:1px;height:24px;background:rgba(255,255,255,0.08);flex-shrink:0"></div>
+
+    <!-- Config panels inline -->
+    <div style="flex:1;min-width:0;display:flex;align-items:center">
+
+      <!-- DISCOVER: cerca partner -->
+      <div id="configDiscover" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+        <div id="fieldSearch" style="display:flex;align-items:center;gap:4px">
+          <input type="text" id="txtSearch" placeholder="Cerca partner..." class="field-input" style="width:180px;padding:6px 10px;font-size:.76rem">
+          <select id="selSearchBy" class="field-input" style="width:auto;min-width:80px;padding:6px 8px;font-size:.76rem">
+            <option value="">Paese</option>
+            <option value="company_name">Nome</option>
+            <option value="id_number">ID</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- NETWORK: picker inline compatto -->
+      <div id="configNetwork" style="display:none;align-items:center;gap:8px;flex-wrap:wrap">
+        <button onclick="openNetworkPopup()" class="picker-btn" id="btnPickNetwork" style="flex-direction:row;padding:3px 10px;gap:4px;border-radius:8px;min-width:auto">
+          <img src="https://dlldkrzoxvjxpgkkttxu.supabase.co/storage/v1/object/public/icons/satellite.png?v=2" class="picker-icon-img" alt="Network" style="width:24px;height:24px">
+          <span class="picker-label" style="font-size:.62rem">Network</span>
+          <span id="networkSelBadge" class="picker-badge" style="display:none"></span>
+        </button>
+        <span id="networkSelCountInline" style="font-size:.68rem;color:var(--text-muted);padding:3px 10px;border-radius:6px;background:rgba(255,255,255,0.04)">0 sel.</span>
+        <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.68rem;color:#c7d2fe;white-space:nowrap;padding:4px 8px;border-radius:6px;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.15)">
+          <input type="checkbox" id="chkAllCountries" style="accent-color:#6366f1" onchange="toggleAllCountriesMode()"> Tutti i Paesi
+        </label>
+        <span id="allCountriesHint" style="display:none;font-size:.65rem;color:#a5b4fc">A→Z</span>
+        <div id="selectedNetworksTags" style="display:flex;flex-wrap:wrap;gap:4px"></div>
+      </div>
+
+      <!-- RANGE: DA → A inline -->
+      <div id="configRange" style="display:none;align-items:center;gap:8px">
+        <label style="font-size:.68rem;color:var(--text-muted);font-weight:700">DA</label>
+        <input type="number" id="txtRangeFrom" value="1" min="1" class="field-input" style="width:90px;padding:6px 8px;font-size:.76rem">
+        <span style="color:var(--text-muted);font-size:1rem;font-weight:300">→</span>
+        <label style="font-size:.68rem;color:var(--text-muted);font-weight:700">A</label>
+        <input type="number" id="txtRangeTo" value="500" min="1" class="field-input" style="width:90px;padding:6px 8px;font-size:.76rem">
+      </div>
+
+    </div>
+
+    <!-- Mode description compatta -->
+    <span id="modeSubtitle" style="font-size:.6rem;color:var(--text-muted);max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0">Tutti i network, tutti i partner per paese</span>
+  </div>
+
   <div class="header-flags-row" id="headerFlags"></div>
 </div>
 <!-- loginBadge nascosto per compatibilità JS -->
@@ -1447,83 +1503,11 @@ tr:hover td {
     <div id="dmEmpty" style="display:none;text-align:center;padding:12px;font-size:.75rem;color:var(--text-muted)">Nessun download in coda</div>
   </div>
 
-  <!-- ════════ CONFIG CARD ════════ -->
-  <div class="card" style="position:relative;z-index:100">
-
-    <!-- ═══ DESCRIZIONE MODALITÀ (sopra) ═══ -->
-    <div style="text-align:center;margin-bottom:16px">
-      <div style="font-size:1rem;color:var(--text-primary);font-weight:700" id="modeTitle">Discover Automatico</div>
-      <div style="font-size:.76rem;color:var(--text-muted);line-height:1.5;margin-top:4px" id="modeSubtitle">Seleziona paesi — il sistema esplorerà tutti i network e scaricherà ogni partner.</div>
-    </div>
-
-    <!-- ═══ MODALITÀ: icone centrate ═══ -->
-    <div style="display:flex;justify-content:center;gap:24px;margin-bottom:18px">
-      <button class="mode-btn active" data-mode="discover" onclick="setMode('discover',this)">
-        <img src="https://dlldkrzoxvjxpgkkttxu.supabase.co/storage/v1/object/public/icons/lente.png?v=2" class="mode-icon-img" alt="Discover">
-        <span class="mode-name">Discover</span>
-      </button>
-      <button class="mode-btn" data-mode="network" onclick="setMode('network',this)">
-        <img src="https://dlldkrzoxvjxpgkkttxu.supabase.co/storage/v1/object/public/icons/mondo.png?v=2" class="mode-icon-img" alt="Per Network">
-        <span class="mode-name">Per Network</span>
-      </button>
-      <button class="mode-btn" data-mode="range" onclick="setMode('range',this)">
-        <img src="https://dlldkrzoxvjxpgkkttxu.supabase.co/storage/v1/object/public/icons/tastiera.png?v=2" class="mode-icon-img" alt="Range ID">
-        <span class="mode-name">Range ID</span>
-      </button>
-    </div>
-
-    <!-- ═══ CONFIGURAZIONE per modalità (sotto le icone) ═══ -->
-    <div style="min-height:50px">
-
-      <!-- DISCOVER: solo cerca -->
-      <div id="configDiscover" style="display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap">
-        <div id="fieldSearch" style="display:flex;align-items:center;gap:6px">
-          <input type="text" id="txtSearch" placeholder="Cerca partner..." class="field-input" style="width:220px">
-          <select id="selSearchBy" class="field-input" style="width:auto;min-width:90px">
-            <option value="">Paese</option>
-            <option value="company_name">Nome</option>
-            <option value="id_number">ID</option>
-          </select>
-        </div>
-      </div>
-
-      <!-- NETWORK: picker + network selezionati + Tutti i Paesi -->
-      <div id="configNetwork" style="display:none;flex-direction:column;align-items:center;gap:12px">
-        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:center">
-          <button onclick="openNetworkPopup()" class="picker-btn" id="btnPickNetwork">
-            <img src="https://dlldkrzoxvjxpgkkttxu.supabase.co/storage/v1/object/public/icons/satellite.png?v=2" class="picker-icon-img" alt="Network">
-            <span class="picker-label">Scegli Network</span>
-            <span id="networkSelBadge" class="picker-badge" style="display:none"></span>
-          </button>
-          <span id="networkSelCountInline" style="font-size:.78rem;color:var(--text-muted);padding:5px 14px;border-radius:8px;background:rgba(255,255,255,0.04)">0 selezionati</span>
-          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.8rem;color:#c7d2fe;white-space:nowrap;padding:6px 12px;border-radius:8px;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.2)">
-            <input type="checkbox" id="chkAllCountries" style="accent-color:#6366f1" onchange="toggleAllCountriesMode()"> Tutti i Paesi
-          </label>
-          <span id="allCountriesHint" style="display:none;font-size:.72rem;color:#a5b4fc">Scarica A→Z</span>
-        </div>
-        <!-- Network selezionati evidenziati -->
-        <div id="selectedNetworksTags" style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center"></div>
-      </div>
-
-      <!-- RANGE: input centrato -->
-      <div id="configRange" style="display:none;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap">
-        <div style="display:flex;gap:10px;align-items:center">
-          <label style="font-size:.78rem;color:var(--text-muted);font-weight:700">DA</label>
-          <input type="number" id="txtRangeFrom" value="1" min="1" class="field-input" style="width:110px">
-          <span style="color:var(--text-muted);font-size:1.3rem;font-weight:300">→</span>
-          <label style="font-size:.78rem;color:var(--text-muted);font-weight:700">A</label>
-          <input type="number" id="txtRangeTo" value="500" min="1" class="field-input" style="width:110px">
-        </div>
-      </div>
-
-    </div>
-
-    <!-- Hidden compat -->
-    <div id="fieldRangeFrom" style="display:none"></div>
-    <div id="fieldRangeTo" style="display:none"></div>
-    <div id="networkModePanel" style="display:none"></div>
-
-  </div>
+  <!-- Hidden compat -->
+  <div id="fieldRangeFrom" style="display:none"></div>
+  <div id="fieldRangeTo" style="display:none"></div>
+  <div id="networkModePanel" style="display:none"></div>
+  <span id="modeTitle" style="display:none">Discover Automatico</span>
 
   <!-- BACKGROUND JOB PANEL -->
   <div id="bgJobPanel" class="card" style="display:none;background:rgba(99,102,241,0.08);border-color:rgba(99,102,241,0.25)">
@@ -2181,14 +2165,16 @@ function setMode(mode, btn){
   // Search visible in discover mode only
   const searchEl = document.getElementById("fieldSearch");
   if(searchEl) searchEl.style.display = mode === "discover" ? "flex" : "none";
-  // Update description
-  const titles = {
-    discover: ["Discover Automatico", "Seleziona paesi — il sistema esplorerà tutti i network e scaricherà ogni partner."],
-    network: ["Download Per Network", "Scegli i network specifici e i paesi da scaricare. Utile per aggiornare un singolo network."],
-    range: ["Range ID Numerico", "Scarica i profili in un intervallo di ID WCA. Utile per esplorare ID specifici."]
+  // Update description — compatto
+  const subtitles = {
+    discover: "Tutti i network, tutti i partner per paese",
+    network: "Network specifici + paesi selezionati",
+    range: "Intervallo di ID WCA numerico"
   };
-  document.getElementById("modeTitle").textContent = titles[mode][0];
-  document.getElementById("modeSubtitle").textContent = titles[mode][1];
+  const titleEl = document.getElementById("modeTitle");
+  const subEl = document.getElementById("modeSubtitle");
+  if(titleEl) titleEl.textContent = mode.charAt(0).toUpperCase()+mode.slice(1);
+  if(subEl) subEl.textContent = subtitles[mode];
   // Auto-open network popup in network mode
   if(mode === "network"){ openNetworkPopup(); }
   else { closeNetworkPopup(); }
