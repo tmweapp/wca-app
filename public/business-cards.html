@@ -543,38 +543,77 @@ function matchCard(card, partners){
   const cc=normalize(card.company_name), ce=(card.email||"").toLowerCase().trim(),
     cd=extractDomain(ce), cp=(card.phone||"").replace(/\D/g,""),
     cCity=normalize(card.city), cContact=normalize(card.contact_name),
-    cWeb=normalizeWebsite(card.website);
+    cWeb=normalizeWebsite(card.website),
+    cCountry=(card.country_code||"").toUpperCase();
+  // Dominio dal website del biglietto
+  const cWebDomain=cWeb.replace(/\/.*$/,"");
+  const isGenericEmail=cd&&/^(gmail|yahoo|hotmail|outlook|aol|qq|163|naver|hanmail|live|icloud|mail|ymail)\./i.test(cd);
 
   for(const p of partners){
     let score=0, reasons=[];
     const pc=normalize(p.company_name), pe=(p.email||"").toLowerCase().trim(),
       pd=extractDomain(pe), pp=(p.phone||"").replace(/\D/g,""),
       pw=normalizeWebsite(p.website),
-      pCity=normalize((p.address||"").split(",").slice(-2,-1).join(""));
+      pWebDomain=pw.replace(/\/.*$/,""),
+      pCountry=(p.country_code||"").toUpperCase(),
+      pCity=normalize(p.city||(p.address||"").split(",").slice(-2,-1).join(""));
 
+    // --- NOME AZIENDA ---
     if(cc&&pc&&cc===pc){ score+=50; reasons.push("azienda esatta"); }
     else if(cc&&pc){
       const ov=tokenOverlap(card.company_name,p.company_name);
       if(ov>=0.6){ score+=35; reasons.push("azienda ~"+Math.round(ov*100)+"%"); }
       else if(ov>=0.3){ score+=15; reasons.push("azienda parziale"); }
-      if(pc.includes(cc)||cc.includes(pc)){ score+=20; if(!reasons.some(r=>r.includes("azienda"))) reasons.push("nome contenuto"); }
+      if(pc.includes(cc)||cc.includes(pc)){
+        // Verifica che il "core" sia significativo (almeno 2 token o 4+ chars)
+        const shorter=cc.length<pc.length?cc:pc;
+        if(shorter.length>=4||tokenize(shorter).length>=2){
+          score+=20; if(!reasons.some(r=>r.includes("azienda"))) reasons.push("nome contenuto");
+        }
+      }
     }
-    if(ce&&pe&&ce===pe){ score+=40; reasons.push("email"); }
-    else if(cd&&pd&&cd===pd){ score+=25; reasons.push("dominio email"); }
+
+    // --- EMAIL ---
+    if(ce&&pe&&ce===pe){ score+=40; reasons.push("email esatta"); }
+    else if(cd&&pd&&cd===pd&&!isGenericEmail){ score+=30; reasons.push("dominio email"); }
+    // Cross: email biglietto ↔ contatti partner
     if(ce&&p.contacts){
       for(const c of p.contacts){
-        if(c.email&&c.email.toLowerCase().trim()===ce){ score+=40; reasons.push("email contatto"); break; }
+        if(c.email&&c.email.toLowerCase().trim()===ce){ score+=40; reasons.push("email contatto WCA"); break; }
       }
-      if(cd&&!reasons.includes("dominio email")){
-        for(const c of p.contacts){ if(c.email&&extractDomain(c.email)===cd){ score+=20; reasons.push("dominio contatto"); break; }}
+      if(cd&&!isGenericEmail&&!reasons.includes("dominio email")){
+        for(const c of p.contacts){ if(c.email&&extractDomain(c.email)===cd){ score+=25; reasons.push("dominio contatto"); break; }}
       }
     }
-    if(cWeb&&pw&&(cWeb===pw||cWeb.includes(pw)||pw.includes(cWeb))){ score+=25; reasons.push("website"); }
-    if(cd&&pw&&(pw.includes(cd)||cd.includes(pw.replace(/\..*/,"")))){ score+=15; if(!reasons.some(r=>r.includes("dominio"))) reasons.push("dominio/web"); }
+
+    // --- WEBSITE / DOMINIO CROSS-CHECK ---
+    if(cWeb&&pw&&(cWeb===pw||cWeb.includes(pw)||pw.includes(cWeb))){ score+=30; reasons.push("website"); }
+    // Cross: dominio email biglietto ↔ website partner
+    if(cd&&!isGenericEmail&&pWebDomain&&(pWebDomain.includes(cd.replace(/\.[^.]+$/,""))||cd.includes(pWebDomain.replace(/\.[^.]+$/,"")))){
+      if(!reasons.some(r=>r.includes("dominio")&&r.includes("web"))){ score+=20; reasons.push("email↔web"); }
+    }
+    // Cross: website biglietto ↔ email partner
+    if(cWebDomain&&pd&&(cWebDomain.includes(pd.replace(/\.[^.]+$/,""))||pd.includes(cWebDomain.replace(/\.[^.]+$/,"")))){
+      if(!reasons.some(r=>r.includes("web"))){ score+=20; reasons.push("web↔email"); }
+    }
+
+    // --- TELEFONO ---
     if(cp.length>=6&&pp.length>=6){
       if(cp===pp){ score+=30; reasons.push("telefono"); }
       else if(cp.slice(-8)===pp.slice(-8)){ score+=20; reasons.push("tel parziale"); }
     }
+    // Controlla anche telefoni dei contatti
+    if(cp.length>=6&&p.contacts){
+      for(const c of p.contacts){
+        const cPhone=(c.direct_line||c.mobile||"").replace(/\D/g,"");
+        if(cPhone.length>=6&&(cp===cPhone||cp.slice(-8)===cPhone.slice(-8))){
+          if(!reasons.includes("telefono")){ score+=20; reasons.push("tel contatto"); }
+          break;
+        }
+      }
+    }
+
+    // --- CONTATTO/PERSONA ---
     if(cContact&&p.contacts){
       for(const c of p.contacts){
         const pn=normalize(c.name);
@@ -582,74 +621,107 @@ function matchCard(card, partners){
         else if(pn&&tokenOverlap(cContact,pn)>=0.5){ score+=12; reasons.push("contatto simile"); break; }
       }
     }
-    if(cCity&&pCity&&(cCity.includes(pCity)||pCity.includes(cCity))){ score+=5; }
+
+    // --- VALIDAZIONE GEOGRAFICA (bonus/malus) ---
+    if(cCountry&&pCountry){
+      if(cCountry===pCountry){
+        score+=8; reasons.push("stesso paese");
+        // Bonus città
+        if(cCity&&pCity&&(cCity.includes(pCity)||pCity.includes(cCity))){ score+=5; reasons.push("stessa città"); }
+      } else if(score>=30){
+        // Paese diverso con altri segnali forti: potrebbe essere filiale, leggera penalità
+        score-=5;
+        reasons.push("paese diverso ("+pCountry+")");
+      }
+    }
 
     if(score>bestScore){ bestScore=score; bestMatch=p; bestReason=reasons.join(" + "); }
   }
 
   let matchType="not-found";
-  if(bestScore>=40) matchType="found";
-  else if(bestScore>=15) matchType="partial";
+  if(bestScore>=45) matchType="found";
+  else if(bestScore>=18) matchType="partial";
   else { bestMatch=null; bestReason=""; }
   return { partner:bestMatch, score:bestScore, reason:bestReason, type:matchType };
 }
 
 // ==================== AI-POWERED WCA MATCHING ====================
 const AI_MATCH_KB = `
-KNOWLEDGE BASE — WCA PARTNER MATCHING
-======================================
-Sei un esperto di logistica internazionale e freight forwarding. Il tuo compito è verificare
-se un contatto da biglietto da visita corrisponde a un partner WCA (World Cargo Alliance).
+KNOWLEDGE BASE — WCA PARTNER MATCHING (v2)
+=============================================
+Sei un esperto senior di logistica internazionale, spedizioni, freight forwarding e supply chain.
+Il tuo compito: determinare se un biglietto da visita raccolto a una fiera corrisponde a un partner
+iscritto alla rete WCA (World Cargo Alliance) o a una delle sue sotto-reti.
 
-REGOLE DI MATCHING (dalla più affidabile alla meno):
+═══ STRATEGIA DI MATCHING — PRIORITÀ DECRESCENTE ═══
 
-1. MATCH ESATTO AZIENDA (confidenza ALTA):
-   - Stesso nome azienda dopo normalizzazione (rimuovi Ltd, GmbH, Srl, Inc, LLC, Pte, Co, etc.)
-   - "ABC Logistics Pte Ltd" = "ABC Logistics" = "ABC Logistics Co., Ltd"
-   - Attenzione a acronimi: "KWE" potrebbe essere "Kintetsu World Express"
+LIVELLO 1 — IDENTITÀ CERTA (confidenza 90-100):
+• Dominio email aziendale identico (email biglietto @acme.com ↔ partner email/website acme.com)
+  → Ignora provider generici: gmail, yahoo, hotmail, outlook, aol, qq, 163, naver, hanmail
+  → Controlla varianti: acme-logistics.com ≈ acmelogistics.com ≈ acmelog.com
+• Email contatto esatto: l'email del biglietto appare nella lista contacts[] del partner
+• Website identico dopo normalizzazione (rimuovi www, http, trailing slash)
 
-2. MATCH DOMINIO EMAIL/WEBSITE (confidenza ALTA):
-   - Stesso dominio email → stessa azienda (es. @abclog.com = abclog.com)
-   - Controlla varianti: abc-logistics.com vs abclogistics.com
-   - Dominio aziendale (non gmail/yahoo/hotmail) è forte indicatore
+LIVELLO 2 — NOME AZIENDA + GEOGRAFIA (confidenza 70-90):
+• Nome azienda match esatto dopo pulizia suffissi legali (Ltd, GmbH, Srl, Inc, LLC, Pte, Co, SA, BV, AS, AG, NV, Pvt, Corp, SpA)
+  + Stesso paese → 90%
+  + Paese diverso → 75% (potrebbe essere filiale, verifica indirizzo)
+• Nome azienda contenuto: "DHL Global Forwarding Italy" contiene "DHL Global Forwarding" → match
+  ATTENZIONE: il nome contenuto deve essere il "core" (≥2 token significativi), non solo "Global" o "Express"
+• Acronimi noti del freight forwarding:
+  KWE = Kintetsu World Express, DSV = DSV (ex Panalpina/UTi), DB = DB Schenker,
+  KN = Kuehne+Nagel, CMA = CMA CGM, MSC = Mediterranean Shipping,
+  CEVA = CEVA Logistics, XPO = XPO Logistics, CH Robinson,
+  Expeditors = Expeditors Int'l, Bolloré = Bolloré Logistics
+• Filiali e branch: "NOME AZIENDA + NOME PAESE/CITTÀ" è spesso una filiale
+  Es: "Agility Italy" = "Agility Logistics" (filiale italiana)
 
-3. MATCH TELEFONO (confidenza MEDIA-ALTA):
-   - Stesso numero (ignora prefisso internazionale e formato)
-   - Ultime 8 cifre uguali → probabile match
+LIVELLO 3 — SEGNALI DI SUPPORTO (confidenza 50-70):
+• Telefono: ultime 8+ cifre identiche (ignora prefisso internazionale)
+  → Il prefisso telefonico DEVE essere coerente col paese dichiarato
+    +39=IT, +49=DE, +65=SG, +44=UK, +1=US/CA, +86=CN, +91=IN, +81=JP, +82=KR, +971=AE
+  → Se il prefisso contraddice il paese → segnala anomalia
+• Nome contatto trovato nella lista contacts[] del partner WCA
+  → Nomi occidentali: match su nome+cognome → forte
+  → Nomi asiatici comuni (Lee, Wang, Kim, Chen, Singh, Nguyen): match solo se abbinato ad altro segnale
+• Indirizzo/Città: stessa città del partner rafforza il match
+  → Confronta la città del biglietto con l'indirizzo del partner (estrai la città dall'address)
 
-4. MATCH CONTATTO/PERSONA (confidenza MEDIA):
-   - Nome persona trovato nella lista contatti del partner WCA
-   - Attenzione a nomi comuni in Asia (Lee, Wang, Kim, etc.)
+LIVELLO 4 — MATCH DEBOLE / NEGATIVO (confidenza 20-49):
+• Solo nome parziale simile senza conferma geografica o contatto
+• Settore simile ma nessun segnale forte
+• Paese diverso senza spiegazione (non è una filiale nota)
 
-5. MATCH GEOGRAFICO + SETTORE (confidenza BASSA, solo supporto):
-   - Stesso paese + settore simile rafforza un match debole
-   - NON sufficiente da solo per dichiarare un match
+═══ VARIANTI NOMI NEL FREIGHT FORWARDING ═══
+Sinonimi da considerare equivalenti durante il confronto nomi:
+Freight / Frt / Fwd / Forwarding | Logistics / Log / Logistic | International / Int'l / Intl
+Shipping / Ship | Transport / Trans / Transportation | Global / Worldwide / World
+Express / Exp | Cargo | Supply Chain / SCM | Solutions / Svcs / Services
+ATTENZIONE: queste parole sono MOLTO comuni nel settore. "Atlas Logistics" e "Zenith Logistics"
+NON sono la stessa azienda solo perché condividono "Logistics". Il core name deve matchare.
 
-VARIANTI NOMI AZIENDALI COMUNI NEL FREIGHT FORWARDING:
-- "Freight" / "Frt" / "Fwd" → stessa cosa
-- "Logistics" / "Log" / "Logistic" → stessa cosa
-- "International" / "Int'l" / "Intl" → stessa cosa
-- "Shipping" / "Ship" → stessa cosa
-- "Transport" / "Trans" → stessa cosa
-- "Global" / "Worldwide" / "World" → spesso intercambiabili
-- "Express" / "Exp" → stessa cosa
-- "Cargo" / "Air Cargo" / "Sea Cargo" → varianti
-- "Supply Chain" / "SCM" → stessa cosa
-- Suffissi legali per paese: Pte Ltd (SG), GmbH (DE), Srl (IT), SA (FR/ES), BV (NL), AS (NO/DK/TR)
+═══ ANTI-PATTERN: FALSI POSITIVI DA EVITARE ═══
+• Due aziende diverse che operano nello stesso settore nello stesso paese
+• Nomi generici come "Global Logistics", "Express Cargo", "International Freight" — cercare elementi
+  distintivi (nome proprio, acronimo, fondatore) prima di dichiarare match
+• Email su provider generico (gmail etc.) — NON usare come segnale positivo
+• Nome contatto comune senza altri segnali — NON è un match
 
-CASI SPECIALI:
-- Una persona può lavorare per una filiale/branch del partner WCA
-- Il biglietto da visita potrebbe riportare il nome della filiale locale, non della casa madre
-- Controlla se il dominio email del biglietto corrisponde al website del partner WCA
-- Se il WCA partner ha "contacts" con email che matchano → MATCH FORTE
+═══ VERIFICA GEOGRAFICA ═══
+Il paese è un VALIDATORE CRUCIALE:
+• Stesso nome + stesso paese → rafforza molto il match
+• Stesso nome + paese diverso → potrebbe essere filiale, ma richiede verifica
+  (controlla se il partner WCA ha enrolled_offices in quel paese)
+• Se il biglietto ha città e il partner WCA ha indirizzo, confrontali
+• Il prefisso telefonico deve essere coerente col paese dichiarato
 
-OUTPUT per ogni contatto:
-- match_type: "found" (confidenza ≥80%), "partial" (confidenza 40-79%), "not-found" (<40%)
-- confidence: numero 0-100
-- reason: spiegazione breve in italiano del perché è un match o no
-- wca_id: ID del partner WCA matchato (se trovato)
-- company_name_wca: nome azienda WCA matchata
-- suggestion: suggerimento per l'utente (es. "Verificare manualmente - nome simile ma paese diverso")
+═══ OUTPUT PER OGNI CONTATTO ═══
+- match_type: "found" (confidenza ≥75%), "partial" (40-74%), "not-found" (<40%)
+- confidence: numero 0-100 basato sui livelli sopra
+- reason: spiegazione CONCISA in italiano (max 2 frasi) di quali segnali hai trovato
+- wca_id: ID numerico del partner WCA matchato (null se not-found)
+- company_name_wca: nome azienda WCA (null se not-found)
+- suggestion: consiglio operativo per l'utente (es. "Verificare filiale", "Dominio email identico", "Nome simile ma paese diverso — controllare")
 `;
 
 async function aiMatchAll(){
@@ -664,15 +736,19 @@ async function aiMatchAll(){
   btn.disabled=true;
   btn.innerHTML="⏳ Analisi AI...";
 
-  // Prepare compact partner list for AI context
-  const partnersSummary=allPartners.slice(0,500).map(p=>{
+  // Prepare compact partner list for AI context — include ALL partners
+  const partnersSummary=allPartners.map(p=>{
     const emails=[p.email||""];
     if(Array.isArray(p.contacts)) p.contacts.forEach(c=>{ if(c.email) emails.push(c.email); });
     const contactNames=Array.isArray(p.contacts)?p.contacts.map(c=>c.name).filter(Boolean):[];
+    const phones=[p.phone||""];
+    if(Array.isArray(p.contacts)) p.contacts.forEach(c=>{ if(c.direct_line) phones.push(c.direct_line); if(c.mobile) phones.push(c.mobile); });
     return {
       wca_id:p.wca_id, name:p.company_name, cc:p.country_code,
+      city:p.city||"", addr:(p.address||"").substring(0,80),
       emails:emails.filter(Boolean).join(","),
-      phone:p.phone||"", web:p.website||"",
+      phones:phones.filter(Boolean).join(","),
+      web:p.website||"",
       contacts:contactNames.join(",")
     };
   });
@@ -685,33 +761,43 @@ async function aiMatchAll(){
     btn.innerHTML=`⏳ AI ${i}/${cards.length}...`;
 
     const cardsBatch=batch.map(c=>({
-      id:c.id, company:c.company_name, name:c.contact_name,
-      email:c.email, phone:c.phone, city:c.city,
-      country:c.country, web:c.website, position:c.position,
-      current_match:c._match?.type||"not-found",
-      current_score:c._match?.score||0,
-      current_partner:c._match?.partner?.company_name||""
+      id:c.id, company:c.company_name, contact:c.contact_name,
+      email:c.email, phone:c.phone, city:c.city, address:c.address||"",
+      country:c.country, country_code:c.country_code||"", web:c.website, role:c.position,
+      algo_match:c._match?.type||"not-found",
+      algo_score:c._match?.score||0,
+      algo_partner:c._match?.partner?.company_name||"",
+      algo_reason:c._match?.reason||""
     }));
+
+    // Per ridurre token: se ci sono troppi partner, manda solo quelli dello stesso paese + top 200
+    let relevantPartners=partnersSummary;
+    if(partnersSummary.length>300){
+      const batchCountries=new Set(batch.map(c=>(c.country_code||"").toUpperCase()).filter(Boolean));
+      const sameCountry=partnersSummary.filter(p=>batchCountries.has((p.cc||"").toUpperCase()));
+      const others=partnersSummary.filter(p=>!batchCountries.has((p.cc||"").toUpperCase())).slice(0,300);
+      relevantPartners=[...sameCountry,...others];
+    }
 
     const prompt=`${AI_MATCH_KB}
 
-PARTNER WCA DISPONIBILI (${allPartners.length} totali, mostro i primi 500):
-${JSON.stringify(partnersSummary)}
+═══ PARTNER WCA DATABASE (${allPartners.length} totali, ${relevantPartners.length} rilevanti): ═══
+${JSON.stringify(relevantPartners)}
 
-CONTATTI DA VERIFICARE:
+═══ BIGLIETTI DA VISITA DA ANALIZZARE: ═══
 ${JSON.stringify(cardsBatch)}
 
-Per ogni contatto, analizza TUTTI i campi e confrontali con i partner WCA.
-Il sistema ha già fatto un match algoritmico (current_match/current_score/current_partner).
-Tu devi:
-1. CONFERMARE o CORREGGERE il match esistente
-2. TROVARE match che l'algoritmo potrebbe aver perso (es. acronimi, filiali, varianti nome)
-3. SPIEGARE il ragionamento
+ISTRUZIONI OPERATIVE:
+1. Per OGNI biglietto, confronta sistematicamente: dominio email ↔ email/website partner, nome azienda ↔ nomi partner (con normalizzazione), telefono, nome contatto, paese+città.
+2. L'algoritmo ha già prodotto un match (algo_match/algo_partner). CONFERMA se corretto, CORREGGI se errato, MIGLIORA se hai trovato un match migliore.
+3. CERCA match che l'algoritmo non ha trovato: acronimi, filiali, varianti nome, domini simili.
+4. Per i "partial" algoritmici: valuta se puoi promuoverli a "found" o retrocederli a "not-found" con ragionamento.
+5. SEGNALA anomalie: prefisso tel ≠ paese, email generica su provider pubblico, nome azienda troppo generico.
 
-Rispondi con un JSON array, un oggetto per contatto:
-[{"id":"uuid","match_type":"found|partial|not-found","confidence":85,"wca_id":"...","company_name_wca":"...","reason":"...","suggestion":"..."}]
-
-Rispondi SOLO con il JSON array, nient'altro.`;
+FORMATO RISPOSTA — JSON array, un oggetto per biglietto:
+[{"id":"uuid","match_type":"found|partial|not-found","confidence":0-100,"wca_id":123,"company_name_wca":"...","reason":"...","suggestion":"..."}]
+Se not-found: wca_id=null, company_name_wca=null.
+Rispondi SOLO con il JSON array.`;
 
     try{
       const r=await fetch("https://api.openai.com/v1/chat/completions",{
