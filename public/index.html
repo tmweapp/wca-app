@@ -1429,6 +1429,9 @@ tr:hover td {
         <button id="btnSyncDir" onclick="toggleDirSync()" title="Scarica Directory Globale (tutti i paesi) — clicca per avviare/fermare" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:30px;border:1px solid rgba(255,255,255,0.12);border-radius:6px;background:rgba(255,255,255,0.02);cursor:pointer;opacity:.5;transition:all .2s" onmouseover="this.style.opacity='1';this.style.background='rgba(14,165,233,0.08)'" onmouseout="this.style.opacity=dirSyncing?'1':'.5';this.style.background=dirSyncing?'rgba(14,165,233,0.06)':'rgba(255,255,255,0.02)'">
           <svg id="syncDirIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0ea5e9" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         </button>
+        <button id="btnResetDir" onclick="resetDirectoryCache()" title="Resetta cache directory (localStorage)" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:30px;border:1px solid rgba(255,255,255,0.12);border-radius:6px;background:rgba(255,255,255,0.02);cursor:pointer;opacity:.4;transition:all .2s" onmouseover="this.style.opacity='1';this.style.background='rgba(239,68,68,0.08)'" onmouseout="this.style.opacity='.4';this.style.background='rgba(255,255,255,0.02)'">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="1.5"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
+        </button>
         <button id="btnBell" onclick="toggleNotifications()" style="position:relative;display:inline-flex;align-items:center;justify-content:center;width:36px;height:30px;border:1px solid rgba(255,255,255,0.12);border-radius:6px;background:rgba(255,255,255,0.02);cursor:pointer;opacity:.4;transition:all .2s" title="Notifiche" onmouseover="this.style.opacity='.9';this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.opacity='.4';this.style.background='rgba(255,255,255,0.02)'">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" stroke-width="1.5"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
           <span id="bellBadge" style="position:absolute;top:-2px;right:-2px;font-size:.48rem;min-width:11px;height:11px;line-height:11px;text-align:center;padding:0 2px;border-radius:6px;background:#ef4444;color:white;font-weight:700;display:none"></span>
@@ -2024,6 +2027,22 @@ function stopDirSync(){
   }
 }
 
+function resetDirectoryCache(){
+  if(!confirm("Cancellare tutta la cache directory locale?\n\nI dati in Supabase NON verranno toccati.\nPotrai ricaricarli da Supabase o riscaricarli da WCA.")) return;
+  const allCountries = getAllCountryList();
+  let removed = 0;
+  for(const c of allCountries){
+    const key = "wca_fulldir_" + c.code;
+    if(localStorage.getItem(key)){ localStorage.removeItem(key); removed++; }
+    const dirKey = "wca_dir_" + c.code;
+    if(localStorage.getItem(dirKey)) localStorage.removeItem(dirKey);
+  }
+  localStorage.removeItem("wca_dir_sync_state");
+  localStorage.removeItem("wca_dir_backfill_done");
+  updateDirHeaderCounts();
+  log(`🗑 Cache directory resettata: ${removed} paesi rimossi dal localStorage`,"ok");
+}
+
 // Conta totale partner e paesi nelle directory locali
 function updateDirHeaderCounts(){
   let totalMembers = 0;
@@ -2080,9 +2099,43 @@ async function loadDirectoryFromSupabase(countryCode){
   return null;
 }
 
+// ═══ BACKFILL: pusha directory localStorage → Supabase ═══
+async function backfillDirectoryToSupabase(){
+  const allCountries = getAllCountryList();
+  let pushed = 0, skipped = 0;
+  for(const c of allCountries){
+    const dir = getFullDirectory(c.code);
+    if(!dir || !dir.members || dir.members.length === 0){ skipped++; continue; }
+    try {
+      await fetch(API+"/api/save-directory",{
+        method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({ countryCode: c.code, members: dir.members })
+      });
+      pushed++;
+      if(pushed % 10 === 0) log(`📤 Backfill Supabase: ${pushed} paesi...`,"ok");
+    } catch(e){ console.log("backfill error:", c.code, e.message); }
+  }
+  if(pushed > 0){
+    log(`✅ Backfill completato: ${pushed} paesi pushati in Supabase`,"ok");
+    localStorage.setItem("wca_dir_backfill_done", "1");
+  }
+}
+
+// Auto-backfill al primo avvio se ci sono dati localStorage non ancora in Supabase
+setTimeout(()=>{
+  if(!localStorage.getItem("wca_dir_backfill_done")){
+    const allCountries = getAllCountryList();
+    const hasLocalData = allCountries.some(c => { const d = getFullDirectory(c.code); return d && d.members && d.members.length > 0; });
+    if(hasLocalData){
+      log("📤 Dati directory trovati in localStorage — backfill automatico in Supabase...","ok");
+      backfillDirectoryToSupabase();
+    }
+  }
+}, 3000);
+
 // Aggiorna contatori all'avvio — prima localStorage, poi Supabase
 setTimeout(updateDirHeaderCounts, 500);
-setTimeout(loadDirStatsFromSupabase, 2000);
+setTimeout(loadDirStatsFromSupabase, 4000);
 
 // Toggle: avvia/ferma sync directory
 function toggleDirSync(){
