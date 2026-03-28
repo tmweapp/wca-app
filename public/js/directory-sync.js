@@ -187,23 +187,32 @@ async function syncAllDirectories(forceResume){
 async function retryIncompleteDirectories(){
   if(dirSyncing){ log("Sync directory già in corso","warn"); return; }
 
-  // Trova tutti i paesi che hanno dati nella flag bar
+  // Trova paesi con IDs mancanti: confronta directory IDs (additiva) vs fullDirectory members
   const allCountries = getAllCountryList();
   const toRetry = [];
   for(const c of allCountries){
+    const dir = getDirectory(c.code);
     const fullDir = getFullDirectory(c.code);
-    if(fullDir && fullDir.members && fullDir.members.length > 0){
-      toRetry.push({ code: c.code, name: c.name, currentIds: fullDir.members.length });
+    if(!dir) continue;
+    const dirTotal = Object.keys(dir.ids).length;
+    const fullTotal = (fullDir && fullDir.members) ? fullDir.members.length : 0;
+    // Paese incompleto se: ha IDs nella directory ma fullDirectory ha meno members
+    if(dirTotal > 0 && fullTotal < dirTotal){
+      toRetry.push({ code: c.code, name: c.name, currentIds: fullTotal, expectedIds: dirTotal, missing: dirTotal - fullTotal });
     }
   }
 
   if(toRetry.length === 0){
-    log("📂 Nessun paese con directory da recuperare","ok");
+    log("✅ Nessun paese con IDs mancanti nella directory","ok");
     return;
   }
 
+  toRetry.sort((a,b) => b.missing - a.missing);
+
   const totalIdsBefore = toRetry.reduce((s, c) => s + c.currentIds, 0);
-  log(`📂 RETRY DIRECTORY: riscarico IDs da WCA per ${toRetry.length} paesi (attualmente ${totalIdsBefore.toLocaleString()} IDs)...`,"warn");
+  const totalMissing = toRetry.reduce((s, c) => s + c.missing, 0);
+  log(`📂 RETRY DIRECTORY: ${toRetry.length} paesi con ${totalMissing} IDs mancanti`,"warn");
+  log(`📂 Paesi: ${toRetry.map(c => c.name+'(-'+c.missing+')').join(', ')}`,"warn");
 
   dirSyncing = true;
   scraping = true;

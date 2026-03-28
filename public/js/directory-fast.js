@@ -50,13 +50,28 @@ async function discoverFastDirectory(countryCode, countryName){
     }
   }
 
-  // Calcola conteggi network dai dati estratti
+  // ═══ MERGE con directory esistente — non sovrascrivere mai con meno IDs ═══
+  const existing = getFullDirectory(countryCode);
+  const mergedMap = {};
+  // Prima: carica membri esistenti
+  if(existing && existing.members){
+    for(const m of existing.members) mergedMap[m.id] = m;
+  }
+  // Poi: aggiungi/aggiorna con i nuovi (i nuovi vincono se presenti)
+  for(const m of allMembers) mergedMap[m.id] = m;
+  const mergedMembers = Object.values(mergedMap);
+
+  // Calcola conteggi network dai dati mergiati
   const networkCounts = {};
-  for(const m of allMembers){
+  for(const m of mergedMembers){
     if(m.networks) for(const n of m.networks){ networkCounts[n] = (networkCounts[n]||0) + 1; }
   }
-  const result = { members: allMembers, networks: networkCounts, ts: Date.now() };
+  const result = { members: mergedMembers, networks: networkCounts, ts: Date.now() };
   saveFullDirectory(countryCode, result);
+
+  if(existing && existing.members && mergedMembers.length > allMembers.length){
+    log(`📂 ${countryName}: merge ${allMembers.length} nuovi + ${existing.members.length} esistenti = ${mergedMembers.length} totali`,"ok");
+  }
 
   // Aggiorna directory locale
   let dir = getDirectory(countryCode);
