@@ -1313,6 +1313,7 @@ tr:hover td {
       <span class="header-stat" style="background:rgba(167,139,250,0.1);border-color:rgba(167,139,250,0.25);color:#c4b5fd" data-tip="Paesi con directory locale scaricata"><span id="headerDirCountries">0</span> paesi</span>
       <span class="header-stat" style="background:rgba(16,185,129,0.1);border-color:rgba(16,185,129,0.25);color:#6ee7b7" data-tip="Partner salvati in Supabase DB"><span id="headerDbPartners">—</span> DB</span>
       <span class="header-stat" style="background:rgba(16,185,129,0.1);border-color:rgba(16,185,129,0.25);color:#6ee7b7" data-tip="Paesi salvati in Supabase DB"><span id="headerDbCountries">—</span> paesi DB</span>
+      <span id="dbFlash" style="display:none;background:rgba(16,185,129,0.18);border:1px solid rgba(16,185,129,0.35);color:#6ee7b7;padding:2px 10px;border-radius:8px;font-size:.72rem;font-weight:600;transition:opacity .3s;white-space:nowrap"></span>
     </div>
     <div class="header-actions" style="margin-left:auto">
       <button class="btn btn-secondary btn-sm" onclick="openAgenda()" data-tip="Apri l'agenda completa dei partner salvati">Agenda</button>
@@ -1791,11 +1792,12 @@ async function discoverFastDirectory(countryCode, countryName){
       const saveData = await saveResp.json();
       if(saveData.success){
         log(`💾 DB: ${countryName} — ${saveData.saved} salvati in Supabase`,"ok");
+        // Aggiorna contatori DB in tempo reale
+        const stats = await refreshDbCounters();
+        showDbFlash(countryCode, saveData.saved, stats || 0);
       } else {
         log(`⚠ DB: ${countryName} — errore salvataggio: ${saveData.error||"unknown"}`,"warn");
       }
-      // Aggiorna contatori DB in tempo reale
-      refreshDbCounters();
     } catch(e){ log(`⚠ DB save error ${countryName}: ${e.message}`,"warn"); }
   }
 
@@ -2060,6 +2062,19 @@ async function loadDirStatsFromSupabase(){
   } catch(e){ console.log("loadDirStats error:", e.message); }
 }
 
+// Flash bandiera + conteggio dopo ogni save-directory
+let dbFlashTimer = null;
+function showDbFlash(countryCode, saved, totalDb){
+  const el = document.getElementById("dbFlash");
+  if(!el) return;
+  const flag = countryFlag(countryCode);
+  el.textContent = `${flag} +${saved}  →  ${totalDb.toLocaleString()} tot`;
+  el.style.display = "inline-block";
+  el.style.opacity = "1";
+  if(dbFlashTimer) clearTimeout(dbFlashTimer);
+  dbFlashTimer = setTimeout(() => { el.style.opacity = "0"; setTimeout(() => { el.style.display = "none"; }, 400); }, 5000);
+}
+
 // Aggiorna contatori DB real-time (chiamata leggera dopo ogni save)
 async function refreshDbCounters(){
   try {
@@ -2070,8 +2085,10 @@ async function refreshDbCounters(){
       const dbC = document.getElementById("headerDbCountries");
       if(dbP) dbP.textContent = data.totalPartners.toLocaleString();
       if(dbC) dbC.textContent = data.totalCountries;
+      return data.totalPartners;
     }
   } catch(e){}
+  return 0;
 }
 
 // Carica directory di un paese da Supabase se non in localStorage
