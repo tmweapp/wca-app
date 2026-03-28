@@ -167,6 +167,7 @@ body{font-family:"SF Pro Display","Geist",'Inter',system-ui,sans-serif;backgroun
         <button onclick="nextPage()" id="btnNext" disabled>Succ &raquo;</button>
       </div>
     </div>
+    <div class="filter-bar" id="netFilter" style="display:none"></div>
     <div class="agenda-lines" id="agendaLines">
       <div class="empty-page">
         <div class="spinner"></div>
@@ -325,6 +326,7 @@ function renderSidebar(){
 
 function renderNetworkFilter(){
   const container = document.getElementById("netFilter");
+  if(!container) return;
   // Count networks across all members
   const netCounts = {};
   for(const m of allMembers){
@@ -339,6 +341,7 @@ function renderNetworkFilter(){
     html += `<span class="net-chip" data-domain="${domain}" onclick="toggleNetFilter('${domain}')">${logo} ${esc(name)} <span style="opacity:.5">${count}</span></span>`;
   }
   container.innerHTML = html;
+  container.style.display = html ? "flex" : "none";
 }
 
 function toggleNetFilter(domain){

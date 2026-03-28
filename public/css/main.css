@@ -367,17 +367,13 @@ body {
 .header-flags-row {
   display: flex;
   align-items: flex-start;
-  gap: 6px;
+  gap: 10px;
   flex-wrap: wrap;
-  padding: 4px 0;
+  padding: 8px 0 10px 0;
+  border-top: 1px solid rgba(255,255,255,0.04);
   min-height: 0;
   overflow: visible;
 }
-/* Layout a due pannelli */
-#leftPanel::-webkit-scrollbar { width: 4px; }
-#leftPanel::-webkit-scrollbar-thumb { background: rgba(99,102,241,0.3); border-radius: 2px; }
-#rightPanel::-webkit-scrollbar { width: 5px; }
-#rightPanel::-webkit-scrollbar-thumb { background: rgba(99,102,241,0.25); border-radius: 3px; }
 .flag-chip {
   display: flex;
   flex-direction: column;
