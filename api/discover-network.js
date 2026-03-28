@@ -21,21 +21,11 @@ module.exports = async (req, res) => {
     if (!networkDomain) return res.status(400).json({ error: "networkDomain richiesto" });
     if (!country) return res.status(400).json({ error: "country (ISO2) richiesto" });
 
-    let baseUrl, siteId, networkIds;
+    const networkInfo = NETWORK_DOMAINS[networkDomain];
+    if (!networkInfo) return res.status(400).json({ error: `Network sconosciuto: ${networkDomain}` });
 
-    if (networkDomain === "GLOBAL") {
-      // Ricerca globale su tutti i network
-      baseUrl = "https://www.wcaworld.com";
-      siteId = 24;
-      // Tutti i networkIds
-      networkIds = [1,2,3,4,5,13,15,16,18,22,38,61,98,107,108,118,124];
-    } else {
-      const networkInfo = NETWORK_DOMAINS[networkDomain];
-      if (!networkInfo) return res.status(400).json({ error: `Network sconosciuto: ${networkDomain}` });
-      baseUrl = networkInfo.base;
-      siteId = networkInfo.siteId;
-      networkIds = [siteId];
-    }
+    const baseUrl = networkInfo.base;
+    const siteId = networkInfo.siteId;
 
     // ═══ QUERY PARAMS ═══
     const params = new URLSearchParams();
@@ -49,12 +39,7 @@ module.exports = async (req, res) => {
     params.set("orderby", "CountryCity");
     params.set("submitted", "search");
     params.set("layout", "v1");
-    params.set("au", networkDomain === "GLOBAL" ? "m" : "");
-
-    // Aggiungi tutti i networkIds
-    for (const nid of networkIds) {
-      params.append("networkIds", nid);
-    }
+    params.append("networkIds", siteId);
 
     const directoryUrl = `${baseUrl}/Directory?${params.toString()}`;
     console.log(`[discover-network] Fetching ${networkDomain} ${country} → ${directoryUrl.substring(0, 100)}...`);

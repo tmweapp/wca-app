@@ -3780,8 +3780,8 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
   }
 
   // ═══════════════════════════════════════════════════════════════
-  // FASE 1: DIRECTORY — usa fast directory (1 call, con network)
-  // Se già in cache (da sync), la riusa; altrimenti la scarica
+  // FASE 1: DIRECTORY — usa full directory per-network
+  // Loop su tutti i network per trovare dove è presente ogni membro
   // ═══════════════════════════════════════════════════════════════
   let cached = getFullDirectory(country);
   let cacheAge = getFullDirAge(country);
@@ -3790,7 +3790,7 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
     const fromDb = await loadDirectoryFromSupabase(country);
     if(fromDb){ cached = fromDb; cacheAge = 0; }
   }
-  const fullDir = (cached && cacheAge < 24) ? cached : await discoverFastDirectory(country, countryName);
+  const fullDir = (cached && cacheAge < 24) ? cached : await discoverFullDirectory(country, countryName);
   if(!fullDir || fullDir.members.length === 0){
     log(`⚠ ${countryName}: nessun membro trovato nella directory`,"warn");
     return { ok:false, error:"no_members" };
