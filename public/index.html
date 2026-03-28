@@ -1302,7 +1302,7 @@ tr:hover td {
 
 <div class="header">
   <span id="dbFlash" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9999;background:linear-gradient(135deg,rgba(16,185,129,0.95),rgba(6,95,70,0.95));color:#fff;padding:14px 24px;font-size:1.1rem;font-weight:700;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,0.4);transition:opacity .4s;letter-spacing:0.5px;backdrop-filter:blur(8px)"></span>
-  <span id="appVersion" style="position:fixed;top:6px;right:12px;z-index:10000;font-size:0.7rem;color:#ffffff;font-family:'JetBrains Mono',monospace;opacity:0.9">v8</span>
+  <span id="appVersion" style="position:fixed;top:6px;right:12px;z-index:10000;font-size:0.7rem;color:#ffffff;font-family:'JetBrains Mono',monospace;opacity:0.9">v11</span>
   <div class="header-top" style="display:flex;align-items:center;gap:12px">
     <!-- Logo + Titolo a sinistra -->
     <img id="headerDragonLogo" src="logos/dragon.png" alt="Logo" style="width:42px;height:42px;object-fit:contain;filter:drop-shadow(0 3px 12px rgba(167,139,250,0.5))" onerror="this.src='https://dlldkrzoxvjxpgkkttxu.supabase.co/storage/v1/object/public/icons/dragon.png';this.onerror=function(){this.style.display='none'}">
@@ -1314,34 +1314,28 @@ tr:hover td {
       <span class="header-stat" style="background:rgba(14,165,233,0.1);border-color:rgba(14,165,233,0.25);color:#7dd3fc" data-tip="Partner totali censiti nelle directory locali"><span id="headerDirPartners">0</span> dir</span>
       <span class="header-stat" style="background:rgba(16,185,129,0.1);border-color:rgba(16,185,129,0.25);color:#6ee7b7" data-tip="Partner salvati in Supabase DB"><span id="headerDbPartners">—</span> DB</span>
       <span class="header-stat" style="background:rgba(16,185,129,0.1);border-color:rgba(16,185,129,0.25);color:#6ee7b7" data-tip="Paesi salvati in Supabase DB"><span id="headerDbCountries">—</span> paesi DB</span>
-      <button class="btn btn-secondary btn-sm" onclick="openResetPanel()" data-tip="Gestione dati e reset" style="color:#f87171;border-color:rgba(248,113,113,0.25);margin-left:4px">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="vertical-align:middle;margin-right:3px"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Reset
+      <!-- Icona Estensione -->
+      <a href="/wca-extension.zip" download title="Scarica estensione Chrome" style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border:1px solid rgba(255,255,255,0.12);border-radius:6px;background:rgba(255,255,255,0.02);cursor:pointer;text-decoration:none;transition:all .15s;margin-left:4px" onmouseover="this.style.background='rgba(99,102,241,0.08)'" onmouseout="this.style.background='rgba(255,255,255,0.02)'">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      </a>
+      <!-- Icona Non trovati -->
+      <button onclick="openVerifica()" title="Non trovati" style="position:relative;display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border:1px solid rgba(255,255,255,0.12);border-radius:6px;background:rgba(255,255,255,0.02);cursor:pointer;transition:all .15s" onmouseover="this.style.background='rgba(251,191,36,0.08)'" onmouseout="this.style.background='rgba(255,255,255,0.02)'">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <span id="failedCountHeader" style="position:absolute;top:-4px;right:-4px;font-size:.5rem;min-width:14px;height:14px;line-height:14px;text-align:center;padding:0 2px;border-radius:7px;background:#ef4444;color:white;font-weight:700;display:none">0</span>
       </button>
-      <button class="login-icon-btn off" id="btnLogin" onclick="doLogin()" data-tip="Login WCA — clicca per autenticarti">
+      <!-- Reset -->
+      <button onclick="openResetPanel()" title="Gestione dati e reset" style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border:1px solid rgba(248,113,113,0.25);border-radius:6px;background:rgba(255,255,255,0.02);cursor:pointer;transition:all .15s" onmouseover="this.style.background='rgba(239,68,68,0.08)'" onmouseout="this.style.background='rgba(255,255,255,0.02)'">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="1.5"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      </button>
+      <!-- Login -->
+      <button class="login-icon-btn off" id="btnLogin" onclick="doLogin()" data-tip="Login WCA">
         <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
       </button>
     </div>
   </div>
-  <!-- Menu bottoni al centro -->
-  <div style="display:flex;align-items:center;justify-content:center;gap:6px;padding:4px 0;border-top:1px solid rgba(255,255,255,0.04);flex-wrap:wrap">
-    <button class="btn btn-secondary btn-sm" onclick="openAgenda()" data-tip="Apri l'agenda completa dei partner salvati">Agenda</button>
-    <button class="btn btn-secondary btn-sm" onclick="window.open('directory.html','_blank')" data-tip="Sfoglia la directory completa di tutti i partner WCA" style="color:#a5b4fc;border-color:rgba(99,102,241,0.25)">📂 Directory</button>
-    <button class="btn btn-secondary btn-sm" onclick="window.open('business-cards.html','_blank')" data-tip="Importa e confronta biglietti da visita con i partner WCA">💼 Business Cards</button>
-    <a href="/wca-extension.zip" download class="btn btn-secondary btn-sm" style="text-decoration:none" data-tip="Scarica l'estensione Chrome per catturare i cookies WCA">Estensione</a>
-    <button class="btn btn-secondary btn-sm" onclick="openVerifica()" data-tip="Rivedi i profili non trovati e ritenta il download">Non trovati <span id="failedCountHeader">0</span></button>
-  </div>
-
-  <!-- ═══ TOOLBAR: ricerca + filtro network ═══ -->
-  <div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-top:1px solid rgba(255,255,255,0.04);flex-wrap:wrap">
-    <div id="fieldSearch" style="display:flex;align-items:center;gap:4px">
-      <input type="text" id="txtSearch" placeholder="Cerca partner..." class="field-input" style="width:180px;padding:6px 10px;font-size:.76rem">
-      <select id="selSearchBy" class="field-input" style="width:auto;min-width:80px;padding:6px 8px;font-size:.76rem">
-        <option value="">Paese</option>
-        <option value="company_name">Nome</option>
-        <option value="id_number">ID</option>
-      </select>
-    </div>
-    <div style="width:1px;height:22px;background:rgba(255,255,255,0.08)"></div>
+  <!-- Toolbar: Filtra Network a sinistra + bottoni al centro -->
+  <div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-top:1px solid rgba(255,255,255,0.04);flex-wrap:wrap">
+    <!-- Filtra Network a sinistra -->
     <button onclick="openNetworkPopup()" class="picker-btn" id="btnPickNetwork" style="display:inline-flex;align-items:center;flex-direction:row;padding:3px 10px;gap:4px;border-radius:8px;min-width:auto">
       <img src="https://dlldkrzoxvjxpgkkttxu.supabase.co/storage/v1/object/public/icons/satellite.png?v=2" class="picker-icon-img" alt="Network" style="width:20px;height:20px">
       <span style="font-size:.62rem;color:var(--text-muted)">Filtra Network</span>
@@ -1349,6 +1343,20 @@ tr:hover td {
     </button>
     <span id="networkSelCountInline" style="font-size:.68rem;color:var(--text-muted);padding:3px 10px;border-radius:6px;background:rgba(255,255,255,0.04)"></span>
     <div id="selectedNetworksTags" style="display:flex;flex-wrap:wrap;gap:4px"></div>
+    <div style="width:1px;height:22px;background:rgba(255,255,255,0.08);margin:0 2px"></div>
+    <!-- Bottoni al centro -->
+    <button onclick="openSearchPopup()" style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.02);cursor:pointer;color:var(--text-muted);font-size:.62rem;transition:all .15s" onmouseover="this.style.background='rgba(99,102,241,0.08)'" onmouseout="this.style.background='rgba(255,255,255,0.02)'">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      Cerca
+    </button>
+    <button class="btn btn-secondary btn-sm" onclick="openAgenda()" style="font-size:.62rem;padding:3px 10px">Agenda</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.open('directory.html','_blank')" style="font-size:.62rem;padding:3px 10px;color:#a5b4fc;border-color:rgba(99,102,241,0.25)">📂 Directory</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.open('business-cards.html','_blank')" style="font-size:.62rem;padding:3px 10px">💼 Business Cards</button>
+    <!-- campo nascosto per compatibilità JS -->
+    <div id="fieldSearch" style="display:none">
+      <input type="text" id="txtSearch" class="field-input">
+      <select id="selSearchBy" class="field-input"><option value="">Paese</option><option value="company_name">Nome</option><option value="id_number">ID</option></select>
+    </div>
   </div>
 
   <div class="header-flags-row" id="headerFlags"></div>
@@ -4778,6 +4786,33 @@ setInterval(()=>{ if(scraping || bgJobId) loadHeaderCounts(); }, 30000);
 // === THEME (Command Center — fixed) ===
 function setTheme(t) { /* no-op */ }
 
+// === SEARCH POPUP ===
+function openSearchPopup(){
+  document.getElementById("searchPopupOverlay").classList.add("open");
+  setTimeout(()=>document.getElementById("searchPopupInput").focus(), 100);
+}
+function closeSearchPopup(){
+  document.getElementById("searchPopupOverlay").classList.remove("open");
+}
+function applySearchPopup(){
+  const val = document.getElementById("searchPopupInput").value;
+  const by = document.getElementById("searchPopupBy").value;
+  document.getElementById("txtSearch").value = val;
+  document.getElementById("selSearchBy").value = by;
+  // Trigger search event
+  const evt = new Event("input", {bubbles:true});
+  document.getElementById("txtSearch").dispatchEvent(evt);
+  closeSearchPopup();
+}
+function clearSearchPopup(){
+  document.getElementById("searchPopupInput").value = "";
+  document.getElementById("searchPopupBy").value = "";
+  document.getElementById("txtSearch").value = "";
+  const evt = new Event("input", {bubbles:true});
+  document.getElementById("txtSearch").dispatchEvent(evt);
+  closeSearchPopup();
+}
+
 // === NETWORK POPUP ===
 function openNetworkPopup(){
   document.getElementById("networkPopupOverlay").classList.add("open");
@@ -5386,6 +5421,28 @@ setTimeout(addMonitorButton, 500);
 
 
 </script>
+
+<!-- SEARCH POPUP -->
+<div class="network-popup-overlay" id="searchPopupOverlay" onclick="if(event.target===this)closeSearchPopup()">
+  <div class="network-popup" style="max-width:400px">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px 12px;border-bottom:1px solid rgba(255,255,255,0.08)">
+      <h3 style="margin:0;font-size:.95rem;color:#a5b4fc">Cerca Partner</h3>
+      <button onclick="closeSearchPopup()" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:1.2rem;padding:4px">&times;</button>
+    </div>
+    <div style="padding:16px 20px;display:flex;flex-direction:column;gap:12px">
+      <select id="searchPopupBy" style="background:var(--bg-input,#1a1a2e);border:1px solid rgba(255,255,255,0.12);color:var(--text-primary,#ccc);padding:10px 12px;border-radius:8px;font-size:.82rem">
+        <option value="">Paese</option>
+        <option value="company_name">Nome</option>
+        <option value="id_number">ID</option>
+      </select>
+      <input type="text" id="searchPopupInput" placeholder="Digita la ricerca..." style="background:var(--bg-input,#1a1a2e);border:1px solid rgba(255,255,255,0.12);color:var(--text-primary,#ccc);padding:10px 12px;border-radius:8px;font-size:.88rem" onkeydown="if(event.key==='Enter')applySearchPopup()">
+      <div style="display:flex;gap:8px;justify-content:center;padding-top:4px">
+        <button onclick="clearSearchPopup()" style="padding:8px 24px;font-size:.82rem;border-radius:8px;background:rgba(255,255,255,0.06);color:var(--text-muted);border:none;cursor:pointer">Pulisci</button>
+        <button onclick="applySearchPopup()" style="padding:8px 30px;font-size:.82rem;font-weight:700;border-radius:8px;background:linear-gradient(135deg,#6366f1,#818cf8);color:#fff;border:none;cursor:pointer">Cerca</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- COUNTRY POPUP -->
 <div class="country-popup-overlay" id="countryPopupOverlay" onclick="if(event.target===this)closeCountryPopup()">
