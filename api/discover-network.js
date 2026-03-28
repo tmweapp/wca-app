@@ -1,15 +1,55 @@
 /**
  * api/discover-network.js — Discover membri di un network specifico per paese
  *
- * STRATEGY (in order):
- *   1. API endpoint /Api/directories/view con cookies SSO
- *   2. API endpoint senza auth (directory pubblica per listing base)
- *   3. Full HTML page /Directory con scraping classico
- *   4. Fallback: JSON API se disponibile
+ * STRATEGY:
+ *   1. JSON API /Api/directories/view con Basic auth (credentials dirette)
+ *   2. JSON API con cookies SSO
+ *   3. HTML page /Directory (fallback)
  */
 const fetch = require("node-fetch");
 const { ssoLogin, getCachedCookies, saveCookiesToCache, testCookies, UA } = require("./utils/auth");
 const { extractMembersFromHtml, NETWORK_DOMAINS } = require("./utils/extract");
+
+// Credenziali per Basic auth diretto
+const WCA_USER = process.env.WCA_USERNAME || "tmsrlmin";
+const WCA_PASS = process.env.WCA_PASSWORD || "G0u3v!VvCn";
+const BASIC_TOKEN = Buffer.from(`${WCA_USER}:${WCA_PASS}`).toString("base64");
+
+// Parsa la risposta JSON dell'API WCA e estrai i membri
+function parseApiJson(json) {
+  const members = [];
+  if (!json || !json.Companies || !Array.isArray(json.Companies)) return { members, totalResults: null };
+
+  for (const company of json.Companies) {
+    const id = company.CompanyId || company.Id || company.companyId;
+    if (!id) continue;
+    const name = company.CompanyName || company.Name || company.companyName || "";
+    const networks = [];
+    if (company.Networks && Array.isArray(company.Networks)) {
+      for (const n of company.Networks) {
+        const netName = n.NetworkName || n.Name || n.networkName || "";
+        if (netName) networks.push(netName.toLowerCase().replace(/\s+/g, ""));
+      }
+    }
+    if (company.NetworkLogos && Array.isArray(company.NetworkLogos)) {
+      for (const logo of company.NetworkLogos) {
+        const alt = logo.Alt || logo.alt || "";
+        if (alt && !networks.includes(alt.toLowerCase())) networks.push(alt.toLowerCase());
+      }
+    }
+    members.push({
+      id: parseInt(id),
+      name: name.trim(),
+      href: `/directory/members/${id}`,
+      networks,
+    });
+  }
+
+  let totalResults = json.TotalCount || json.TotalResults || json.totalCount || json.Ede?.TotalCount || null;
+  if (!totalResults && json.Companies) totalResults = json.Companies.length;
+
+  return { members, totalResults };
+}
 
 module.exports = async (req, res) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -28,40 +68,6 @@ module.exports = async (req, res) => {
 
     const { base: baseUrl, siteId } = networkInfo;
 
-    // ═══ AUTH ═══
-    let cookies = null;
-    let ssoCookies = null;
-    let wcaToken = null;
-    let authMethod = "none";
-
-    const cached = await getCachedCookies(networkDomain);
-    if (cached) {
-      cookies = cached.cookies;
-      ssoCookies = cached.ssoCookies || null;
-      const valid = await testCookies(cookies, baseUrl);
-      if (valid) {
-        authMethod = "cached";
-      } else {
-        cookies = null;
-        ssoCookies = null;
-      }
-    }
-    if (!cookies) {
-      console.log(`[discover-network] SSO login su ${baseUrl}...`);
-      const loginResult = await ssoLogin(null, null, baseUrl);
-      if (loginResult.success) {
-        cookies = loginResult.cookies;
-        ssoCookies = loginResult.ssoCookies || null;
-        wcaToken = loginResult.wcaToken || null;
-        authMethod = "sso";
-        console.log(`[discover-network] SSO OK, cookies=${cookies?.length}ch, hasAuth=${cookies?.includes('.ASPXAUTH')}, token=${!!wcaToken}`);
-        await saveCookiesToCache(cookies, networkDomain, ssoCookies || "");
-      } else {
-        console.log(`[discover-network] SSO fallito: ${loginResult.error}`);
-        authMethod = "sso_failed";
-      }
-    }
-
     // ═══ QUERY PARAMS ═══
     const params = new URLSearchParams();
     params.set("siteID", siteId);
@@ -77,125 +83,185 @@ module.exports = async (req, res) => {
     params.set("au", "");
     params.set("networkIds", siteId);
 
-    const debug = {
-      authMethod,
-      cookiesLength: cookies?.length || 0,
-      hasASPXAUTH: cookies?.includes('.ASPXAUTH') || false,
-      ssoCookiesLength: ssoCookies?.length || 0,
-      hasWcaToken: !!wcaToken,
-      strategies: [],
-    };
-
+    const debug = { strategies: [] };
     let allMembers = [];
     let totalResults = null;
     let isLoggedIn = false;
     let winningStrategy = "none";
 
-    // ═══ STRATEGY 1: API endpoint con cookies (ritorna HTML parziale) ═══
-    if (cookies) {
-      try {
-        const apiUrl = `${baseUrl}/Api/directories/view?${params.toString()}`;
-        const headers = {
+    // ═══ STRATEGY 1: JSON API con Basic auth diretto ═══
+    try {
+      const apiUrl = `${baseUrl}/Api/directories/view?${params.toString()}`;
+      const apiResp = await fetch(apiUrl, {
+        headers: {
           "User-Agent": UA,
-          "Cookie": cookies,
+          "Authorization": `Basic ${BASIC_TOKEN}`,
           "Accept": "application/json, text/html, */*",
           "X-Requested-With": "XMLHttpRequest",
           "Referer": `${baseUrl}/Directory`,
-        };
-        if (wcaToken) headers["Authorization"] = `Basic ${wcaToken}`;
+        },
+        timeout: 15000,
+      });
+      const apiText = await apiResp.text();
+      let apiJson = null;
+      try { apiJson = JSON.parse(apiText); } catch (e) { /* not json */ }
 
-        const apiResp = await fetch(apiUrl, { headers, timeout: 15000 });
-        const apiText = await apiResp.text();
-        const apiResult = extractMembersFromHtml(apiText);
+      if (apiJson) {
+        const jsonResult = parseApiJson(apiJson);
         debug.strategies.push({
-          name: "api_with_cookies",
+          name: "api_basic_auth",
           status: apiResp.status,
-          membersFound: apiResult.members.length,
-          totalResults: apiResult.totalResults,
+          isLoggedIn: apiJson.IsLoggedIn || false,
+          membersFound: jsonResult.members.length,
+          totalResults: jsonResult.totalResults,
+          companiesCount: apiJson.Companies?.length || 0,
+          keys: Object.keys(apiJson).join(","),
+          snippet: apiText.substring(0, 500),
+        });
+        console.log(`[discover] Strategy 1 (Basic auth): status=${apiResp.status} loggedIn=${apiJson.IsLoggedIn} members=${jsonResult.members.length}`);
+        if (jsonResult.members.length > 0) {
+          allMembers = jsonResult.members;
+          totalResults = jsonResult.totalResults;
+          isLoggedIn = true;
+          winningStrategy = "api_basic_auth";
+        }
+      } else {
+        // Risposta HTML — prova extractMembersFromHtml
+        const htmlResult = extractMembersFromHtml(apiText);
+        debug.strategies.push({
+          name: "api_basic_auth_html",
+          status: apiResp.status,
+          membersFound: htmlResult.members.length,
+          totalResults: htmlResult.totalResults,
           responseLength: apiText.length,
           snippet: apiText.substring(0, 500),
         });
-        console.log(`[discover-network] Strategy 1 (API+cookies): status=${apiResp.status} members=${apiResult.members.length} total=${apiResult.totalResults}`);
-        if (apiResult.members.length > 0) {
-          allMembers = apiResult.members;
-          totalResults = apiResult.totalResults;
+        if (htmlResult.members.length > 0) {
+          allMembers = htmlResult.members;
+          totalResults = htmlResult.totalResults;
           isLoggedIn = true;
-          winningStrategy = "api_with_cookies";
+          winningStrategy = "api_basic_auth_html";
         }
-      } catch (e) {
-        debug.strategies.push({ name: "api_with_cookies", error: e.message });
-        console.log(`[discover-network] Strategy 1 error: ${e.message}`);
       }
+    } catch (e) {
+      debug.strategies.push({ name: "api_basic_auth", error: e.message });
     }
 
-    // ═══ STRATEGY 2: API con cookies combinati (target + SSO) ═══
-    if (allMembers.length === 0 && cookies && ssoCookies) {
-      try {
-        const combinedCookies = cookies + "; " + ssoCookies;
-        const apiUrl = `${baseUrl}/Api/directories/view?${params.toString()}`;
-        const headers = {
-          "User-Agent": UA,
-          "Cookie": combinedCookies,
-          "Accept": "application/json, text/html, */*",
-          "X-Requested-With": "XMLHttpRequest",
-          "Referer": `${baseUrl}/Directory`,
-        };
-        if (wcaToken) headers["Authorization"] = `Basic ${wcaToken}`;
-
-        const apiResp = await fetch(apiUrl, { headers, timeout: 15000 });
-        const apiText = await apiResp.text();
-        const apiResult = extractMembersFromHtml(apiText);
-        debug.strategies.push({
-          name: "api_combined_cookies",
-          status: apiResp.status,
-          membersFound: apiResult.members.length,
-          totalResults: apiResult.totalResults,
-          responseLength: apiText.length,
-          snippet: apiText.substring(0, 500),
-        });
-        console.log(`[discover-network] Strategy 2 (API+combined): status=${apiResp.status} members=${apiResult.members.length}`);
-        if (apiResult.members.length > 0) {
-          allMembers = apiResult.members;
-          totalResults = apiResult.totalResults;
-          isLoggedIn = true;
-          winningStrategy = "api_combined_cookies";
-        }
-      } catch (e) {
-        debug.strategies.push({ name: "api_combined_cookies", error: e.message });
-      }
-    }
-
-    // ═══ STRATEGY 3: API senza auth (directory pubblica?) ═══
+    // ═══ STRATEGY 2: JSON API con SSO cookies ═══
     if (allMembers.length === 0) {
+      let cookies = null;
+      try {
+        const cached = await getCachedCookies(networkDomain);
+        if (cached) {
+          cookies = cached.cookies;
+          const valid = await testCookies(cookies, baseUrl);
+          if (!valid) cookies = null;
+        }
+        if (!cookies) {
+          const loginResult = await ssoLogin(null, null, baseUrl);
+          if (loginResult.success) {
+            cookies = loginResult.cookies;
+            await saveCookiesToCache(cookies, networkDomain, loginResult.ssoCookies || "");
+          }
+        }
+      } catch (e) { /* ignore auth errors */ }
+
+      if (cookies) {
+        try {
+          const apiUrl = `${baseUrl}/Api/directories/view?${params.toString()}`;
+          const apiResp = await fetch(apiUrl, {
+            headers: {
+              "User-Agent": UA,
+              "Cookie": cookies,
+              "Accept": "application/json, text/html, */*",
+              "X-Requested-With": "XMLHttpRequest",
+              "Referer": `${baseUrl}/Directory`,
+            },
+            timeout: 15000,
+          });
+          const apiText = await apiResp.text();
+          let apiJson = null;
+          try { apiJson = JSON.parse(apiText); } catch (e) { /* not json */ }
+
+          if (apiJson) {
+            const jsonResult = parseApiJson(apiJson);
+            debug.strategies.push({
+              name: "api_sso_cookies",
+              status: apiResp.status,
+              isLoggedIn: apiJson.IsLoggedIn || false,
+              membersFound: jsonResult.members.length,
+              keys: Object.keys(apiJson).join(","),
+              snippet: apiText.substring(0, 500),
+            });
+            if (jsonResult.members.length > 0) {
+              allMembers = jsonResult.members;
+              totalResults = jsonResult.totalResults;
+              isLoggedIn = true;
+              winningStrategy = "api_sso_cookies";
+            }
+          } else {
+            const htmlResult = extractMembersFromHtml(apiText);
+            debug.strategies.push({
+              name: "api_sso_cookies_html",
+              status: apiResp.status,
+              membersFound: htmlResult.members.length,
+              snippet: apiText.substring(0, 500),
+            });
+            if (htmlResult.members.length > 0) {
+              allMembers = htmlResult.members;
+              totalResults = htmlResult.totalResults;
+              winningStrategy = "api_sso_cookies_html";
+            }
+          }
+        } catch (e) {
+          debug.strategies.push({ name: "api_sso_cookies", error: e.message });
+        }
+      }
+    }
+
+    // ═══ STRATEGY 3: JSON API con cookie SSO + Basic auth insieme ═══
+    if (allMembers.length === 0) {
+      let cookies = null;
+      try {
+        const cached = await getCachedCookies(networkDomain);
+        if (cached) cookies = cached.cookies;
+      } catch (e) {}
+
       try {
         const apiUrl = `${baseUrl}/Api/directories/view?${params.toString()}`;
-        const apiResp = await fetch(apiUrl, {
-          headers: {
-            "User-Agent": UA,
-            "Accept": "application/json, text/html, */*",
-            "X-Requested-With": "XMLHttpRequest",
-            "Referer": `${baseUrl}/Directory`,
-          },
-          timeout: 15000,
-        });
+        const headers = {
+          "User-Agent": UA,
+          "Authorization": `Basic ${BASIC_TOKEN}`,
+          "Accept": "application/json, text/html, */*",
+          "X-Requested-With": "XMLHttpRequest",
+          "Referer": `${baseUrl}/Directory`,
+        };
+        if (cookies) headers["Cookie"] = cookies;
+
+        const apiResp = await fetch(apiUrl, { headers, timeout: 15000 });
         const apiText = await apiResp.text();
-        const apiResult = extractMembersFromHtml(apiText);
-        debug.strategies.push({
-          name: "api_no_auth",
-          status: apiResp.status,
-          membersFound: apiResult.members.length,
-          totalResults: apiResult.totalResults,
-          responseLength: apiText.length,
-          snippet: apiText.substring(0, 500),
-        });
-        console.log(`[discover-network] Strategy 3 (API no auth): status=${apiResp.status} members=${apiResult.members.length}`);
-        if (apiResult.members.length > 0) {
-          allMembers = apiResult.members;
-          totalResults = apiResult.totalResults;
-          winningStrategy = "api_no_auth";
+        let apiJson = null;
+        try { apiJson = JSON.parse(apiText); } catch (e) {}
+
+        if (apiJson) {
+          const jsonResult = parseApiJson(apiJson);
+          debug.strategies.push({
+            name: "api_basic_plus_cookies",
+            status: apiResp.status,
+            isLoggedIn: apiJson.IsLoggedIn || false,
+            membersFound: jsonResult.members.length,
+            keys: Object.keys(apiJson).join(","),
+            snippet: apiText.substring(0, 500),
+          });
+          if (jsonResult.members.length > 0) {
+            allMembers = jsonResult.members;
+            totalResults = jsonResult.totalResults;
+            isLoggedIn = true;
+            winningStrategy = "api_basic_plus_cookies";
+          }
         }
       } catch (e) {
-        debug.strategies.push({ name: "api_no_auth", error: e.message });
+        debug.strategies.push({ name: "api_basic_plus_cookies", error: e.message });
       }
     }
 
@@ -203,51 +269,66 @@ module.exports = async (req, res) => {
     if (allMembers.length === 0) {
       try {
         const directoryUrl = `${baseUrl}/Directory?${params.toString()}`;
-        const headers = { "User-Agent": UA, "Accept": "text/html,application/xhtml+xml" };
-        if (cookies) {
-          headers["Cookie"] = cookies;
-          headers["Referer"] = `${baseUrl}/Directory`;
+        const resp = await fetch(directoryUrl, {
+          headers: { "User-Agent": UA, "Accept": "text/html,application/xhtml+xml" },
+          redirect: "follow",
+          timeout: 15000,
+        });
+        const html = await resp.text();
+        const htmlResult = extractMembersFromHtml(html);
+
+        // Cerca wcaToken nel HTML
+        const tokenMatch = html.match(/window\.wca\.token\s*=\s*["']([^"']+)["']/) || html.match(/wca\.token\s*=\s*["']([^"']+)["']/);
+        const wcaToken = tokenMatch ? tokenMatch[1] : null;
+
+        debug.strategies.push({
+          name: "html_page",
+          status: resp.status,
+          membersFound: htmlResult.members.length,
+          totalResults: htmlResult.totalResults,
+          hasWcaToken: !!wcaToken,
+          hasReturnUrl: html.includes("ReturnUrl"),
+          htmlLength: html.length,
+        });
+
+        if (htmlResult.totalResults && !totalResults) totalResults = htmlResult.totalResults;
+
+        if (htmlResult.members.length > 0) {
+          allMembers = htmlResult.members;
+          totalResults = htmlResult.totalResults;
+          winningStrategy = "html_page";
         }
 
-        const resp = await fetch(directoryUrl, { headers, redirect: "follow", timeout: 15000 });
-
-        if (resp.url.toLowerCase().includes("/login")) {
-          debug.strategies.push({ name: "html_page", redirectedToLogin: true });
-        } else {
-          const html = await resp.text();
-          isLoggedIn = !html.includes('type="password"') && !html.includes('ReturnUrl=/MemberSection');
-          const hasLogout = /logout|sign.?out/i.test(html);
-          const htmlResult = extractMembersFromHtml(html);
-
-          if (!wcaToken) {
-            const tokenMatch = html.match(/window\.wca\.token\s*=\s*["']([^"']+)["']/) || html.match(/wca\.token\s*=\s*["']([^"']+)["']/);
-            if (tokenMatch) wcaToken = tokenMatch[1];
-          }
-
-          debug.strategies.push({
-            name: "html_page",
-            status: resp.status,
-            finalUrl: resp.url?.substring(0, 150),
-            membersFound: htmlResult.members.length,
-            totalResults: htmlResult.totalResults,
-            isLoggedIn,
-            hasLogout,
-            hasWcaToken: !!wcaToken,
-            htmlLength: html.length,
-            hasLiDirectoyname: (html.match(/class="directoyname"/g) || []).length,
-            hasLiDirectoryname: (html.match(/class="directoryname"/g) || []).length,
-            hasDirectoryMembers: (html.match(/\/directory\/members\//gi) || []).length,
-            hasPasswordField: html.includes('type="password"'),
-            hasReturnUrl: html.includes('ReturnUrl=/MemberSection'),
-            snippet: html.substring(0, 800),
+        // Se trovato wcaToken, prova API con quello
+        if (allMembers.length === 0 && wcaToken) {
+          const apiUrl = `${baseUrl}/Api/directories/view?${params.toString()}`;
+          const apiResp = await fetch(apiUrl, {
+            headers: {
+              "User-Agent": UA,
+              "Authorization": `Basic ${wcaToken}`,
+              "Accept": "application/json, text/html, */*",
+              "X-Requested-With": "XMLHttpRequest",
+            },
+            timeout: 15000,
           });
+          const apiText = await apiResp.text();
+          let apiJson = null;
+          try { apiJson = JSON.parse(apiText); } catch (e) {}
 
-          if (htmlResult.totalResults && !totalResults) totalResults = htmlResult.totalResults;
-
-          if (htmlResult.members.length > 0) {
-            allMembers = htmlResult.members;
-            totalResults = htmlResult.totalResults;
-            winningStrategy = "html_page";
+          if (apiJson) {
+            const jsonResult = parseApiJson(apiJson);
+            debug.strategies.push({
+              name: "api_wca_token",
+              isLoggedIn: apiJson.IsLoggedIn || false,
+              membersFound: jsonResult.members.length,
+              snippet: apiText.substring(0, 300),
+            });
+            if (jsonResult.members.length > 0) {
+              allMembers = jsonResult.members;
+              totalResults = jsonResult.totalResults;
+              isLoggedIn = true;
+              winningStrategy = "api_wca_token";
+            }
           }
         }
       } catch (e) {
@@ -255,45 +336,12 @@ module.exports = async (req, res) => {
       }
     }
 
-    // ═══ STRATEGY 5: API con wcaToken estratto dal HTML ═══
-    if (allMembers.length === 0 && wcaToken) {
-      try {
-        const apiUrl = `${baseUrl}/Api/directories/view?${params.toString()}`;
-        const apiResp = await fetch(apiUrl, {
-          headers: {
-            "User-Agent": UA,
-            "Cookie": cookies || "",
-            "Authorization": `Basic ${wcaToken}`,
-            "Accept": "application/json, text/html, */*",
-            "X-Requested-With": "XMLHttpRequest",
-            "Referer": `${baseUrl}/Directory`,
-          },
-          timeout: 15000,
-        });
-        const apiText = await apiResp.text();
-        const apiResult = extractMembersFromHtml(apiText);
-        debug.strategies.push({
-          name: "api_with_token",
-          status: apiResp.status,
-          membersFound: apiResult.members.length,
-          totalResults: apiResult.totalResults,
-          responseLength: apiText.length,
-          snippet: apiText.substring(0, 500),
-        });
-        if (apiResult.members.length > 0) {
-          allMembers = apiResult.members;
-          totalResults = apiResult.totalResults;
-          isLoggedIn = true;
-          winningStrategy = "api_with_token";
-        }
-      } catch (e) {
-        debug.strategies.push({ name: "api_with_token", error: e.message });
-      }
-    }
-
     const hasNext = allMembers.length >= pageSize;
     debug.winningStrategy = winningStrategy;
     debug.totalMembers = allMembers.length;
+    debug.basicTokenPreview = BASIC_TOKEN.substring(0, 10) + "...";
+
+    console.log(`[discover] ${networkDomain} ${country}: ${allMembers.length} members via ${winningStrategy}, total=${totalResults}`);
 
     return res.json({
       success: true,
