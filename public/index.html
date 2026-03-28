@@ -1112,6 +1112,20 @@ tr:hover td {
   display: flex; align-items: center; justify-content: center; font-size: 1.8rem; transition: all 0.3s; }
 .bc-open-btn:hover .bc-icon { background: rgba(99,102,241,0.2); box-shadow: 0 4px 16px rgba(99,102,241,0.2); }
 
+/* BC Upload Popup Overlay */
+.bc-upload-overlay {
+  display:none; position:fixed; inset:0; z-index:99990;
+  background:rgba(0,0,0,0.6); backdrop-filter:blur(8px);
+  align-items:center; justify-content:center;
+}
+.bc-upload-overlay.open { display:flex; }
+.bc-upload-popup {
+  background:var(--bg-card); border:1px solid var(--border-color);
+  border-radius:16px; padding:24px; width:90%; max-width:440px;
+  box-shadow:0 20px 60px rgba(0,0,0,0.5);
+}
+.bc-upload-popup h3 { margin:0 0 16px; font-size:.92rem; color:var(--text-primary); }
+
 /* ==================== LOG AREA ==================== */
 .log-area {
   background: rgba(0,0,0,0.25);
@@ -1302,7 +1316,7 @@ tr:hover td {
 
 <div class="header">
   <span id="dbFlash" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9999;background:linear-gradient(135deg,rgba(16,185,129,0.95),rgba(6,95,70,0.95));color:#fff;padding:14px 24px;font-size:1.1rem;font-weight:700;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,0.4);transition:opacity .4s;letter-spacing:0.5px;backdrop-filter:blur(8px)"></span>
-  <span id="appVersion" style="position:fixed;top:6px;right:12px;z-index:10000;font-size:0.7rem;color:#ffffff;font-family:'JetBrains Mono',monospace;opacity:0.9">v11</span>
+  <span id="appVersion" style="position:fixed;top:6px;right:12px;z-index:10000;font-size:0.7rem;color:#ffffff;font-family:'JetBrains Mono',monospace;opacity:0.9">v13</span>
   <div class="header-top" style="display:flex;align-items:center;gap:12px">
     <!-- Logo + Titolo a sinistra -->
     <img id="headerDragonLogo" src="logos/dragon.png" alt="Logo" style="width:42px;height:42px;object-fit:contain;filter:drop-shadow(0 3px 12px rgba(167,139,250,0.5))" onerror="this.src='https://dlldkrzoxvjxpgkkttxu.supabase.co/storage/v1/object/public/icons/dragon.png';this.onerror=function(){this.style.display='none'}">
@@ -1394,6 +1408,10 @@ tr:hover td {
         </button>
         <button id="btnStop" onclick="stopScraping()" disabled title="Stop" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:30px;border:1px solid rgba(255,255,255,0.12);border-radius:6px;background:rgba(255,255,255,0.02);cursor:pointer;opacity:.3;transition:all .2s" onmouseover="if(!this.disabled){this.style.opacity='1';this.style.background='rgba(239,68,68,0.08)'}" onmouseout="this.style.opacity=this.disabled?'.3':'.5';this.style.background='rgba(255,255,255,0.02)'">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="1.5"><rect x="6" y="6" width="12" height="12" rx="2" fill="#ef4444" opacity=".1"/><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+        </button>
+        <button id="btnTurbo" onclick="startTurbo()" title="⚡ TURBO — Usa dati Supabase, skip discovery, ogni profilo 1 volta" style="display:inline-flex;align-items:center;justify-content:center;height:30px;padding:0 10px;gap:4px;border:1px solid rgba(245,158,11,0.25);border-radius:6px;background:rgba(245,158,11,0.08);cursor:pointer;opacity:.7;transition:all .2s;font-size:.62rem;font-weight:700;color:#fbbf24;font-family:'JetBrains Mono',monospace" onmouseover="this.style.opacity='1';this.style.background='rgba(245,158,11,0.15)'" onmouseout="this.style.opacity='.7';this.style.background='rgba(245,158,11,0.08)'">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" fill="#fbbf24" opacity=".15"/><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          TURBO
         </button>
         <div style="width:1px;height:22px;background:rgba(255,255,255,0.08);margin:0 4px"></div>
         <button id="btnSyncDir" onclick="toggleDirSync()" title="Scarica Directory Globale (tutti i paesi) — clicca per avviare/fermare" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:30px;border:1px solid rgba(255,255,255,0.12);border-radius:6px;background:rgba(255,255,255,0.02);cursor:pointer;opacity:.5;transition:all .2s" onmouseover="this.style.opacity='1';this.style.background='rgba(14,165,233,0.08)'" onmouseout="this.style.opacity=dirSyncing?'1':'.5';this.style.background=dirSyncing?'rgba(14,165,233,0.06)':'rgba(255,255,255,0.02)'">
@@ -1550,23 +1568,14 @@ tr:hover td {
       </button>
       <div style="display:flex;gap:6px;align-items:center">
         <span id="bcTotalBadge" style="font-size:.72rem;color:var(--text-muted);padding:3px 10px;border-radius:6px;background:rgba(255,255,255,0.04)">0 contatti</span>
+        <button onclick="openBcUpload()" title="Importa file CSV/Excel" style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:28px;border:1px solid rgba(99,102,241,0.2);border-radius:6px;background:rgba(99,102,241,0.06);cursor:pointer;transition:all .2s" onmouseover="this.style.background='rgba(99,102,241,0.15)'" onmouseout="this.style.background='rgba(99,102,241,0.06)'">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        </button>
         <button class="btn btn-sm btn-danger" onclick="clearBusinessCards()" style="font-size:.62rem;display:none" id="bcClearBtn">Cancella tutto</button>
       </div>
     </div>
 
     <div class="bc-section" id="bcSection">
-      <!-- Drop zone -->
-      <div class="bc-dropzone" id="bcDropzone"
-           ondragover="event.preventDefault();this.classList.add('dragover')"
-           ondragleave="this.classList.remove('dragover')"
-           ondrop="handleBcDrop(event)"
-           onclick="document.getElementById('bcFileInput').click()">
-        <div style="font-size:2rem;margin-bottom:6px">📂</div>
-        <div>Trascina qui un file <strong>CSV</strong> o <strong>Excel</strong></div>
-        <div style="font-size:.72rem;color:var(--text-muted);margin-top:4px">oppure clicca per sfogliare</div>
-        <input type="file" id="bcFileInput" accept=".csv,.xlsx,.xls,.tsv" style="display:none" onchange="handleBcFile(this.files[0])">
-      </div>
-
       <!-- Stats -->
       <div class="bc-stats" id="bcStats" style="display:none">
         <span class="bc-stat" id="bcStatTotal">0 contatti</span>
@@ -1576,6 +1585,27 @@ tr:hover td {
 
       <!-- List -->
       <div class="bc-list" id="bcList"></div>
+    </div>
+
+    <!-- BC Upload Popup Overlay -->
+    <div class="bc-upload-overlay" id="bcUploadOverlay" onclick="if(event.target===this)closeBcUpload()">
+      <div class="bc-upload-popup">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+          <h3 style="margin:0">Importa Biglietti da Visita</h3>
+          <button onclick="closeBcUpload()" style="background:none;border:none;color:var(--text-muted);font-size:1.2rem;cursor:pointer">&times;</button>
+        </div>
+        <div class="bc-dropzone" id="bcDropzone"
+             ondragover="event.preventDefault();this.classList.add('dragover')"
+             ondragleave="this.classList.remove('dragover')"
+             ondrop="handleBcDrop(event)"
+             onclick="document.getElementById('bcFileInput').click()">
+          <div style="font-size:2rem;margin-bottom:6px">📂</div>
+          <div>Trascina qui un file <strong>CSV</strong> o <strong>Excel</strong></div>
+          <div style="font-size:.72rem;color:var(--text-muted);margin-top:4px">oppure clicca per sfogliare</div>
+          <input type="file" id="bcFileInput" accept=".csv,.xlsx,.xls,.tsv" style="display:none" onchange="handleBcFile(this.files[0])">
+        </div>
+        <div id="bcUploadStatus" style="margin-top:10px;font-size:.72rem;color:var(--text-muted);text-align:center"></div>
+      </div>
     </div>
   </div>
 
@@ -4211,6 +4241,262 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
   log(`═══ FASE 5 COMPLETATA: ${noNetDownloaded} scaricati, ${noNetSkipped} saltati ═══`,"ok");
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// TURBO — Procedura veloce che usa Supabase (IDs+networks già noti)
+// Salta completamente Phase 1 Discovery. Ogni profilo scaricato UNA sola volta.
+// ═══════════════════════════════════════════════════════════════════════════════
+async function scrapeDiscoverCountryTurbo(country, countryName, updateAddress = false){
+  currentScrapingCountry = country;
+  resetCompletedNetworks();
+  hideCountryCompletion();
+  setActiveCountry(country, countryName);
+  const MAX_TABS = 50;
+  const MAX_RETRIES = 2;
+  let consecutiveFailures = 0;
+  const doneIds = new Set();
+
+  // Carica ID già fatti dalla directory locale
+  const existingDir = getDirectory(country);
+  if(existingDir && !updateAddress){
+    Object.entries(existingDir.ids).forEach(([id, status]) => { if(status === "done") doneIds.add(parseInt(id)); });
+    if(doneIds.size > 0) log(`⚡ TURBO ${countryName}: ${doneIds.size} profili già completati`,"ok");
+  }
+
+  // === HELPER: scarica un profilo ===
+  async function downloadProfileTurbo(member, networkDomain, networkLabel){
+    let retries = 0;
+    while(retries <= MAX_RETRIES && scraping){
+      try {
+        const resp = await fetch(API+"/api/scrape",{
+          method:"POST",headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({wcaIds:[member.id], members: member.href ? [{id:member.id, href:member.href}] : [], networkDomain})
+        });
+        const data = await resp.json();
+        if(!data.success){
+          if(data.error && data.error.includes("SSO") && retries < MAX_RETRIES){
+            retries++; await sleepWithActivity("🔄", `SSO retry ${retries}/${MAX_RETRIES}`, 15000); continue;
+          }
+          return { ok:false, error: data.error };
+        }
+        const profile = data.results?.[0];
+        if(!profile) return { ok:false, error:"no_result" };
+        if(profile.state === "ok"){
+          scrapedProfiles.unshift(profile);
+          if(scrapedProfiles.length > MAX_TABS) scrapedProfiles.pop();
+          addScrapedTab(profile, 0);
+          trimScrapedTabs(MAX_TABS);
+          const limited = profile.access_limited ? " [LIMITATO]" : "";
+          log(`⚡ ${profile.company_name} (${profile.wca_id}) contatti:${profile.contacts?.length||0}${limited} [${networkLabel}]`,"ok");
+          saveToSupabase(profile);
+          markIdDone(country, profile.wca_id);
+          updateResultRow(profile.wca_id, "ok");
+          totalScraped++;
+          consecutiveFailures = 0;
+          updateScrapeStats({ downloaded: scrapeStats.downloaded + 1 });
+          return { ok:true, profile };
+        } else if(profile.state === "login_redirect" && retries < MAX_RETRIES){
+          retries++; await sleepWithActivity("🔑", `Sessione scaduta — retry ${retries}/${MAX_RETRIES}`, 15000); continue;
+        }
+        return { ok:false, state: profile.state };
+      } catch(e){
+        if(retries < MAX_RETRIES){ retries++; await sleepWithActivity("⚠️", `Errore rete — retry`, 10000); continue; }
+        return { ok:false, error: e.message };
+      }
+    }
+    return { ok:false, error:"stopped" };
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // TURBO FASE 1: CARICA DA SUPABASE (skip discovery WCA)
+  // ═══════════════════════════════════════════════════════════════
+  log(`⚡ TURBO ${countryName}: carico dati da Supabase...`,"ok");
+  setStatus(`⚡ TURBO: Caricamento da Supabase...`, true);
+  showActivity("⚡", `Carico directory ${countryName} da Supabase...`);
+
+  const fromDb = await loadDirectoryFromSupabase(country);
+  if(!fromDb || !fromDb.members || fromDb.members.length === 0){
+    log(`⚠ TURBO ${countryName}: nessun dato in Supabase! Devi prima fare il sync directory.`,"err");
+    setStatus(`⚠ TURBO: nessun dato in Supabase per ${countryName}`, true);
+    hideActivity();
+    return { ok:false, error:"no_supabase_data" };
+  }
+
+  const allMembers = fromDb.members;
+  log(`⚡ TURBO ${countryName}: ${allMembers.length} partner caricati da Supabase (Phase 1 SKIPPATA)`,"ok");
+
+  // Popola risultati
+  for(const m of allMembers){
+    if(!discoveredMembers.find(d => d.id === m.id)){
+      discoveredMembers.push({id:m.id, name:m.name, networks:m.networks});
+    }
+  }
+  document.getElementById("resultsCard").style.display = "block";
+  updateResultsTable();
+
+  updateScrapeStats({ found: allMembers.length, networkName: "TURBO", countryName, downloaded: 0, skipped: 0 });
+  notifyEvent(`⚡ TURBO ${countryName}: ${allMembers.length} partner da Supabase`);
+  refreshCountryCompletion();
+
+  // ═══════════════════════════════════════════════════════════════
+  // TURBO FASE 2: DOWNLOAD — ogni profilo UNA sola volta
+  // Sceglie il miglior network (primo della lista networks del membro)
+  // Se fallisce, prova gli alternativi. Nessun duplicato.
+  // ═══════════════════════════════════════════════════════════════
+  const toDownload = updateAddress
+    ? allMembers
+    : allMembers.filter(m => !doneIds.has(m.id));
+
+  if(toDownload.length === 0){
+    log(`⚡ TURBO ${countryName}: tutti i ${allMembers.length} partner già scaricati!`,"ok");
+    setStatus(`⚡ TURBO: ${countryName} già completo!`, true);
+    hideActivity();
+    markCountryCompleted(country, doneIds.size);
+    return { ok:true, total: allMembers.length, downloaded: 0 };
+  }
+
+  log(`⚡ TURBO ${countryName}: ${toDownload.length} da scaricare (${allMembers.length - toDownload.length} già fatti)`,"ok");
+
+  // Raggruppa per network preferito (primo della lista) per download ordinato
+  const byNetwork = {};
+  for(const m of toDownload){
+    // Scegli il miglior network: primo con siteId > 0, altrimenti wcaworld.com
+    let bestNet = "wcaworld.com";
+    if(m.networks && m.networks.length > 0){
+      const scannable = m.networks.find(n => {
+        const net = ALL_NETWORKS.find(a => a.domain === n);
+        return net && net.siteId > 0;
+      });
+      bestNet = scannable || m.networks[0] || "wcaworld.com";
+    }
+    if(!byNetwork[bestNet]) byNetwork[bestNet] = [];
+    byNetwork[bestNet].push(m);
+  }
+
+  let globalIdx = 0;
+  const networkDomains = Object.keys(byNetwork);
+  for(let ni = 0; ni < networkDomains.length && scraping; ni++){
+    const netDomain = networkDomains[ni];
+    const netMembers = byNetwork[netDomain];
+    const net = ALL_NETWORKS.find(n => n.domain === netDomain);
+    const netName = net?.name || netDomain;
+
+    setActiveNetwork(netDomain, netName);
+    log(`⚡ TURBO [${netName}]: ${netMembers.length} profili`,"ok");
+
+    for(let i = 0; i < netMembers.length && scraping; i++){
+      const member = netMembers[i];
+      if(doneIds.has(member.id) && !updateAddress){ globalIdx++; continue; }
+
+      globalIdx++;
+      setStatus(`⚡ TURBO [${netName}] ${globalIdx}/${toDownload.length} — ${member.name||member.id}`, true);
+      setProgress(globalIdx, toDownload.length);
+      showActivity("⚡", `TURBO ${netName} ${globalIdx}/${toDownload.length} — ${member.name||member.id}`);
+
+      const result = await downloadProfileTurbo(member, netDomain, netName);
+      if(result.ok){
+        doneIds.add(member.id);
+      } else {
+        // Prova network alternativi
+        const altNets = (member.networks || []).filter(d => d !== netDomain);
+        let rescued = false;
+        for(const altDomain of altNets){
+          if(!scraping) break;
+          const altNet = ALL_NETWORKS.find(n => n.domain === altDomain);
+          const altName = altNet?.name || altDomain;
+          const altResult = await downloadProfileTurbo(member, altDomain, altName);
+          if(altResult.ok){ doneIds.add(member.id); rescued = true; break; }
+        }
+        if(!rescued){
+          consecutiveFailures++;
+          updateScrapeStats({ skipped: scrapeStats.skipped + 1 });
+        }
+      }
+
+      if(consecutiveFailures >= 5){
+        log(`⛔ TURBO: troppi fallimenti su ${netName} — passo al prossimo`,"err");
+        consecutiveFailures = 0;
+        break;
+      }
+
+      if(i + 1 < netMembers.length && scraping){
+        const nextDelay = getNextDelay();
+        await sleepWithActivity("⏳", `Pausa ${Math.round(nextDelay/1000)}s — TURBO ${netName}`, nextDelay);
+      }
+    }
+
+    log(`⚡ TURBO ${netName} completato per ${countryName}`,"ok");
+    addCompletedNetworkLogo(netDomain, netName);
+  }
+
+  hideActivity();
+  log(`═══ ⚡ TURBO ${countryName} COMPLETATO: ${doneIds.size} profili scaricati ═══`,"ok");
+  markCountryCompleted(country, doneIds.size);
+  removeSuspendedJob(country);
+  saveScrapingState();
+  return { ok:true, total: allMembers.length, downloaded: doneIds.size };
+}
+
+// ═══ START TURBO — avviato dal bottone Turbo in home ═══
+async function startTurbo(){
+  if(!sessionCookies){log("Devi prima fare il login","err");return;}
+
+  const updateAddress = document.getElementById("chkUpdateAddress").checked;
+
+  scraping = true;
+  delayIndex = 0;
+  resetScrapeStats();
+  notificationCount = 0;
+  updateBellBadge();
+  document.getElementById("btnStart").disabled = true;
+  document.getElementById("btnStop").disabled = false;
+  document.getElementById("tabsSection").style.display = "block";
+  document.body.classList.add("scraping-active");
+
+  log("⚡ ═══ MODALITÀ TURBO ATTIVATA ═══","ok");
+  log("⚡ Usa dati Supabase — skip discovery — ogni profilo scaricato 1 volta","ok");
+
+  const countries = selectedCountries.length > 0 ? [...selectedCountries] : [{code:"", name:"Tutti"}];
+  let skippedAll = 0;
+
+  for(let ci = 0; ci < countries.length && scraping; ci++){
+    const c = countries[ci];
+
+    if(c.code && isCountryCompleted(c.code) && !updateAddress){
+      const info = completedCountries[c.code];
+      const ageH = Math.round((Date.now() - info.ts) / 3600000);
+      const ageStr = ageH < 1 ? "meno di 1 ora fa" : ageH < 24 ? `${ageH} ore fa` : `${Math.round(ageH/24)} giorni fa`;
+      const action = confirm(`⚡ TURBO — ${countryFlag(c.code)} ${c.name}: GIÀ COMPLETATO\n\n${info.count} partner (${ageStr}).\nPremi OK per verificare, Annulla per saltare.`);
+      if(!action){
+        log(`⏭ TURBO ${c.name}: già completato — saltato`,"ok");
+        skippedAll++;
+        continue;
+      }
+    }
+
+    if(countries.length > 1) log(`⚡ ═══ TURBO PAESE ${ci+1}/${countries.length}: ${c.name} (${c.code}) ═══`,"ok");
+    await scrapeDiscoverCountryTurbo(c.code, c.name, updateAddress);
+
+    if(ci + 1 < countries.length && scraping){
+      log(`⏸ Pausa ${COUNTRY_PAUSE}s prima del prossimo paese...`);
+      await sleepWithActivity("⏳", `Pausa tra paesi — prossimo: ${countries[ci+1].name}`, COUNTRY_PAUSE * 1000);
+    }
+  }
+
+  if(skippedAll === countries.length){
+    log("⚡ TURBO: Tutti i paesi già completi!","ok");
+    setStatus("⚡ TURBO: Tutti i paesi già completi!", true);
+  }
+
+  scraping = false;
+  hideActiveNetwork();
+  hideActiveCountry();
+  hideDownloadRow();
+  document.getElementById("btnStart").disabled = false;
+  document.getElementById("btnStop").disabled = true;
+  document.body.classList.remove("scraping-active");
+  log("⚡ ═══ TURBO COMPLETATO ═══","ok");
+}
+
 // ═══════════════════════════════════════════════════════════════
 // TEST NO NETWORK — Scarica da wcaworld.com per scoprire se contatti OK
 // ═══════════════════════════════════════════════════════════════
@@ -4857,7 +5143,15 @@ let bcOpen = false;
 function toggleBusinessCards(){
   bcOpen = !bcOpen;
   document.getElementById("bcSection").classList.toggle("open", bcOpen);
-  if(bcOpen && bcCards.length === 0) loadBusinessCards();
+  if(bcOpen) loadBusinessCards();
+}
+
+function openBcUpload(){
+  document.getElementById("bcUploadOverlay").classList.add("open");
+  document.getElementById("bcUploadStatus").textContent = "";
+}
+function closeBcUpload(){
+  document.getElementById("bcUploadOverlay").classList.remove("open");
 }
 
 async function loadBusinessCards(){
@@ -4884,7 +5178,9 @@ function handleBcDrop(e){
 async function handleBcFile(file){
   if(!file) return;
   const ext = file.name.split(".").pop().toLowerCase();
+  const statusEl = document.getElementById("bcUploadStatus");
   document.getElementById("bcDropzone").innerHTML = '<div style="font-size:1.5rem">⏳</div><div>Elaborazione di ' + file.name + '...</div>';
+  if(statusEl) statusEl.textContent = "Elaborazione in corso...";
 
   try {
     let rows = [];
@@ -4896,19 +5192,20 @@ async function handleBcFile(file){
     } else {
       alert("Formato non supportato. Usa CSV, TSV o Excel.");
       resetDropzone();
+      if(statusEl) statusEl.textContent = "";
       return;
     }
 
     if(rows.length === 0){
       alert("Nessun dato trovato nel file.");
       resetDropzone();
+      if(statusEl) statusEl.textContent = "";
       return;
     }
 
-    // Map columns intelligently
     const cards = mapRowsToCards(rows, file.name);
+    if(statusEl) statusEl.textContent = `Salvataggio ${cards.length} contatti...`;
 
-    // Save to Supabase
     const r = await fetch(API + "/api/business-cards", {
       method: "POST",
       headers: {"Content-Type": "application/json"},
@@ -4917,17 +5214,21 @@ async function handleBcFile(file){
     const data = await r.json();
 
     if(data.success){
-      // Reload to get match info
       await loadBusinessCards();
       resetDropzone();
+      if(statusEl) statusEl.innerHTML = '<span style="color:#10b981">✓ ' + cards.length + ' contatti importati</span>';
+      // Chiudi popup dopo 1.5s
+      setTimeout(closeBcUpload, 1500);
     } else {
       alert("Errore salvataggio: " + (data.error || "sconosciuto"));
       resetDropzone();
+      if(statusEl) statusEl.textContent = "";
     }
   } catch(e){
     console.error("handleBcFile:", e);
     alert("Errore: " + e.message);
     resetDropzone();
+    if(statusEl) statusEl.textContent = "";
   }
 }
 
