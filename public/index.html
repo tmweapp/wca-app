@@ -1327,69 +1327,24 @@ tr:hover td {
     </div>
   </div>
 
-  <!-- ═══ MODE STRIP: icone mode + config inline — compatto orizzontale ═══ -->
-  <div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-top:1px solid rgba(255,255,255,0.04);flex-wrap:wrap">
-    <!-- Mode buttons — piccoli, orizzontali -->
-    <div style="display:flex;gap:2px;flex-shrink:0">
-      <button class="mode-btn active" data-mode="discover" onclick="setMode('discover',this)" style="padding:4px 8px;min-width:auto;gap:3px;flex-direction:row;border-radius:8px">
-        <img src="https://dlldkrzoxvjxpgkkttxu.supabase.co/storage/v1/object/public/icons/lente.png?v=2" class="mode-icon-img" alt="Discover" style="width:28px;height:28px">
-        <span class="mode-name" style="font-size:.6rem">Discover</span>
-      </button>
-      <button class="mode-btn" data-mode="network" onclick="setMode('network',this)" style="padding:4px 8px;min-width:auto;gap:3px;flex-direction:row;border-radius:8px">
-        <img src="https://dlldkrzoxvjxpgkkttxu.supabase.co/storage/v1/object/public/icons/mondo.png?v=2" class="mode-icon-img" alt="Per Network" style="width:28px;height:28px">
-        <span class="mode-name" style="font-size:.6rem">Network</span>
-      </button>
-      <button class="mode-btn" data-mode="range" onclick="setMode('range',this)" style="padding:4px 8px;min-width:auto;gap:3px;flex-direction:row;border-radius:8px">
-        <img src="https://dlldkrzoxvjxpgkkttxu.supabase.co/storage/v1/object/public/icons/tastiera.png?v=2" class="mode-icon-img" alt="Range ID" style="width:28px;height:28px">
-        <span class="mode-name" style="font-size:.6rem">Range</span>
-      </button>
+  <!-- ═══ TOOLBAR: ricerca + filtro network ═══ -->
+  <div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-top:1px solid rgba(255,255,255,0.04);flex-wrap:wrap">
+    <div id="fieldSearch" style="display:flex;align-items:center;gap:4px">
+      <input type="text" id="txtSearch" placeholder="Cerca partner..." class="field-input" style="width:180px;padding:6px 10px;font-size:.76rem">
+      <select id="selSearchBy" class="field-input" style="width:auto;min-width:80px;padding:6px 8px;font-size:.76rem">
+        <option value="">Paese</option>
+        <option value="company_name">Nome</option>
+        <option value="id_number">ID</option>
+      </select>
     </div>
-
-    <div style="width:1px;height:24px;background:rgba(255,255,255,0.08);flex-shrink:0"></div>
-
-    <!-- Config panels inline -->
-    <div style="flex:1;min-width:0;display:flex;align-items:center">
-
-      <!-- DISCOVER: cerca partner -->
-      <div id="configDiscover" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-        <div id="fieldSearch" style="display:flex;align-items:center;gap:4px">
-          <input type="text" id="txtSearch" placeholder="Cerca partner..." class="field-input" style="width:180px;padding:6px 10px;font-size:.76rem">
-          <select id="selSearchBy" class="field-input" style="width:auto;min-width:80px;padding:6px 8px;font-size:.76rem">
-            <option value="">Paese</option>
-            <option value="company_name">Nome</option>
-            <option value="id_number">ID</option>
-          </select>
-        </div>
-      </div>
-
-      <!-- NETWORK: picker inline compatto -->
-      <div id="configNetwork" style="display:none;align-items:center;gap:8px;flex-wrap:wrap">
-        <button onclick="openNetworkPopup()" class="picker-btn" id="btnPickNetwork" style="flex-direction:row;padding:3px 10px;gap:4px;border-radius:8px;min-width:auto">
-          <img src="https://dlldkrzoxvjxpgkkttxu.supabase.co/storage/v1/object/public/icons/satellite.png?v=2" class="picker-icon-img" alt="Network" style="width:24px;height:24px">
-          <span class="picker-label" style="font-size:.62rem">Network</span>
-          <span id="networkSelBadge" class="picker-badge" style="display:none"></span>
-        </button>
-        <span id="networkSelCountInline" style="font-size:.68rem;color:var(--text-muted);padding:3px 10px;border-radius:6px;background:rgba(255,255,255,0.04)">0 sel.</span>
-        <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.68rem;color:#c7d2fe;white-space:nowrap;padding:4px 8px;border-radius:6px;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.15)">
-          <input type="checkbox" id="chkAllCountries" style="accent-color:#6366f1" onchange="toggleAllCountriesMode()"> Tutti i Paesi
-        </label>
-        <span id="allCountriesHint" style="display:none;font-size:.65rem;color:#a5b4fc">A→Z</span>
-        <div id="selectedNetworksTags" style="display:flex;flex-wrap:wrap;gap:4px"></div>
-      </div>
-
-      <!-- RANGE: DA → A inline -->
-      <div id="configRange" style="display:none;align-items:center;gap:8px">
-        <label style="font-size:.68rem;color:var(--text-muted);font-weight:700">DA</label>
-        <input type="number" id="txtRangeFrom" value="1" min="1" class="field-input" style="width:90px;padding:6px 8px;font-size:.76rem">
-        <span style="color:var(--text-muted);font-size:1rem;font-weight:300">→</span>
-        <label style="font-size:.68rem;color:var(--text-muted);font-weight:700">A</label>
-        <input type="number" id="txtRangeTo" value="500" min="1" class="field-input" style="width:90px;padding:6px 8px;font-size:.76rem">
-      </div>
-
-    </div>
-
-    <!-- Mode description compatta -->
-    <span id="modeSubtitle" style="font-size:.6rem;color:var(--text-muted);max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0">Tutti i network, tutti i partner per paese</span>
+    <div style="width:1px;height:22px;background:rgba(255,255,255,0.08)"></div>
+    <button onclick="openNetworkPopup()" class="picker-btn" id="btnPickNetwork" style="display:inline-flex;align-items:center;flex-direction:row;padding:3px 10px;gap:4px;border-radius:8px;min-width:auto">
+      <img src="https://dlldkrzoxvjxpgkkttxu.supabase.co/storage/v1/object/public/icons/satellite.png?v=2" class="picker-icon-img" alt="Network" style="width:20px;height:20px">
+      <span style="font-size:.62rem;color:var(--text-muted)">Filtra Network</span>
+      <span id="networkSelBadge" class="picker-badge" style="display:none"></span>
+    </button>
+    <span id="networkSelCountInline" style="font-size:.68rem;color:var(--text-muted);padding:3px 10px;border-radius:6px;background:rgba(255,255,255,0.04)"></span>
+    <div id="selectedNetworksTags" style="display:flex;flex-wrap:wrap;gap:4px"></div>
   </div>
 
   <div class="header-flags-row" id="headerFlags"></div>
@@ -1695,7 +1650,7 @@ let wcaToken = null;
 let scraping = false;
 let scrapedProfiles = [];
 let activeTabIdx = -1;
-let currentMode = "discover";
+const currentMode = "discover"; // modalità unica
 let discoveredMembers = [];
 let totalScraped = 0;
 let selectedCountries = [];
@@ -2671,32 +2626,7 @@ function log(msg, cls=""){
   if(d.children.length > 200) d.removeChild(d.lastChild);
 }
 
-function setMode(mode, btn){
-  currentMode = mode;
-  // Update mode buttons
-  document.querySelectorAll(".mode-btn").forEach(b=>b.classList.remove("active"));
-  btn.classList.add("active");
-  // Show/hide config panels (no movement — just swap content)
-  document.getElementById("configDiscover").style.display = mode === "discover" ? "flex" : "none";
-  document.getElementById("configNetwork").style.display = mode === "network" ? "flex" : "none";
-  document.getElementById("configRange").style.display = mode === "range" ? "flex" : "none";
-  // Search visible in discover mode only
-  const searchEl = document.getElementById("fieldSearch");
-  if(searchEl) searchEl.style.display = mode === "discover" ? "flex" : "none";
-  // Update description — compatto
-  const subtitles = {
-    discover: "Tutti i network, tutti i partner per paese",
-    network: "Network specifici + paesi selezionati",
-    range: "Intervallo di ID WCA numerico"
-  };
-  const titleEl = document.getElementById("modeTitle");
-  const subEl = document.getElementById("modeSubtitle");
-  if(titleEl) titleEl.textContent = mode.charAt(0).toUpperCase()+mode.slice(1);
-  if(subEl) subEl.textContent = subtitles[mode];
-  // Auto-open network popup in network mode
-  if(mode === "network"){ openNetworkPopup(); }
-  else { closeNetworkPopup(); }
-}
+// setMode rimossa — modalità unica discover con filtro network opzionale
 
 function getSelectedNetworkObjects(){
   // Legge i network selezionati dalla checkbox grid, ritorna [{domain, name}]
@@ -3347,19 +3277,13 @@ async function startScraping(){
   document.getElementById("tabsSection").style.display = "block";
   document.body.classList.add("scraping-active");
 
-  if(currentMode === "range"){
-    await scrapeRange();
-  } else if(currentMode === "network"){
-    await scrapeByNetwork();
-  } else {
-    // Discover mode: se nessun network selezionato, seleziona tutti automaticamente
-    let discoverSelNames = getSelectedNetworks();
-    if(discoverSelNames.length === 0){
-      log("ℹ Nessun network selezionato — seleziono tutti automaticamente","ok");
-      document.querySelectorAll("#networksGrid input[type=checkbox]").forEach(c=>c.checked=true);
-      updateNetworkSelCount();
-      discoverSelNames = getSelectedNetworks();
-    }
+  {
+    // Filtro network opzionale — se nessuno selezionato, scarica tutti
+    const selectedNetDomains = getSelectedNetworkObjects().map(n => n.domain);
+    const filterByNetwork = selectedNetDomains.length > 0;
+    if(filterByNetwork) log(`🔍 Filtro attivo: ${selectedNetDomains.length} network selezionati`,"ok");
+    else log("🔍 Nessun filtro network — scarico tutti i partner","ok");
+
     const countries = selectedCountries.length > 0 ? [...selectedCountries] : [{code:"", name:"Tutti"}];
     let skippedAll = 0;
 
@@ -3392,7 +3316,7 @@ async function startScraping(){
       }
 
       if(countries.length > 1) log(`═══ PAESE ${ci+1}/${countries.length}: ${c.name} (${c.code}) ═══`,"ok");
-      await scrapeDiscoverCountry(c.code, c.name, updateAddress);
+      await scrapeDiscoverCountry(c.code, c.name, updateAddress, filterByNetwork ? selectedNetDomains : null);
 
       if(ci + 1 < countries.length && scraping){
         log(`⏸ Pausa ${COUNTRY_PAUSE}s prima del prossimo paese...`);
@@ -3709,7 +3633,7 @@ function checkMissingIdsLocal(discoverIds, countryCode){
 // Cache discover per paese — evita di rifare discover se già fatto
 const discoverCache = {};
 
-async function scrapeDiscoverCountry(country, countryName, updateAddress = false){
+async function scrapeDiscoverCountry(country, countryName, updateAddress = false, networkFilter = null){
   currentScrapingCountry = country;
   resetCompletedNetworks();
   hideCountryCompletion();
@@ -3792,13 +3716,23 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
     return { ok:false, error:"no_members" };
   }
 
+  // Filtra per network se richiesto
+  let targetMembers = fullDir.members;
+  if(networkFilter && networkFilter.length > 0){
+    targetMembers = fullDir.members.filter(m => {
+      if(!m.networks || m.networks.length === 0) return false;
+      return m.networks.some(n => networkFilter.includes(n));
+    });
+    log(`📂 ${countryName}: ${fullDir.members.length} totali → ${targetMembers.length} nei network selezionati`,"ok");
+  }
+
   // Popola memberNetworkMap dalla directory
-  for(const m of fullDir.members){
+  for(const m of targetMembers){
     memberNetworkMap[m.id] = m.networks || [];
   }
 
   // Aggiorna tabella risultati
-  for(const m of fullDir.members){
+  for(const m of targetMembers){
     if(!discoveredMembers.find(d => d.id === m.id)){
       discoveredMembers.push({id:m.id, name:m.name, networks:m.networks});
     }
@@ -3806,8 +3740,9 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
   document.getElementById("resultsCard").style.display = "block";
   updateResultsTable();
 
-  const totalMembers = fullDir.members.length;
-  updateScrapeStats({ found: totalMembers, networkName: "Tutti", countryName, downloaded: 0, skipped: 0 });
+  const totalMembers = targetMembers.length;
+  const networkLabel = networkFilter ? networkFilter.length + " network" : "Tutti";
+  updateScrapeStats({ found: totalMembers, networkName: networkLabel, countryName, downloaded: 0, skipped: 0 });
   notifyEvent(`Directory ${countryName}: ${totalMembers} partner trovati`);
   refreshCountryCompletion();
 
@@ -3815,8 +3750,8 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
   // FASE 2: DOWNLOAD — per ogni membro, usa il miglior network
   // ═══════════════════════════════════════════════════════════════
   const toDownload = updateAddress
-    ? fullDir.members
-    : fullDir.members.filter(m => !doneIds.has(m.id));
+    ? targetMembers
+    : targetMembers.filter(m => !doneIds.has(m.id));
 
   if(toDownload.length === 0){
     log(`✅ ${countryName}: tutti i ${totalMembers} membri già scaricati`,"ok");
