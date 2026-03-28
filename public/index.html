@@ -1309,6 +1309,8 @@ tr:hover td {
     <div class="header-stats">
       <span class="header-stat partners" data-tip="Numero totale di partner salvati nel database"><span id="headerTotalPartners">0</span> partner</span>
       <span class="header-stat limited" data-tip="Partner con dati incompleti (accesso limitato)"><span id="headerLimitedPartners">0</span> limitati</span>
+      <span class="header-stat" style="background:rgba(14,165,233,0.1);border-color:rgba(14,165,233,0.25);color:#7dd3fc" data-tip="Partner totali censiti nelle directory locali"><span id="headerDirPartners">0</span> in directory</span>
+      <span class="header-stat" style="background:rgba(167,139,250,0.1);border-color:rgba(167,139,250,0.25);color:#c4b5fd" data-tip="Paesi con directory locale scaricata"><span id="headerDirCountries">0</span> paesi</span>
     </div>
     <div class="header-actions" style="margin-left:auto">
       <button class="btn btn-secondary btn-sm" onclick="openAgenda()" data-tip="Apri l'agenda completa dei partner salvati">Agenda</button>
@@ -1424,8 +1426,8 @@ tr:hover td {
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="1.5"><rect x="6" y="6" width="12" height="12" rx="2" fill="#ef4444" opacity=".1"/><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
         </button>
         <div style="width:1px;height:22px;background:rgba(255,255,255,0.08);margin:0 4px"></div>
-        <button id="btnSyncDir" onclick="syncAllDirectories()" title="Scarica Directory Globale (tutti i paesi)" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:30px;border:1px solid rgba(255,255,255,0.12);border-radius:6px;background:rgba(255,255,255,0.02);cursor:pointer;opacity:.5;transition:all .2s" onmouseover="this.style.opacity='1';this.style.background='rgba(14,165,233,0.08)'" onmouseout="this.style.opacity='.5';this.style.background='rgba(255,255,255,0.02)'">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0ea5e9" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <button id="btnSyncDir" onclick="toggleDirSync()" title="Scarica Directory Globale (tutti i paesi) — clicca per avviare/fermare" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:30px;border:1px solid rgba(255,255,255,0.12);border-radius:6px;background:rgba(255,255,255,0.02);cursor:pointer;opacity:.5;transition:all .2s" onmouseover="this.style.opacity='1';this.style.background='rgba(14,165,233,0.08)'" onmouseout="this.style.opacity=dirSyncing?'1':'.5';this.style.background=dirSyncing?'rgba(14,165,233,0.06)':'rgba(255,255,255,0.02)'">
+          <svg id="syncDirIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0ea5e9" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         </button>
         <button id="btnBell" onclick="toggleNotifications()" style="position:relative;display:inline-flex;align-items:center;justify-content:center;width:36px;height:30px;border:1px solid rgba(255,255,255,0.12);border-radius:6px;background:rgba(255,255,255,0.02);cursor:pointer;opacity:.4;transition:all .2s" title="Notifiche" onmouseover="this.style.opacity='.9';this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.opacity='.4';this.style.background='rgba(255,255,255,0.02)'">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" stroke-width="1.5"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
@@ -1761,72 +1763,65 @@ function getFullDirAge(countryCode){
   if(!d) return Infinity;
   return (Date.now() - d.ts) / 3600000; // ore
 }
-// Discover centralizzato: scarica TUTTA la directory per un paese su tutti i network
-// Ritorna {members:[{id,name,href,networks:[domain,...]}], networkCounts:{domain:n}}
+// Discover centralizzato: UNA SOLA chiamata per paese — legge tutto il paese in un colpo
+// WCA mostra per blocchi di 50 ma pageSize=500 prende tutto senza chiamate aggiuntive
+// Ritorna {members:[{id,name,href,networks:[]}], networks:{}, ts}
 async function discoverFullDirectory(countryCode, countryName, forceRefresh = false){
   const MAX_DIR_AGE = 24; // ore — rinnova ogni 24h
   const cached = getFullDirectory(countryCode);
   if(cached && !forceRefresh && getFullDirAge(countryCode) < MAX_DIR_AGE){
-    log(`📂 Directory ${countryName} da cache (${cached.members.length} membri, ${Object.keys(cached.networks).length} network) — ${Math.round(getFullDirAge(countryCode))}h fa`,"ok");
+    log(`📂 ${countryName}: cache ${cached.members.length} membri — ${Math.round(getFullDirAge(countryCode))}h fa`,"ok");
     return cached;
   }
 
-  log(`🔍 Costruzione directory completa per ${countryName}...`,"ok");
-  showActivity("🔍", `Directory ${countryName}...`);
+  showActivity("🔍", `${countryName}...`);
 
-  const memberMap = {}; // id → {id, name, href, networks:[domain,...]}
-  const networkCounts = {};
-  const selectedNetNames = getSelectedNetworks();
-  const selectedSiteIds = new Set(selectedNetNames.map(name => NETWORKS[name]).filter(id => id !== undefined));
-  const networksToScan = selectedSiteIds.size > 0
-    ? ALL_NETWORKS.filter(n => selectedSiteIds.has(n.siteId))
-    : ALL_NETWORKS;
+  // UNA sola chiamata: wcaworld.com con pageSize=500 → prende tutti i membri del paese
+  const allMembers = [];
+  let page = 1;
+  let hasMore = true;
+  const PAGE_SIZE = 500;
 
-  for(let ni = 0; ni < networksToScan.length && scraping; ni++){
-    const network = networksToScan[ni];
-    setStatus(`Directory ${countryName}: ${network.name} (${ni+1}/${networksToScan.length})...`, true);
-    showActivity("🔍", `${network.name} ${ni+1}/${networksToScan.length}`);
-
+  while(hasMore && scraping){
     try {
       const resp = await fetch(API+"/api/discover-network",{
         method:"POST",headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({ networkDomain: network.domain, country: countryCode })
+        body:JSON.stringify({ networkDomain: "wcaworld.com", country: countryCode, pageSize: PAGE_SIZE, page })
       });
       const data = await resp.json();
-      if(data.success && data.members){
-        networkCounts[network.domain] = data.members.length;
+      if(data.success && data.members && data.members.length > 0){
         for(const m of data.members){
-          if(!memberMap[m.id]){
-            memberMap[m.id] = { id: m.id, name: m.name, href: m.href, networks: [network.domain] };
-          } else {
-            if(!memberMap[m.id].networks.includes(network.domain)){
-              memberMap[m.id].networks.push(network.domain);
-            }
-            // Aggiorna href se migliore
-            if(m.href && !memberMap[m.id].href) memberMap[m.id].href = m.href;
+          if(!allMembers.find(x => x.id === m.id)){
+            allMembers.push({ id: m.id, name: m.name, href: m.href, networks: [] });
           }
         }
-        log(`   ${network.name}: ${data.members.length} membri`);
+        // Se ha restituito meno di pageSize, non ci sono altre pagine
+        hasMore = data.members.length >= PAGE_SIZE;
+        page++;
+        if(hasMore) setStatus(`📂 ${countryName}: ${allMembers.length} membri (pagina ${page})...`, true);
+      } else {
+        hasMore = false;
       }
     } catch(e){
-      log(`   ⚠ ${network.name}: errore — ${e.message}`,"warn");
+      log(`   ⚠ ${countryName}: errore — ${e.message}`,"warn");
+      hasMore = false;
     }
-
-    // Pausa breve tra discover (1s)
-    if(ni + 1 < networksToScan.length && scraping) await sleep(1000);
   }
 
-  const members = Object.values(memberMap);
-  const result = { members, networks: networkCounts, ts: Date.now() };
+  const result = { members: allMembers, networks: {}, ts: Date.now() };
   saveFullDirectory(countryCode, result);
-  log(`📂 Directory ${countryName} completata: ${members.length} membri unici su ${Object.keys(networkCounts).length} network`,"ok");
+  if(allMembers.length > 0){
+    log(`📂 ${countryName}: ${allMembers.length} membri`,"ok");
+  } else {
+    log(`📂 ${countryName}: 0 membri trovati`,"warn");
+  }
 
   // Aggiorna directory locale con tutti gli ID trovati
   let dir = getDirectory(countryCode);
-  if(!dir) dir = createDirectory(countryCode, members.map(m => m.id));
+  if(!dir) dir = createDirectory(countryCode, allMembers.map(m => m.id));
   else {
     let updated = false;
-    for(const m of members){
+    for(const m of allMembers){
       if(!(String(m.id) in dir.ids)){ dir.ids[String(m.id)] = "pending"; updated = true; }
     }
     if(updated){ dir.total = Object.keys(dir.ids).length; saveDirectory(countryCode, dir); }
@@ -1835,29 +1830,65 @@ async function discoverFullDirectory(countryCode, countryName, forceRefresh = fa
   return result;
 }
 
-// Scarica directory GLOBALE — TUTTI i paesi del mondo (non solo selezionati)
-// Se ci sono paesi selezionati, fa quelli prima, poi tutti gli altri
-// La directory viene cachata 24h, quindi il secondo giro è istantaneo
-async function syncAllDirectories(){
-  // Costruisci lista COMPLETA di tutti i paesi
-  const allCountryList = [];
-  for(const group of ALL_COUNTRIES){
-    for(const [code, name] of group.items){
-      allCountryList.push({code, name});
-    }
-  }
+// ═══════════════════════════════════════════════════════
+// === SYNC DIRECTORY GLOBALE — con stop, resume, persistenza ===
+// ═══════════════════════════════════════════════════════
+let dirSyncing = false;
 
-  // Se ci sono paesi selezionati, mettili in cima
+function getAllCountryList(){
+  const list = [];
+  for(const group of ALL_COUNTRIES){
+    for(const [code, name] of group.items) list.push({code, name});
+  }
+  return list;
+}
+
+// Stato sync persistente in localStorage
+function getDirSyncState(){
+  try { return JSON.parse(localStorage.getItem("wca_dir_sync_state")||"null"); } catch(e){ return null; }
+}
+function saveDirSyncState(state){
+  try { localStorage.setItem("wca_dir_sync_state", JSON.stringify(state)); } catch(e){}
+}
+function clearDirSyncState(){
+  try { localStorage.removeItem("wca_dir_sync_state"); } catch(e){}
+}
+
+async function syncAllDirectories(forceResume){
+  if(dirSyncing){ log("Sync directory già in corso","warn"); return; }
+
+  const allCountries = getAllCountryList();
   const selectedCodes = new Set(selectedCountries.map(c => c.code));
+
+  // Ordine: selezionati prima, poi tutti gli altri
   const orderedCountries = [
     ...selectedCountries,
-    ...allCountryList.filter(c => !selectedCodes.has(c.code))
+    ...allCountries.filter(c => !selectedCodes.has(c.code))
   ];
-
   const total = orderedCountries.length;
-  const skipCached = !confirm(`📂 DIRECTORY GLOBALE\n\nScaricherà la directory di TUTTI i ${total} paesi del mondo.\nI paesi già in cache (<24h) verranno saltati.\n\nI ${selectedCountries.length} paesi selezionati hanno priorità.\n\nVuoi procedere?`);
-  if(skipCached === undefined) return; // cancel
 
+  // Controlla se c'è un sync interrotto da riprendere
+  let startIdx = 0;
+  const savedState = getDirSyncState();
+  if(savedState && !forceResume){
+    const remaining = total - savedState.lastIndex - 1;
+    if(remaining > 0 && savedState.lastIndex > 0){
+      if(confirm(`📂 Sync directory interrotta\n\nCompletati ${savedState.lastIndex+1}/${total} paesi.\nUltimo: ${savedState.lastCountry}\n\nVuoi RIPRENDERE da dove ti eri fermato?\n(OK = riprendi, Annulla = ricomincia da zero)`)){
+        startIdx = savedState.lastIndex + 1;
+        log(`📂 Ripresa sync da paese ${startIdx+1}/${total} (${orderedCountries[startIdx]?.name})...`,"ok");
+      } else {
+        clearDirSyncState();
+      }
+    }
+  } else if(forceResume && savedState){
+    startIdx = savedState.lastIndex + 1;
+  }
+
+  if(startIdx === 0 && !forceResume){
+    if(!confirm(`📂 DIRECTORY GLOBALE\n\nScarica la directory di TUTTI i ${total} paesi.\nI paesi già in cache (<24h) vengono saltati.\nI ${selectedCountries.length} selezionati hanno priorità.\n\nPuoi INTERROMPERE in qualsiasi momento e riprendere dopo.\n\nProcedere?`)) return;
+  }
+
+  dirSyncing = true;
   scraping = true;
   const btn = document.getElementById("btnSyncDir");
   if(btn) btn.style.opacity = "1";
@@ -1865,36 +1896,125 @@ async function syncAllDirectories(){
   if(dlRow) dlRow.style.display = "flex";
 
   let synced = 0, skipped = 0;
-  log(`📂 Sincronizzazione directory GLOBALE: ${total} paesi...`,"ok");
+  log(`📂 Sync directory GLOBALE: ${total} paesi (da ${startIdx+1})...`,"ok");
 
-  for(let i = 0; i < orderedCountries.length && scraping; i++){
+  for(let i = startIdx; i < orderedCountries.length && scraping; i++){
     const c = orderedCountries[i];
 
-    // Salta se già in cache recente (< 24h) e non è nei selezionati
+    // Salta se già in cache recente (< 24h)
     const age = getFullDirAge(c.code);
-    if(age < 24 && !selectedCodes.has(c.code)){
+    if(age < 24){
       skipped++;
+      // Salva stato comunque
+      saveDirSyncState({ lastIndex: i, lastCountry: c.name, lastCode: c.code, synced, skipped, total, ts: Date.now() });
       continue;
     }
 
     setActiveCountry(c.code, c.name);
-    setStatus(`Directory ${i+1}/${total}: ${c.name}${selectedCodes.has(c.code) ? ' ★' : ''}...`, true);
+    setStatus(`📂 Directory ${i+1}/${total}: ${c.name}${selectedCodes.has(c.code) ? ' ★' : ''}`, true);
     setProgress(i+1, total);
 
     await discoverFullDirectory(c.code, c.name, false);
     synced++;
 
-    // Pausa 2s tra paesi per non stressare WCA
-    if(i + 1 < orderedCountries.length && scraping) await sleep(2000);
+    // Salva stato dopo ogni paese (per resume)
+    saveDirSyncState({ lastIndex: i, lastCountry: c.name, lastCode: c.code, synced, skipped, total, ts: Date.now() });
+
+    // Aggiorna contatori header
+    updateDirHeaderCounts();
+
+    // Pausa 3s tra paesi
+    if(i + 1 < orderedCountries.length && scraping) await sleep(3000);
   }
 
+  const wasInterrupted = !scraping && (synced + skipped) < (total - startIdx);
+  dirSyncing = false;
   scraping = false;
   hideActiveCountry();
   hideDownloadRow();
   if(btn) btn.style.opacity = ".5";
-  setStatus(`Directory globale completata! ${synced} sincronizzati, ${skipped} già in cache`, false);
-  log(`✅ Directory globale: ${synced} paesi sincronizzati, ${skipped} saltati (cache recente)`,"ok");
+
+  if(wasInterrupted){
+    setStatus(`Directory interrotta — ${synced} sincronizzati. Riprendi quando vuoi.`, true);
+    log(`⏸ Sync interrotta: ${synced} sincronizzati, ${skipped} in cache. Usa il tasto Directory per riprendere.`,"warn");
+  } else {
+    clearDirSyncState();
+    setStatus(`Directory globale completata! ${synced} sincronizzati, ${skipped} in cache`, true);
+    log(`✅ Directory globale completata: ${synced} paesi sincronizzati, ${skipped} già in cache`,"ok");
+  }
+  updateDirHeaderCounts();
 }
+
+function stopDirSync(){
+  if(dirSyncing){
+    scraping = false;
+    log("⏹ Sync directory fermata dall'utente","warn");
+  }
+}
+
+// Conta totale partner e paesi nelle directory locali
+function updateDirHeaderCounts(){
+  let totalMembers = 0;
+  let totalCountries = 0;
+  const allCountries = getAllCountryList();
+  for(const c of allCountries){
+    const dir = getFullDirectory(c.code);
+    if(dir && dir.members){
+      totalCountries++;
+      totalMembers += dir.members.length;
+    }
+  }
+  const el1 = document.getElementById("headerDirPartners");
+  const el2 = document.getElementById("headerDirCountries");
+  if(el1) el1.textContent = totalMembers.toLocaleString();
+  if(el2) el2.textContent = totalCountries;
+}
+
+// Aggiorna contatori all'avvio
+setTimeout(updateDirHeaderCounts, 1000);
+
+// Toggle: avvia/ferma sync directory
+function toggleDirSync(){
+  if(dirSyncing){
+    stopDirSync();
+    // Cambia icona in download
+    const icon = document.getElementById("syncDirIcon");
+    if(icon) icon.innerHTML = '<path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>';
+    const btn = document.getElementById("btnSyncDir");
+    if(btn){ btn.style.borderColor = "rgba(255,255,255,0.12)"; btn.style.background = "rgba(255,255,255,0.02)"; }
+  } else {
+    // Controlla se c'è sync interrotto
+    const saved = getDirSyncState();
+    if(saved && saved.lastIndex > 0){
+      syncAllDirectories(false); // chiederà se riprendere
+    } else {
+      syncAllDirectories(false);
+    }
+    // Cambia icona in stop
+    setTimeout(() => {
+      if(dirSyncing){
+        const icon = document.getElementById("syncDirIcon");
+        if(icon) icon.innerHTML = '<rect x="6" y="6" width="12" height="12" rx="2" fill="#0ea5e9" opacity=".15"/><rect x="6" y="6" width="12" height="12" rx="2"/>';
+        const btn = document.getElementById("btnSyncDir");
+        if(btn){ btn.style.borderColor = "rgba(14,165,233,0.3)"; btn.style.background = "rgba(14,165,233,0.06)"; }
+      }
+    }, 500);
+  }
+}
+
+// Se c'era un sync interrotto, mostra badge sul tasto
+function checkPendingDirSync(){
+  const saved = getDirSyncState();
+  if(saved && saved.lastIndex > 0 && saved.lastIndex < saved.total - 1){
+    const btn = document.getElementById("btnSyncDir");
+    if(btn){
+      btn.style.borderColor = "rgba(245,158,11,0.3)";
+      btn.style.background = "rgba(245,158,11,0.06)";
+      btn.title = `Directory interrotta: ${saved.lastIndex+1}/${saved.total} (${saved.lastCountry}) — clicca per riprendere`;
+    }
+  }
+}
+setTimeout(checkPendingDirSync, 1200);
 
 // === JOBS SOSPESI ===
 function getSuspendedJobs(){
