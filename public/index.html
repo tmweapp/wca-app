@@ -3916,8 +3916,8 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
   const limitedProfiles = scrapedProfiles.filter(p => p.access_limited);
   if(limitedProfiles.length === 0 || !scraping){
     if(limitedProfiles.length === 0) log("Nessun profilo con accesso limitato — arricchimento non necessario","ok");
-    return;
-  }
+    // NON fare return — Phase 4-5 NO NETWORK devono partire dopo
+  } else {
 
   // Usa solo i network selezionati dall'utente (siteId come ponte)
   const selNetNames = getSelectedNetworks();
@@ -4023,6 +4023,7 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
 
   setProgress(limitedProfiles.length, limitedProfiles.length);
   log(`═══ FASE 3 COMPLETATA: ${enriched} arricchiti, ${enrichFailed} ancora limitati ═══`,"ok");
+  } // fine else Phase 3
 
   // ═══════════════════════════════════════════════════════════════════════════════
   // FASE 4: DISCOVER NO NETWORK — scopri i partner che NON sono in nessun network
