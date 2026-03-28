@@ -16,12 +16,12 @@ function saveSuspendedJob(countryCode, countryName, pendingIds, allMembers, netw
     members: allMembers, // salva i membri per ripresa
     networkMap: networkMap || {}, // mappa wcaId → {networks:[...]}
   });
-  try { localStorage.setItem("wca_suspended_jobs", JSON.stringify(jobs)); } catch(e){}
+  try { localStorage.setItem("wca_suspended_jobs", JSON.stringify(jobs)); } catch(e){ console.warn("saveSuspendedJob:", e.message); }
   renderDownloadManager();
 }
 function removeSuspendedJob(countryCode){
   const jobs = getSuspendedJobs().filter(j => j.code !== countryCode);
-  try { localStorage.setItem("wca_suspended_jobs", JSON.stringify(jobs)); } catch(e){}
+  try { localStorage.setItem("wca_suspended_jobs", JSON.stringify(jobs)); } catch(e){ console.warn("removeSuspendedJob:", e.message); }
   renderDownloadManager();
 }
 
@@ -45,11 +45,11 @@ function addCompletedJob(countryCode, countryName, totalSaved, mode, networks){
   else jobs.unshift(entry);
   // Tieni max 100
   if(jobs.length > 100) jobs.length = 100;
-  try { localStorage.setItem("wca_completed_jobs", JSON.stringify(jobs)); } catch(e){}
+  try { localStorage.setItem("wca_completed_jobs", JSON.stringify(jobs)); } catch(e){ console.warn("addCompletedJob:", e.message); }
   renderDownloadManager();
 }
 function clearCompletedJobs(){
-  try { localStorage.setItem("wca_completed_jobs", "[]"); } catch(e){}
+  try { localStorage.setItem("wca_completed_jobs", "[]"); } catch(e){ console.warn("clearCompletedJobs:", e.message); }
   renderDownloadManager();
 }
 function clearAllJobs(){
@@ -57,8 +57,9 @@ function clearAllJobs(){
     localStorage.setItem("wca_completed_jobs", "[]");
     localStorage.setItem("wca_suspended_jobs", "[]");
     localStorage.removeItem("wca_scraping_state");
-  } catch(e){}
-  document.getElementById("btnResume").style.display = "none";
+  } catch(e){ console.warn("clearAllJobs:", e.message); }
+  const btnR = document.getElementById("btnResume");
+  if(btnR) btnR.style.display = "none";
   renderDownloadManager();
 }
 
@@ -145,13 +146,15 @@ function renderDownloadManager(){
   emptyEl.style.display = total === 0 ? "block" : "none";
 
   // Mostra/nascondi il tasto Resume
-  if(suspended.length > 0) document.getElementById("btnResume").style.display = "inline-flex";
+  const btnResume = document.getElementById("btnResume");
+  if(suspended.length > 0 && btnResume) btnResume.style.display = "inline-flex";
 }
 function removeJobAndRefresh(code){
   removeSuspendedJob(code);
   renderDownloadManager();
   const jobs = getSuspendedJobs();
-  if(jobs.length === 0) document.getElementById("btnResume").style.display = "none";
+  const btnRes = document.getElementById("btnResume");
+  if(jobs.length === 0 && btnRes) btnRes.style.display = "none";
 }
 
 // === BACKGROUND JOB ===

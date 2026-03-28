@@ -148,7 +148,7 @@ async function refreshDbCounters(){
       if(dbC) dbC.textContent = data.totalCountries;
       return data.totalPartners;
     }
-  } catch(e){}
+  } catch(e){ console.warn("refreshDbCounters:", e.message); }
   return 0;
 }
 

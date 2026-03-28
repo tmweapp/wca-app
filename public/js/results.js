@@ -2,8 +2,10 @@
 
 function updateResultsTable(){
   const body = document.getElementById("resultsBody");
+  if(!body) return;
   body.innerHTML = "";
-  document.getElementById("discoverCount").textContent = discoveredMembers.length;
+  const dc = document.getElementById("discoverCount");
+  if(dc) dc.textContent = discoveredMembers.length;
   for(const m of discoveredMembers){
     const tr = document.createElement("tr");
     tr.id = "result-"+m.id;

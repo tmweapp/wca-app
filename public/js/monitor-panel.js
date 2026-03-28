@@ -77,7 +77,10 @@ function updateMonitorCountrySelect(){
   if(!sel) return;
   sel.innerHTML = '<option value="">Primo selezionato</option>';
   for(const c of selectedCountries){
-    sel.innerHTML += `<option value="${c.code}">${countryFlag(c.code)} ${c.name}</option>`;
+    const opt = document.createElement("option");
+    opt.value = c.code;
+    opt.textContent = countryFlag(c.code) + " " + c.name;
+    sel.appendChild(opt);
   }
 }
 

@@ -25,18 +25,24 @@ function renderScrapeStats(){
   const netLabel = scrapeStats.networkName ? ` su ${scrapeStats.networkName}` : "";
   const countryLabel = scrapeStats.countryName ? ` (${scrapeStats.countryName})` : "";
   const foundEl = document.getElementById("statFoundInNetwork");
-  if(scrapeStats.found > 0){
-    foundEl.textContent = `${scrapeStats.found} trovati${netLabel}${countryLabel}`;
-    foundEl.style.display = "inline-block";
-  } else { foundEl.style.display = "none"; }
+  if(foundEl){
+    if(scrapeStats.found > 0){
+      foundEl.textContent = `${scrapeStats.found} trovati${netLabel}${countryLabel}`;
+      foundEl.style.display = "inline-block";
+    } else { foundEl.style.display = "none"; }
+  }
   const dlEl = document.getElementById("statDownloaded");
-  if(scrapeStats.downloaded > 0){
-    dlEl.textContent = `${scrapeStats.downloaded} salvati`;
-    dlEl.style.display = "inline-block";
-  } else { dlEl.style.display = "none"; }
+  if(dlEl){
+    if(scrapeStats.downloaded > 0){
+      dlEl.textContent = `${scrapeStats.downloaded} salvati`;
+      dlEl.style.display = "inline-block";
+    } else { dlEl.style.display = "none"; }
+  }
   const skEl = document.getElementById("statSkipped");
-  if(scrapeStats.skipped > 0){
-    skEl.textContent = `${scrapeStats.skipped} saltati`;
-    skEl.style.display = "inline-block";
-  } else { skEl.style.display = "none"; }
+  if(skEl){
+    if(scrapeStats.skipped > 0){
+      skEl.textContent = `${scrapeStats.skipped} saltati`;
+      skEl.style.display = "inline-block";
+    } else { skEl.style.display = "none"; }
+  }
 }

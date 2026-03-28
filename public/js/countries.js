@@ -14,16 +14,43 @@ async function loadCountryCounts(){
   try {
     const resp = await fetch(API+"/api/partners?action=country_counts");
     const data = await resp.json();
-    if(data.success && data.counts) countryPartnerCounts = data.counts;
+    if(data.success && data.counts){
+      countryPartnerCounts = data.counts;
+      try { sessionStorage.setItem("wca_partner_counts", JSON.stringify(countryPartnerCounts)); } catch(e){}
+    } else {
+      // Recovery da sessionStorage se API fallisce
+      recoverPartnerCounts();
+    }
     renderFlagChips();
-  } catch(e){ console.warn("loadCountryCounts error:", e.message); }
+  } catch(e){
+    console.warn("loadCountryCounts error:", e.message);
+    recoverPartnerCounts();
+    renderFlagChips();
+  }
 }
 
 function incrementPartnerCount(cc){
   if(!cc) return;
   const code=cc.toUpperCase();
   countryPartnerCounts[code]=(countryPartnerCounts[code]||0)+1;
+  // Salva in sessionStorage per recovery
+  try { sessionStorage.setItem("wca_partner_counts", JSON.stringify(countryPartnerCounts)); } catch(e){}
   renderFlagChips();
+}
+
+// Recovery: ricarica conteggi se persi (es. dopo errore save)
+function recoverPartnerCounts(){
+  try {
+    const cached = sessionStorage.getItem("wca_partner_counts");
+    if(cached){
+      const parsed = JSON.parse(cached);
+      for(const [code, cnt] of Object.entries(parsed)){
+        if(!countryPartnerCounts[code] || countryPartnerCounts[code] < cnt){
+          countryPartnerCounts[code] = cnt;
+        }
+      }
+    }
+  } catch(e){ console.warn("recoverPartnerCounts:", e.message); }
 }
 
 async function initCountrySelector(){
@@ -98,7 +125,7 @@ function updateCountryDisplay(){
   const popCnt = document.getElementById("countrySelCount");
   if(popCnt) popCnt.textContent = cnt + " selezionati";
   // Aggiorna monitor country select
-  if(typeof updateMonitorCountrySelect === "function") try { updateMonitorCountrySelect(); } catch(e){}
+  if(typeof updateMonitorCountrySelect === "function") try { updateMonitorCountrySelect(); } catch(e){ console.warn("updateMonitorCountrySelect:", e.message); }
   // Update ALL picker badges (discover + network panels)
   ["countrySelBadge"].forEach(id => {
     const b = document.getElementById(id);

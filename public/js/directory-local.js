@@ -25,6 +25,14 @@ function markIdDone(code, id){
   if(!dir) return;
   dir.ids[String(id)] = "done";
   saveDirectory(code, dir);
+  // Sync: assicura che fullDir contenga anche questo ID
+  try {
+    const fullDir = getFullDirectory(code);
+    if(fullDir && fullDir.members && !fullDir.members.find(m => String(m.id) === String(id))){
+      fullDir.members.push({ id: Number(id), name: "", href: "", networks: [] });
+      saveFullDirectory(code, fullDir);
+    }
+  } catch(e){ console.warn("markIdDone fullDir sync:", e.message); }
   refreshCountryCompletion();
 }
 
@@ -33,7 +41,16 @@ function markIdFailed(code, id){
   if(!dir) return;
   dir.ids[String(id)] = "failed";
   saveDirectory(code, dir);
+  // Sync: assicura che fullDir contenga anche questo ID
+  try {
+    const fullDir = getFullDirectory(code);
+    if(fullDir && fullDir.members && !fullDir.members.find(m => String(m.id) === String(id))){
+      fullDir.members.push({ id: Number(id), name: "", href: "", networks: [] });
+      saveFullDirectory(code, fullDir);
+    }
+  } catch(e){ console.warn("markIdFailed fullDir sync:", e.message); }
 }
+
 
 function getPendingIds(code){
   const dir = getDirectory(code);

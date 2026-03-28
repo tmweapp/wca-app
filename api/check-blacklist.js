@@ -8,10 +8,7 @@
  * 4. Ritorna lista di partner con status aggiornato
  */
 const fetch = require("node-fetch");
-const { ssoLogin, getCachedCookies, saveCookiesToCache, testCookies, UA, BASE } = require("./utils/auth");
-
-const SUPABASE_URL = process.env.SUPABASE_URL || "https://dlldkrzoxvjxpgkkttxu.supabase.co";
-const SUPABASE_KEY = (process.env.SUPABASE_SERVICE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRsbGRrcnpveHZqeHBna2t0dHh1Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1ODcyMDU4NCwiZXhwIjoyMDc0Mjk2NTg0fQ.py_d96kA6Mqvi0ugBm4gmIlJSoOC_KbwUM7cgDR-O_E").trim();
+const { ssoLogin, getCachedCookies, saveCookiesToCache, testCookies, UA, BASE, SUPABASE_URL, SUPABASE_KEY } = require("./utils/auth");
 
 // Parole chiave che indicano blacklist/sospensione sulla pagina profilo WCA
 const BLACKLIST_KEYWORDS = [

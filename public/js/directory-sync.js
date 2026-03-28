@@ -89,7 +89,7 @@ async function syncAllDirectories(forceResume){
             const stats = await refreshDbCounters();
             showDbFlash(c.code, sd.saved, stats || 0);
           }
-        } catch(e){}
+        } catch(e){ console.warn("dirSync cache push error:", c.code, e.message); }
       }
       skipped++;
       saveDirSyncState({ lastIndex: i, lastCountry: c.name, lastCode: c.code, synced, skipped, total, ts: Date.now() });

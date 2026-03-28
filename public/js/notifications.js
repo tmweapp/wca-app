@@ -30,6 +30,7 @@ function notifyEvent(msg){
 
 function updateBellBadge(){
   const b = document.getElementById("bellBadge");
+  if(!b) return;
   if(notificationCount > 0){ b.textContent = notificationCount > 99 ? "99+" : notificationCount; b.style.display = "block"; }
   else { b.style.display = "none"; }
 }
