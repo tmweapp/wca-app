@@ -8,6 +8,8 @@ async function discoverFastDirectory(countryCode, countryName){
   const allMembers = [];
   let page = 1;
   let hasMore = true;
+  let retries = 0;
+  const MAX_RETRIES = 3;
 
   while(hasMore && scraping){
     try {
@@ -17,6 +19,7 @@ async function discoverFastDirectory(countryCode, countryName){
       });
       const data = await resp.json();
       if(data.success && data.members && data.members.length > 0){
+        retries = 0; // reset retries on success
         for(const m of data.members){
           const existing = allMembers.find(x => x.id === m.id);
           if(!existing){
@@ -36,8 +39,14 @@ async function discoverFastDirectory(countryCode, countryName){
         hasMore = false;
       }
     } catch(e){
-      log(`   ⚠ ${countryName}: errore — ${e.message}`,"warn");
-      hasMore = false;
+      retries++;
+      if(retries < MAX_RETRIES){
+        log(`   ⚠ ${countryName} p.${page}: errore (tentativo ${retries}/${MAX_RETRIES}) — ${e.message}`,"warn");
+        await sleep(5000 * retries); // attesa crescente: 5s, 10s, 15s
+      } else {
+        log(`   ❌ ${countryName} p.${page}: fallito dopo ${MAX_RETRIES} tentativi — ${e.message}`,"warn");
+        hasMore = false;
+      }
     }
   }
 

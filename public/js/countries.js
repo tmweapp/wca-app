@@ -129,7 +129,8 @@ function renderFlagChips(){
   const nameMap = {};
   ALL_COUNTRIES.forEach(g => g.items.forEach(([code, name]) => { nameMap[code] = name; }));
   const sorted = Object.entries(countryPartnerCounts).filter(([,v]) => v > 0).sort((a,b) => b[1] - a[1]);
-  flagsDiv.innerHTML = sorted.map(([code, cnt]) => {
+  let hasIncomplete = false;
+  const chips = sorted.map(([code, cnt]) => {
     const isSelected = selectedCountries.some(c => c.code === code);
     const dir = getDirectory(code);
     const dirTotal = dir ? Object.keys(dir.ids).length : 0;
@@ -146,12 +147,20 @@ function renderFlagChips(){
       const missing = dirTotal - doneCount;
       countClass = "incomplete";
       countLabel = "-" + missing;
+      hasIncomplete = true;
     }
     return `<div class="flag-chip ${isSelected?'selected':''}" onclick="selectFlagCountry('${code}','${nameMap[code]||code}')" title="${nameMap[code]||code}: ${cnt} partner${dir ? ' | '+doneCount+'/'+dirTotal+' scaricati' : ''}">
       <span class="flag-emoji">${countryFlag(code)}</span>
       <span class="flag-count ${countClass}">${countLabel}</span>
     </div>`;
-  }).join("");
+  });
+  // Tasto retry solo se ci sono paesi incompleti
+  if(hasIncomplete){
+    chips.push(`<div class="flag-chip" onclick="retryIncompleteDirectories()" title="Riscarica solo i paesi incompleti" style="cursor:pointer;background:rgba(251,191,36,0.15);border:1px solid rgba(251,191,36,0.4)">
+      <span style="font-size:1.1rem">🔄</span>
+    </div>`);
+  }
+  flagsDiv.innerHTML = chips.join("");
 }
 
 function _initAllPopups(){ initCountrySelector(); initNetworksGrid(); }

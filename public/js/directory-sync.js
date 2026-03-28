@@ -117,20 +117,128 @@ async function syncAllDirectories(forceResume){
   }
 
   const wasInterrupted = !scraping && (synced + skipped) < (total - startIdx);
+
+  if(wasInterrupted){
+    dirSyncing = false;
+    scraping = false;
+    hideActiveCountry();
+    hideDownloadRow();
+    if(btn) btn.style.opacity = ".5";
+    setStatus(`Directory interrotta — ${synced} sincronizzati. Riprendi quando vuoi.`, true);
+    log(`⏸ Sync interrotta: ${synced} sincronizzati, ${skipped} in cache. Usa il tasto Directory per riprendere.`,"warn");
+    updateDirHeaderCounts();
+    return;
+  }
+
+  // ═══ VERIFICA FINALE: controlla paesi incompleti e riscarica ═══
+  const incomplete = [];
+  for(const c of orderedCountries){
+    const dir = getFullDirectory(c.code);
+    if(!dir || !dir.members || dir.members.length === 0){
+      incomplete.push(c);
+    }
+  }
+
+  if(incomplete.length > 0 && scraping){
+    log(`🔄 Verifica: ${incomplete.length} paesi incompleti. Retry automatico...`,"warn");
+    for(let r = 0; r < incomplete.length && scraping; r++){
+      const c = incomplete[r];
+      setActiveCountry(c.code, c.name);
+      setStatus(`🔄 Retry ${r+1}/${incomplete.length}: ${c.name}`, true);
+      setProgress(r+1, incomplete.length);
+
+      await discoverFastDirectory(c.code, c.name);
+      synced++;
+
+      saveDirSyncState({ lastIndex: total - 1, lastCountry: c.name, lastCode: c.code, synced, skipped, total, ts: Date.now() });
+      updateDirHeaderCounts();
+
+      if(r + 1 < incomplete.length && scraping) await sleep(3000);
+    }
+
+    // Secondo controllo: quanti ancora incompleti?
+    let stillMissing = 0;
+    for(const c of incomplete){
+      const dir = getFullDirectory(c.code);
+      if(!dir || !dir.members || dir.members.length === 0) stillMissing++;
+    }
+    if(stillMissing > 0){
+      log(`⚠ ${stillMissing} paesi ancora senza dati dopo retry`,"warn");
+    } else {
+      log(`✅ Tutti i paesi incompleti recuperati!`,"ok");
+    }
+  }
+
+  clearDirSyncState();
   dirSyncing = false;
   scraping = false;
   hideActiveCountry();
   hideDownloadRow();
   if(btn) btn.style.opacity = ".5";
 
-  if(wasInterrupted){
-    setStatus(`Directory interrotta — ${synced} sincronizzati. Riprendi quando vuoi.`, true);
-    log(`⏸ Sync interrotta: ${synced} sincronizzati, ${skipped} in cache. Usa il tasto Directory per riprendere.`,"warn");
-  } else {
-    clearDirSyncState();
-    setStatus(`Directory globale completata! ${synced} sincronizzati, ${skipped} in cache`, true);
-    log(`✅ Directory globale completata: ${synced} paesi sincronizzati, ${skipped} già in cache`,"ok");
+  setStatus(`Directory globale completata! ${synced} sincronizzati, ${skipped} in cache`, true);
+  log(`✅ Directory globale completata: ${synced} paesi sincronizzati, ${skipped} già in cache`,"ok");
+  updateDirHeaderCounts();
+}
+
+// ═══ RETRY SOLO PAESI INCOMPLETI (tasto 🔄 accanto alle bandiere) ═══
+async function retryIncompleteDirectories(){
+  if(dirSyncing){ log("Sync già in corso","warn"); return; }
+
+  // Trova paesi incompleti (quelli con numeri negativi visibili)
+  const allCountries = getAllCountryList();
+  const nameMap = {};
+  ALL_COUNTRIES.forEach(g => g.items.forEach(([code, name]) => { nameMap[code] = name; }));
+
+  const incomplete = [];
+  for(const c of allCountries){
+    const dir = getDirectory(c.code);
+    if(dir && Object.keys(dir.ids).length > 0){
+      const pending = Object.values(dir.ids).filter(s => s === "pending").length;
+      if(pending > 0) incomplete.push({ code: c.code, name: c.name, pending });
+    }
   }
+
+  if(incomplete.length === 0){
+    log("✅ Nessun paese incompleto da recuperare","ok");
+    return;
+  }
+
+  // Ordina per numero di pending decrescente
+  incomplete.sort((a,b) => b.pending - a.pending);
+
+  log(`🔄 Retry ${incomplete.length} paesi incompleti: ${incomplete.map(c => c.name+'(-'+c.pending+')').join(', ')}`,"warn");
+
+  dirSyncing = true;
+  scraping = true;
+  const btn = document.getElementById("btnSyncDir");
+  if(btn) btn.style.opacity = "1";
+  const dlRow = document.getElementById("activeDownloadRow");
+  if(dlRow) dlRow.style.display = "flex";
+
+  let synced = 0;
+  for(let i = 0; i < incomplete.length && scraping; i++){
+    const c = incomplete[i];
+    setActiveCountry(c.code, c.name);
+    setStatus(`🔄 Retry ${i+1}/${incomplete.length}: ${c.name} (-${c.pending})`, true);
+    setProgress(i+1, incomplete.length);
+
+    // Forza re-download directory ignorando cache
+    await discoverFastDirectory(c.code, c.name);
+    synced++;
+
+    updateDirHeaderCounts();
+    if(i + 1 < incomplete.length && scraping) await sleep(3000);
+  }
+
+  dirSyncing = false;
+  scraping = false;
+  hideActiveCountry();
+  hideDownloadRow();
+  if(btn) btn.style.opacity = ".5";
+
+  setStatus(`🔄 Retry completato: ${synced}/${incomplete.length} paesi riscaricati`, true);
+  log(`✅ Retry completato: ${synced} paesi riscaricati`,"ok");
   updateDirHeaderCounts();
 }
 
