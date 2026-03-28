@@ -4032,25 +4032,37 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
   log(`═══ FASE 4: DISCOVER NO NETWORK ═══`,"info");
   setStatus(`FASE 4: Scopri partner senza network...`, true);
 
-  // Scarica directory globale (tutti i 229 per l'Italia)
-  let globalDir;
-  try {
-    const globalResp = await fetch(API+"/api/discover-network",{
-      method:"POST",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({ networkDomain: "wcaworld.com", country: country, pageSize: 500, page: 1 })
-    });
-    const globalData = await globalResp.json();
-    if(globalData.success && globalData.members){
-      globalDir = globalData.members;
-      log(`📂 Directory globale: ${globalDir.length} partner su wcaworld.com`,"ok");
-    } else {
-      log(`⚠ Impossibile scaricare directory globale: ${globalData.error}`,"warn");
-      return;
+  // Scarica directory globale con paginazione (WCA limita a 50 per pagina)
+  const globalDir = [];
+  let globalPage = 1;
+  let globalHasMore = true;
+  while(globalHasMore && scraping){
+    try {
+      const globalResp = await fetch(API+"/api/discover-global",{
+        method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({ country: country, page: globalPage })
+      });
+      const globalData = await globalResp.json();
+      if(globalData.success && globalData.members && globalData.members.length > 0){
+        for(const m of globalData.members){
+          if(!globalDir.find(x => x.id === m.id)) globalDir.push(m);
+        }
+        globalHasMore = globalData.hasNext;
+        globalPage++;
+        setStatus(`FASE 4: Directory globale p.${globalPage} — ${globalDir.length} partner...`, true);
+      } else {
+        globalHasMore = false;
+      }
+    } catch(e){
+      log(`⚠ Errore download directory globale p.${globalPage}: ${e.message}`,"warn");
+      globalHasMore = false;
     }
-  } catch(e){
-    log(`⚠ Errore download directory globale: ${e.message}`,"warn");
+  }
+  if(globalDir.length === 0){
+    log(`⚠ Directory globale vuota — skip NO NETWORK`,"warn");
     return;
   }
+  log(`📂 Directory globale: ${globalDir.length} partner totali`,"ok");
 
   // Identifica i 142 NO NETWORK
   const networkMemberIds = new Set(targetMembers.map(m => m.id));
