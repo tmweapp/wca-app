@@ -1763,20 +1763,10 @@ function getFullDirAge(countryCode){
   if(!d) return Infinity;
   return (Date.now() - d.ts) / 3600000; // ore
 }
-// Discover centralizzato: UNA SOLA chiamata per paese — legge tutto il paese in un colpo
-// WCA mostra per blocchi di 50 ma pageSize=500 prende tutto senza chiamate aggiuntive
-// Ritorna {members:[{id,name,href,networks:[]}], networks:{}, ts}
-async function discoverFullDirectory(countryCode, countryName, forceRefresh = false){
-  const MAX_DIR_AGE = 24; // ore — rinnova ogni 24h
-  const cached = getFullDirectory(countryCode);
-  if(cached && !forceRefresh && getFullDirAge(countryCode) < MAX_DIR_AGE){
-    log(`📂 ${countryName}: cache ${cached.members.length} membri — ${Math.round(getFullDirAge(countryCode))}h fa`,"ok");
-    return cached;
-  }
-
-  showActivity("🔍", `${countryName}...`);
-
-  // UNA sola chiamata: wcaworld.com con pageSize=500 → prende tutti i membri del paese
+// ═══ FAST DIRECTORY: UNA sola chiamata per paese (per syncAllDirectories) ═══
+// Legge wcaworld.com con pageSize=500 — prende tutti i membri in un colpo
+// NON mappa i network — è solo per avere la lista ID velocemente
+async function discoverFastDirectory(countryCode, countryName){
   const allMembers = [];
   let page = 1;
   let hasMore = true;
@@ -1795,10 +1785,9 @@ async function discoverFullDirectory(countryCode, countryName, forceRefresh = fa
             allMembers.push({ id: m.id, name: m.name, href: m.href, networks: [] });
           }
         }
-        // Se ha restituito meno di pageSize, non ci sono altre pagine
         hasMore = data.members.length >= PAGE_SIZE;
         page++;
-        if(hasMore) setStatus(`📂 ${countryName}: ${allMembers.length} membri (pagina ${page})...`, true);
+        if(hasMore) setStatus(`📂 ${countryName}: ${allMembers.length} membri (p.${page})...`, true);
       } else {
         hasMore = false;
       }
@@ -1810,18 +1799,82 @@ async function discoverFullDirectory(countryCode, countryName, forceRefresh = fa
 
   const result = { members: allMembers, networks: {}, ts: Date.now() };
   saveFullDirectory(countryCode, result);
-  if(allMembers.length > 0){
-    log(`📂 ${countryName}: ${allMembers.length} membri`,"ok");
-  } else {
-    log(`📂 ${countryName}: 0 membri trovati`,"warn");
-  }
 
-  // Aggiorna directory locale con tutti gli ID trovati
+  // Aggiorna directory locale
   let dir = getDirectory(countryCode);
   if(!dir) dir = createDirectory(countryCode, allMembers.map(m => m.id));
   else {
     let updated = false;
     for(const m of allMembers){
+      if(!(String(m.id) in dir.ids)){ dir.ids[String(m.id)] = "pending"; updated = true; }
+    }
+    if(updated){ dir.total = Object.keys(dir.ids).length; saveDirectory(countryCode, dir); }
+  }
+
+  return result;
+}
+
+// ═══ FULL DIRECTORY con mappatura network (per scraping — fase 1) ═══
+// Loop su tutti i network per sapere dove è presente ogni membro
+async function discoverFullDirectory(countryCode, countryName, forceRefresh = false){
+  const MAX_DIR_AGE = 24;
+  const cached = getFullDirectory(countryCode);
+  if(cached && !forceRefresh && getFullDirAge(countryCode) < MAX_DIR_AGE){
+    log(`📂 Directory ${countryName} da cache (${cached.members.length} membri) — ${Math.round(getFullDirAge(countryCode))}h fa`,"ok");
+    return cached;
+  }
+
+  log(`🔍 Directory completa ${countryName} (per-network)...`,"ok");
+  showActivity("🔍", `Directory ${countryName}...`);
+
+  const memberMap = {};
+  const networkCounts = {};
+  const selectedNetNames = getSelectedNetworks();
+  const selectedSiteIds = new Set(selectedNetNames.map(name => NETWORKS[name]).filter(id => id !== undefined));
+  const networksToScan = selectedSiteIds.size > 0
+    ? ALL_NETWORKS.filter(n => selectedSiteIds.has(n.siteId))
+    : ALL_NETWORKS;
+
+  for(let ni = 0; ni < networksToScan.length && scraping; ni++){
+    const network = networksToScan[ni];
+    setStatus(`Directory ${countryName}: ${network.name} (${ni+1}/${networksToScan.length})...`, true);
+    showActivity("🔍", `${network.name} ${ni+1}/${networksToScan.length}`);
+
+    try {
+      const resp = await fetch(API+"/api/discover-network",{
+        method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({ networkDomain: network.domain, country: countryCode })
+      });
+      const data = await resp.json();
+      if(data.success && data.members){
+        networkCounts[network.domain] = data.members.length;
+        for(const m of data.members){
+          if(!memberMap[m.id]){
+            memberMap[m.id] = { id: m.id, name: m.name, href: m.href, networks: [network.domain] };
+          } else {
+            if(!memberMap[m.id].networks.includes(network.domain)) memberMap[m.id].networks.push(network.domain);
+            if(m.href && !memberMap[m.id].href) memberMap[m.id].href = m.href;
+          }
+        }
+        log(`   ${network.name}: ${data.members.length} membri`);
+      }
+    } catch(e){
+      log(`   ⚠ ${network.name}: errore — ${e.message}`,"warn");
+    }
+
+    if(ni + 1 < networksToScan.length && scraping) await sleep(1000);
+  }
+
+  const members = Object.values(memberMap);
+  const result = { members, networks: networkCounts, ts: Date.now() };
+  saveFullDirectory(countryCode, result);
+  log(`📂 Directory ${countryName}: ${members.length} membri unici su ${Object.keys(networkCounts).length} network`,"ok");
+
+  let dir = getDirectory(countryCode);
+  if(!dir) dir = createDirectory(countryCode, members.map(m => m.id));
+  else {
+    let updated = false;
+    for(const m of members){
       if(!(String(m.id) in dir.ids)){ dir.ids[String(m.id)] = "pending"; updated = true; }
     }
     if(updated){ dir.total = Object.keys(dir.ids).length; saveDirectory(countryCode, dir); }
@@ -1914,7 +1967,7 @@ async function syncAllDirectories(forceResume){
     setStatus(`📂 Directory ${i+1}/${total}: ${c.name}${selectedCodes.has(c.code) ? ' ★' : ''}`, true);
     setProgress(i+1, total);
 
-    await discoverFullDirectory(c.code, c.name, false);
+    await discoverFastDirectory(c.code, c.name);
     synced++;
 
     // Salva stato dopo ogni paese (per resume)
@@ -4833,7 +4886,7 @@ async function checkNewMembers(countryCode){
   updateMonitorStatus("directory", "checking", `Aggiornamento ${cName}...`);
 
   scraping = true;
-  const newDir = await discoverFullDirectory(countryCode, cName, true); // forceRefresh
+  const newDir = await discoverFastDirectory(countryCode, cName); // fast: una chiamata sola
   scraping = false;
   hideActivity();
 
