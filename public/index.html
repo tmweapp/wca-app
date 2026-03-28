@@ -4023,6 +4023,174 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
 
   setProgress(limitedProfiles.length, limitedProfiles.length);
   log(`═══ FASE 3 COMPLETATA: ${enriched} arricchiti, ${enrichFailed} ancora limitati ═══`,"ok");
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // FASE 4: DISCOVER NO NETWORK — scopri i partner che NON sono in nessun network
+  // ═══════════════════════════════════════════════════════════════════════════════
+  if(!scraping) return;
+
+  log(`═══ FASE 4: DISCOVER NO NETWORK ═══`,"info");
+  setStatus(`FASE 4: Scopri partner senza network...`, true);
+
+  // Scarica directory globale (tutti i 229 per l'Italia)
+  let globalDir;
+  try {
+    const globalResp = await fetch(API+"/api/discover-network",{
+      method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({ networkDomain: "wcaworld.com", country: country, pageSize: 500, page: 1 })
+    });
+    const globalData = await globalResp.json();
+    if(globalData.success && globalData.members){
+      globalDir = globalData.members;
+      log(`📂 Directory globale: ${globalDir.length} partner su wcaworld.com`,"ok");
+    } else {
+      log(`⚠ Impossibile scaricare directory globale: ${globalData.error}`,"warn");
+      return;
+    }
+  } catch(e){
+    log(`⚠ Errore download directory globale: ${e.message}`,"warn");
+    return;
+  }
+
+  // Identifica i 142 NO NETWORK
+  const networkMemberIds = new Set(targetMembers.map(m => m.id));
+  const noNetworkMembers = globalDir.filter(g => !networkMemberIds.has(g.id));
+
+  log(`📊 Statistiche:`, "ok");
+  log(`   Totali globali: ${globalDir.length}`, "ok");
+  log(`   Con network: ${networkMemberIds.size}`, "ok");
+  log(`   Senza network (NO NETWORK): ${noNetworkMembers.length}`, "ok");
+
+  if(noNetworkMembers.length === 0){
+    log(`✅ Nessun partner senza network — procedura completata!`,"ok");
+    return;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // FASE 5: DOWNLOAD NO NETWORK — scarica i partner da wcaworld.com
+  // ═══════════════════════════════════════════════════════════════════════════════
+  log(`═══ FASE 5: DOWNLOAD NO NETWORK — ${noNetworkMembers.length} partner ═══`,"info");
+  setStatus(`FASE 5: Download ${noNetworkMembers.length} partner da wcaworld.com...`, true);
+
+  let noNetDownloaded = 0;
+  let noNetSkipped = 0;
+
+  for(let i = 0; i < noNetworkMembers.length && scraping; i++){
+    const member = noNetworkMembers[i];
+    setStatus(`${countryName} [NO NETWORK] ${i+1}/${noNetworkMembers.length} — ${member.name||member.id}`, true);
+    setProgress(i, noNetworkMembers.length);
+    showActivity("📥", `NO NETWORK ${i+1}/${noNetworkMembers.length} — ${member.name||member.id}`);
+
+    try {
+      const resp = await fetch(API+"/api/scrape",{
+        method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({
+          wcaIds:[member.id],
+          members: member.href ? [{id:member.id, href:member.href}] : [],
+          networkDomain: "wcaworld.com"
+        })
+      });
+
+      const data = await resp.json();
+      if(!data.success){
+        log(`⚠ ${member.id}: ${data.error}`,"warn");
+        noNetSkipped++;
+        continue;
+      }
+
+      const profile = data.results?.[0];
+      if(!profile || profile.state !== "ok"){
+        log(`⚠ ${member.id}: ${profile?.state || "no_result"}`,"warn");
+        noNetSkipped++;
+        continue;
+      }
+
+      scrapedProfiles.unshift(profile);
+      if(scrapedProfiles.length > 50) scrapedProfiles.pop();
+      addScrapedTab(profile, 0);
+      trimScrapedTabs(50);
+
+      const limited = profile.access_limited ? " [LIMITED]" : "";
+      log(`✓ ${profile.company_name} (${profile.wca_id}) contatti:${profile.contacts?.length||0}${limited} [NO NETWORK]`,"ok");
+      saveToSupabase(profile);
+      markIdDone(country, profile.wca_id);
+      updateResultRow(profile.wca_id, "ok");
+      totalScraped++;
+      noNetDownloaded++;
+      updateScrapeStats({ downloaded: scrapeStats.downloaded + 1 });
+
+    } catch(e){
+      log(`⚠ Errore ${member.id}: ${e.message}`,"warn");
+      noNetSkipped++;
+    }
+
+    if(i + 1 < noNetworkMembers.length && scraping){
+      const nextDelay = getNextDelay();
+      await sleepWithActivity("⏳", `Pausa ${Math.round(nextDelay/1000)}s`, nextDelay);
+    }
+  }
+
+  hideActivity();
+  log(`═══ FASE 5 COMPLETATA: ${noNetDownloaded} scaricati, ${noNetSkipped} saltati ═══`,"ok");
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TEST NO NETWORK — Scarica da wcaworld.com per scoprire se contatti OK
+// ═══════════════════════════════════════════════════════════════
+async function testNoNetworkDownload(wcaId, memberHref){
+  try {
+    log(`🧪 TEST NO NETWORK: ${wcaId} da wcaworld.com...`,"info");
+
+    const body = {
+      wcaIds: [wcaId],
+      members: memberHref ? [{id: wcaId, href: memberHref}] : [],
+      networkDomain: "wcaworld.com"  // Sempre wcaworld.com per test NO NETWORK
+    };
+
+    const resp = await fetch(API+"/api/scrape", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify(body)
+    });
+
+    const data = await resp.json();
+    if(!data.success){
+      log(`❌ TEST FAILED: ${data.error}`,"err");
+      return { ok: false, error: data.error };
+    }
+
+    const profile = data.results?.[0];
+    if(!profile){
+      log(`❌ TEST: nessun profilo ritornato`,"err");
+      return { ok: false, error: "no_result" };
+    }
+
+    const hasContacts = profile.contacts && profile.contacts.length > 0;
+    const hasEmail = !!profile.email;
+    const isLimited = profile.access_limited;
+
+    log(`🧪 TEST RISULTATO ${wcaId}:`, "info");
+    log(`   State: ${profile.state}`, "info");
+    log(`   Access Limited: ${isLimited}`, "info");
+    log(`   Contatti: ${profile.contacts?.length || 0}`, "info");
+    log(`   Email aziendale: ${hasEmail ? profile.email : "NO"}`, "info");
+    log(`   Company: ${profile.company_name}`, "info");
+    log(`   Networks nel profilo: ${profile.networks?.join(", ") || "NONE"}`, "info");
+
+    return {
+      ok: profile.state === "ok",
+      wcaId,
+      company: profile.company_name,
+      state: profile.state,
+      access_limited: isLimited,
+      contacts_count: profile.contacts?.length || 0,
+      has_email: hasEmail,
+      networks: profile.networks || []
+    };
+  } catch(e){
+    log(`❌ TEST ERROR: ${e.message}`,"err");
+    return { ok: false, error: e.message };
+  }
 }
 
 async function scrapeRange(){
