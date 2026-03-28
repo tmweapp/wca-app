@@ -484,30 +484,71 @@ function extractProfile($, wcaId, sourceBase) {
   return result;
 }
 
+// ═══ KNOWN NETWORK DOMAINS per matching dai link directory ═══
+const KNOWN_NETWORK_HOSTS = Object.keys(NETWORK_DOMAINS); // wcaworld.com, lognetglobal.com, etc.
+
 // ═══ ESTRAZIONE MEMBRI DA DIRECTORY HTML ═══
 function extractMembersFromHtml(html) {
   const members = [];
   const seenIds = new Set();
   const $ = cheerio.load(html);
 
+  // Estrai domini network noti da un href (link nella directory)
+  function extractNetworkDomain(href) {
+    if (!href) return null;
+    try {
+      // href può essere //www.wcaprojects.com/... o https://www.wcaprojects.com/... o wcaprojects.com/...
+      const normalized = href.startsWith("//") ? "https:" + href : href.startsWith("http") ? href : "https://" + href;
+      const host = new URL(normalized).hostname.replace(/^www\./, "");
+      return KNOWN_NETWORK_HOSTS.includes(host) ? host : null;
+    } catch { return null; }
+  }
+
   // Prima prova li.directoyname (typo WCA originale) e li.directoryname
-  $("li.directoyname a[href], li.directoryname a[href]").each((_, el) => {
-    const href = $(el).attr("href") || "";
+  const listItems = $("li.directoyname, li.directoryname");
+  listItems.each((_, li) => {
+    const $li = $(li);
+    // Trova il link al profilo membro
+    const memberLink = $li.find("a[href*='/directory/members/']").first();
+    const href = memberLink.attr("href") || "";
     const match = href.match(/\/directory\/members\/(\d+)/i);
     if (match) {
       const id = parseInt(match[1]);
-      if (!seenIds.has(id)) { seenIds.add(id); members.push({ id, name: $(el).text().trim(), href }); }
+      if (!seenIds.has(id)) {
+        seenIds.add(id);
+        // Cerca tutti i link nella stessa li per estrarre i network
+        const networks = [];
+        $li.find("a[href]").each((_, a) => {
+          const aHref = $(a).attr("href") || "";
+          // Salta il link al profilo stesso
+          if (aHref.includes("/directory/members/")) return;
+          const domain = extractNetworkDomain(aHref);
+          if (domain && domain !== "wcaworld.com" && !networks.includes(domain)) {
+            networks.push(domain);
+          }
+        });
+        // Cerca anche img con alt che contiene nomi di network (badge/loghi)
+        $li.find("img[alt]").each((_, img) => {
+          const alt = ($(img).attr("alt") || "").toLowerCase();
+          for (const [key, domain] of Object.entries(NAME_TO_DOMAIN)) {
+            if (alt.includes(key) && !networks.includes(domain)) {
+              networks.push(domain);
+            }
+          }
+        });
+        members.push({ id, name: memberLink.text().trim(), href, networks });
+      }
     }
   });
 
-  // Fallback: qualsiasi link a /directory/members/
+  // Fallback: qualsiasi link a /directory/members/ (senza network)
   if (members.length === 0) {
     $("a[href]").each((_, el) => {
       const href = $(el).attr("href") || "";
       const match = href.match(/\/directory\/members\/(\d+)/i);
       if (match) {
         const id = parseInt(match[1]);
-        if (!seenIds.has(id) && id > 0) { seenIds.add(id); members.push({ id, name: $(el).text().trim(), href }); }
+        if (!seenIds.has(id) && id > 0) { seenIds.add(id); members.push({ id, name: $(el).text().trim(), href, networks: [] }); }
       }
     });
   }

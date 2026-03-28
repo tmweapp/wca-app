@@ -1781,8 +1781,12 @@ async function discoverFastDirectory(countryCode, countryName){
       const data = await resp.json();
       if(data.success && data.members && data.members.length > 0){
         for(const m of data.members){
-          if(!allMembers.find(x => x.id === m.id)){
-            allMembers.push({ id: m.id, name: m.name, href: m.href, networks: [] });
+          const existing = allMembers.find(x => x.id === m.id);
+          if(!existing){
+            allMembers.push({ id: m.id, name: m.name, href: m.href, networks: m.networks || [] });
+          } else if(m.networks && m.networks.length > 0){
+            // Merge network se duplicato
+            for(const n of m.networks){ if(!existing.networks.includes(n)) existing.networks.push(n); }
           }
         }
         hasMore = data.members.length >= PAGE_SIZE;
@@ -1797,7 +1801,12 @@ async function discoverFastDirectory(countryCode, countryName){
     }
   }
 
-  const result = { members: allMembers, networks: {}, ts: Date.now() };
+  // Calcola conteggi network dai dati estratti
+  const networkCounts = {};
+  for(const m of allMembers){
+    if(m.networks) for(const n of m.networks){ networkCounts[n] = (networkCounts[n]||0) + 1; }
+  }
+  const result = { members: allMembers, networks: networkCounts, ts: Date.now() };
   saveFullDirectory(countryCode, result);
 
   // Aggiorna directory locale
@@ -2748,183 +2757,115 @@ async function scrapeByNetwork(){
     }
     if(!scraping) break;
 
-    // ─── FASE 1: Discover + Download su ogni network selezionato ───
-    for(let ni = 0; ni < networksToScrape.length && scraping; ni++){
-      const { domain: networkDomain, name: networkName } = networksToScrape[ni];
-      setActiveNetwork(networkDomain, networkName);
+    // ─── FASE 1: DIRECTORY CACHE — nessun discover, usa dati già scaricati ───
+    const selectedNetDomains = networksToScrape.map(n => n.domain);
+    const cachedDir = getFullDirectory(c.code);
+    const dirAge = getFullDirAge(c.code);
+    const fullDir = (cachedDir && dirAge < 24) ? cachedDir : await discoverFastDirectory(c.code, c.name);
 
-      // Delay prima del network (tranne il primo)
-      if(ni > 0){
-        const delay = getNextDelay();
-        log(`⏱ Pausa ${(delay/1000).toFixed(0)}s prima di ${networkName}...`);
-        await sleepWithActivity("⏳", `Pausa — prossimo network: ${networkName}`, delay);
+    if(!fullDir || fullDir.members.length === 0){
+      log(`⚠ ${c.name}: nessun membro in directory — saltato`,"warn");
+      continue;
+    }
+
+    // Filtra membri per network selezionati: prendi solo chi appartiene ad almeno uno dei network scelti
+    const allDirMembers = fullDir.members;
+    const filteredMembers = allDirMembers.filter(m => {
+      if(!m.networks || m.networks.length === 0) return true; // se non ha network noti, includi (fallback wcaworld)
+      return m.networks.some(n => selectedNetDomains.includes(n));
+    });
+
+    log(`📂 ${c.name}: ${allDirMembers.length} in directory, ${filteredMembers.length} nei network selezionati (da cache)`,"ok");
+
+    // Popola memberNetworkMap
+    for(const m of filteredMembers){
+      memberNetworkMap[m.id] = m.networks || [];
+    }
+
+    // Aggiorna tabella risultati
+    for(const m of filteredMembers){
+      if(!discoveredMembers.find(d => d.id === m.id)){
+        discoveredMembers.push({id:m.id, name:m.name, networks: m.networks});
       }
-      if(!scraping) break;
+    }
+    document.getElementById("resultsCard").style.display = "block";
+    updateResultsTable();
 
-      // DISCOVER
-      setStatus(`[${networkName}] ${c.name}: discover in corso...`, true);
-      showActivity("🔍", `Discover ${c.name} su ${networkName}...`);
+    updateScrapeStats({ found: filteredMembers.length, networkName: networksToScrape.map(n=>n.name).join(", "), countryName: c.name, downloaded: 0, skipped: 0 });
+    notifyEvent(`${c.name}: ${filteredMembers.length} partner da directory cache`);
 
-      let members = [];
-      try {
-        const resp = await fetch(API+"/api/discover-network",{
-          method:"POST",headers:{"Content-Type":"application/json"},
-          body:JSON.stringify({ networkDomain, country: c.code })
-        });
-        const data = await resp.json();
-        if(!data.success){
-          log(`⚠ ${c.name} su ${networkName}: ${data.error||"errore"}`,"warn");
-          continue;
-        }
-        members = data.members || [];
-        log(`🌐 [${ni+1}/${networksToScrape.length}] ${networkName}: ${members.length} membri trovati`,"ok");
-        updateScrapeStats({ found: members.length, networkName, countryName: c.name, downloaded: 0, skipped: 0 });
-        if(members.length > 0) notifyEvent(`${members.length} partner trovati in ${c.name} su ${networkName}`);
-      } catch(e){
-        log(`⚠ Errore discover ${c.name} su ${networkName}: ${e.message}`,"err");
-        continue;
-      }
+    // Filtra: solo quelli non già scaricati
+    const toDownload = filteredMembers.filter(m => !doneIds.has(m.id));
+    if(toDownload.length === 0){
+      log(`✅ ${c.name}: tutti i ${filteredMembers.length} membri già scaricati`,"ok");
+    } else {
+      log(`📥 ${c.name}: ${toDownload.length} da scaricare (${filteredMembers.length - toDownload.length} già fatti)`,"ok");
 
-      if(members.length === 0) continue;
-
-      // Directory locale
-      for(const m of members){
-        let dir = getDirectory(c.code);
-        if(!dir) dir = createDirectory(c.code, [m.id]);
-        else if(!(String(m.id) in dir.ids)){ dir.ids[String(m.id)] = "pending"; dir.total = Object.keys(dir.ids).length; saveDirectory(c.code, dir); }
-      }
-
-      // Traccia su quale network ogni membro è stato trovato
-      for(const m of members){
-        if(!memberNetworkMap[m.id]) memberNetworkMap[m.id] = [];
-        if(!memberNetworkMap[m.id].includes(networkDomain)) memberNetworkMap[m.id].push(networkDomain);
-      }
-
-      // Aggiorna tabella risultati
-      for(const m of members){
-        if(!discoveredMembers.find(d => d.id === m.id)){
-          discoveredMembers.push({id:m.id, name:m.name, networks:[networkDomain]});
-        }
-      }
-      document.getElementById("resultsCard").style.display = "block";
-      updateResultsTable();
-
-      // Filtra: solo quelli non già scaricati
-      const toDownload = members.filter(m => !doneIds.has(m.id));
-      if(toDownload.length === 0){
-        log(`✅ ${networkName}: tutti i ${members.length} membri già scaricati`,"ok");
-        continue;
+      // Raggruppa per network migliore
+      const byNetwork = {};
+      for(const m of toDownload){
+        // Scegli il primo network tra quelli selezionati, fallback wcaworld
+        const bestNet = (m.networks || []).find(n => selectedNetDomains.includes(n)) || m.networks?.[0] || "wcaworld.com";
+        if(!byNetwork[bestNet]) byNetwork[bestNet] = [];
+        byNetwork[bestNet].push(m);
       }
 
-      log(`📥 ${networkName}: ${toDownload.length} da scaricare (${members.length - toDownload.length} già fatti)`,"ok");
-
-      // DOWNLOAD profili da QUESTO network
+      let globalIdx = 0;
       consecutiveFailures = 0;
-      for(let i = 0; i < toDownload.length && scraping; i++){
-        const member = toDownload[i];
-        if(doneIds.has(member.id)) continue; // scaricato da un network precedente
+      const networkDomains = Object.keys(byNetwork);
+      for(let ni = 0; ni < networkDomains.length && scraping; ni++){
+        const netDomain = networkDomains[ni];
+        const netMembers = byNetwork[netDomain];
+        const net = ALL_NETWORKS.find(n => n.domain === netDomain);
+        const netName = net?.name || netDomain;
+        setActiveNetwork(netDomain, netName);
+        log(`📥 ${netName}: ${netMembers.length} profili`,"ok");
 
-        setStatus(`[${networkName}] ${c.name}: ${i+1}/${toDownload.length} — ${member.name||member.id}`, true);
-        setProgress(i+1, toDownload.length);
-        showActivity("📥", `${networkName} ${i+1}/${toDownload.length} — ${member.name||member.id}`);
+        for(let i = 0; i < netMembers.length && scraping; i++){
+          const member = netMembers[i];
+          if(doneIds.has(member.id)){ globalIdx++; continue; }
+          globalIdx++;
 
-        const result = await downloadProfileNet(member, networkDomain, networkName, c.code);
-        if(result.ok){
-          doneIds.add(member.id);
-          consecutiveFailures = 0;
-        } else {
-          if(result.state === "not_found" || result.state === "not_in_network"){
-            log(`⏭ ${member.id}: non su ${networkName}, proverà fallback`,"warn");
+          setStatus(`[${netName}] ${c.name}: ${globalIdx}/${toDownload.length} — ${member.name||member.id}`, true);
+          setProgress(globalIdx, toDownload.length);
+          showActivity("📥", `${netName} ${globalIdx}/${toDownload.length} — ${member.name||member.id}`);
+
+          const result = await downloadProfileNet(member, netDomain, netName, c.code);
+          if(result.ok){
+            doneIds.add(member.id);
+            consecutiveFailures = 0;
           } else {
-            log(`✗ ${member.id} su ${networkName}: ${result.error||result.state}`,"warn");
-            consecutiveFailures++;
-            markIdFailed(c.code, member.id);
+            // Prova network alternativo
+            const altNets = (member.networks || []).filter(d => d !== netDomain);
+            let rescued = false;
+            for(const altDomain of altNets){
+              if(!scraping) break;
+              const altName = ALL_NETWORKS.find(n => n.domain === altDomain)?.name || altDomain;
+              const altResult = await downloadProfileNet(member, altDomain, altName, c.code);
+              if(altResult.ok){ doneIds.add(member.id); rescued = true; break; }
+            }
+            if(!rescued){
+              log(`✗ ${member.id}: ${result.error||result.state}`,"warn");
+              consecutiveFailures++;
+              markIdFailed(c.code, member.id);
+              updateScrapeStats({ skipped: scrapeStats.skipped + 1 });
+            }
           }
-          updateScrapeStats({ skipped: scrapeStats.skipped + 1 });
-        }
 
-        if(consecutiveFailures >= 5){
-          log(`⛔ Troppi fallimenti su ${networkName} — passo al prossimo`,"err");
-          consecutiveFailures = 0;
-          break;
-        }
+          if(consecutiveFailures >= 5){
+            log(`⛔ Troppi fallimenti su ${netName} — passo al prossimo`,"err");
+            consecutiveFailures = 0;
+            break;
+          }
 
-        // Delay variabile
-        if(i + 1 < toDownload.length && scraping){
-          const nextDelay = getNextDelay();
-          await sleepWithActivity("⏳", `Pausa ${Math.round(nextDelay/1000)}s — ${networkName}`, nextDelay);
-        }
-      }
-
-      log(`✅ ${networkName} completato per ${c.name}`,"ok");
-      notifyEvent(`${networkName} completato per ${c.name}`);
-      addCompletedNetworkLogo(networkDomain, networkName);
-    } // fine loop network per questo paese
-
-    // ─── FASE 2: FALLBACK wcaworld.com per membri non scaricati ───
-    if(scraping){
-      setActiveNetwork("wcaworld.com", "WCA (fallback)");
-      log(`═══ FALLBACK: wcaworld.com per ${c.name} — membri restanti ═══`);
-      setStatus(`${c.name}: discover wcaworld.com per membri mancanti...`, true);
-
-      let page = 1;
-      const searchTerm = document.getElementById("txtSearch").value.trim();
-      const searchBy = document.getElementById("selSearchBy").value;
-      const networks = getSelectedNetworks();
-      let wcaMembers = [];
-
-      while(scraping){
-        const delay = getNextDelay();
-        await sleepWithActivity("📋", `wcaworld.com ${c.name} — pausa prima di pagina ${page}`, delay);
-        if(!scraping) break;
-
-        try {
-          const resp = await fetch(API+"/api/discover",{
-            method:"POST",headers:{"Content-Type":"application/json"},
-            body:JSON.stringify({cookies:sessionCookies, wcaToken, page, filters:{country:c.code,searchTerm,searchBy,networks}})
-          });
-          const data = await resp.json();
-          if(!data.success){ log("Errore discover wcaworld: "+(data.error||"sconosciuto"),"err"); break; }
-          const newMembers = data.members || [];
-          wcaMembers.push(...newMembers);
-          const newIds = newMembers.filter(m => !doneIds.has(m.id));
-          log(`wcaworld.com pagina ${page}: +${newMembers.length} (${newIds.length} da scaricare)`);
-          if(newMembers.length === 0 || !data.hasNext) break;
-          page++;
-        } catch(e){ log("Errore discover: "+e.message,"err"); break; }
-      }
-
-      // Download solo chi NON è stato scaricato dai network
-      const wcaToDownload = wcaMembers.filter(m => !doneIds.has(m.id));
-      if(wcaToDownload.length > 0){
-        log(`📥 wcaworld.com fallback: ${wcaToDownload.length} membri da scaricare`,"ok");
-        const withNetwork = wcaToDownload.filter(m => memberNetworkMap[m.id]?.length > 0).length;
-        if(withNetwork > 0) log(`   ↳ ${withNetwork} di questi hanno un network noto — scaricherò da lì`,"ok");
-
-        for(let i = 0; i < wcaToDownload.length && scraping; i++){
-          const member = wcaToDownload[i];
-          if(doneIds.has(member.id)) continue;
-
-          // Se il membro è stato trovato su un network specifico, usa QUELLO
-          const knownNets = memberNetworkMap[member.id] || [];
-          const useNetwork = knownNets.length > 0 ? knownNets[0] : null;
-          const netLabel = useNetwork || "wcaworld.com";
-          setActiveNetwork(useNetwork || "wcaworld.com", netLabel);
-
-          setStatus(`${c.name} [${netLabel}] ${i+1}/${wcaToDownload.length} — ${member.name||member.id}`, true);
-          setProgress(i+1, wcaToDownload.length);
-          showActivity("📥", `${netLabel} ${i+1}/${wcaToDownload.length} — ${member.name||member.id}`);
-
-          const result = await downloadProfileNet(member, useNetwork, netLabel, c.code);
-          if(result.ok) doneIds.add(member.id);
-
-          if(i + 1 < wcaToDownload.length && scraping){
+          if(i + 1 < netMembers.length && scraping){
             const nextDelay = getNextDelay();
-            await sleepWithActivity("⏳", `Pausa ${Math.round(nextDelay/1000)}s`, nextDelay);
+            await sleepWithActivity("⏳", `Pausa ${Math.round(nextDelay/1000)}s — ${netName}`, nextDelay);
           }
         }
-      } else {
-        log(`✅ wcaworld.com: tutti i membri già scaricati dai network`,"ok");
+
+        log(`✅ ${netName} completato per ${c.name}`,"ok");
+        addCompletedNetworkLogo(netDomain, netName);
       }
     }
 
@@ -3714,9 +3655,12 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
   }
 
   // ═══════════════════════════════════════════════════════════════
-  // FASE 1: DIRECTORY CENTRALIZZATA — discover una volta sola
+  // FASE 1: DIRECTORY — usa fast directory (1 call, con network)
+  // Se già in cache (da sync), la riusa; altrimenti la scarica
   // ═══════════════════════════════════════════════════════════════
-  const fullDir = await discoverFullDirectory(country, countryName, updateAddress);
+  const cached = getFullDirectory(country);
+  const cacheAge = getFullDirAge(country);
+  const fullDir = (cached && cacheAge < 24) ? cached : await discoverFastDirectory(country, countryName);
   if(!fullDir || fullDir.members.length === 0){
     log(`⚠ ${countryName}: nessun membro trovato nella directory`,"warn");
     return { ok:false, error:"no_members" };
