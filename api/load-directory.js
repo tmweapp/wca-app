@@ -19,60 +19,75 @@ module.exports = async (req, res) => {
   try {
     const { country, mode } = req.query || {};
 
-    // mode=stats → solo conteggi per paese (per header counters)
+    // mode=stats → conteggi per paese (TUTTI i record, non solo directory_synced)
     if (mode === "stats") {
-      // Conta partner per paese e totale
-      const resp = await fetch(
-        `${SUPABASE_URL}/rest/v1/wca_partners?select=country_code,wca_id&directory_synced_at=not.is.null`,
-        {
-          headers: {
-            "apikey": SUPABASE_KEY,
-            "Authorization": `Bearer ${SUPABASE_KEY}`,
-          },
+      // Pagina tutti i record per contare per paese
+      let allRows = [];
+      let offset = 0;
+      const LIMIT = 1000;
+      while (true) {
+        const resp = await fetch(
+          `${SUPABASE_URL}/rest/v1/wca_partners?select=country_code,wca_id&order=wca_id.asc&limit=${LIMIT}&offset=${offset}`,
+          {
+            headers: {
+              "apikey": SUPABASE_KEY,
+              "Authorization": `Bearer ${SUPABASE_KEY}`,
+            },
+          }
+        );
+        if (!resp.ok) {
+          return res.json({ success: false, error: `Supabase ${resp.status}` });
         }
-      );
-      if (!resp.ok) {
-        return res.json({ success: false, error: `Supabase ${resp.status}` });
+        const rows = await resp.json();
+        allRows.push(...rows);
+        if (rows.length < LIMIT) break;
+        offset += LIMIT;
       }
-      const rows = await resp.json();
       const byCountry = {};
-      for (const r of rows) {
+      for (const r of allRows) {
         const cc = r.country_code || "??";
         byCountry[cc] = (byCountry[cc] || 0) + 1;
       }
-      const totalPartners = rows.length;
+      const totalPartners = allRows.length;
       const totalCountries = Object.keys(byCountry).length;
+      console.log(`[load-directory] stats: ${totalPartners} total partners, ${totalCountries} countries`);
       return res.json({ success: true, totalPartners, totalCountries, byCountry });
     }
 
-    // mode=countries → lista paesi con directory_synced_at
+    // mode=countries → lista tutti i paesi
     if (mode === "countries") {
-      const resp = await fetch(
-        `${SUPABASE_URL}/rest/v1/wca_partners?select=country_code&directory_synced_at=not.is.null`,
-        {
-          headers: {
-            "apikey": SUPABASE_KEY,
-            "Authorization": `Bearer ${SUPABASE_KEY}`,
-          },
-        }
-      );
-      if (!resp.ok) return res.json({ success: false, error: `Supabase ${resp.status}` });
-      const rows = await resp.json();
-      const countries = [...new Set(rows.map(r => r.country_code).filter(Boolean))];
+      let allRows = [];
+      let offset = 0;
+      const LIMIT = 1000;
+      while (true) {
+        const resp = await fetch(
+          `${SUPABASE_URL}/rest/v1/wca_partners?select=country_code&order=wca_id.asc&limit=${LIMIT}&offset=${offset}`,
+          {
+            headers: {
+              "apikey": SUPABASE_KEY,
+              "Authorization": `Bearer ${SUPABASE_KEY}`,
+            },
+          }
+        );
+        if (!resp.ok) return res.json({ success: false, error: `Supabase ${resp.status}` });
+        const rows = await resp.json();
+        allRows.push(...rows);
+        if (rows.length < LIMIT) break;
+        offset += LIMIT;
+      }
+      const countries = [...new Set(allRows.map(r => r.country_code).filter(Boolean))];
       return res.json({ success: true, countries, total: countries.length });
     }
 
-    // Carica directory per un paese specifico
-    if (!country) {
-      return res.status(400).json({ error: "country param richiesto (o mode=stats|countries)" });
-    }
+    // Carica tutti i partner (senza country) o per un paese specifico
+    const countryFilter = country ? `country_code=eq.${country}&` : "";
 
-    // Fetch tutti i partner del paese con dati directory
+    // Fetch partner con paginazione
     let allRows = [];
     let offset = 0;
     const LIMIT = 1000;
     while (true) {
-      const url = `${SUPABASE_URL}/rest/v1/wca_partners?country_code=eq.${country}&select=wca_id,company_name,networks,directory_synced_at&order=wca_id.asc&limit=${LIMIT}&offset=${offset}`;
+      const url = `${SUPABASE_URL}/rest/v1/wca_partners?${countryFilter}select=wca_id,company_name,country_code,networks,directory_synced_at&order=wca_id.asc&limit=${LIMIT}&offset=${offset}`;
       const resp = await fetch(url, {
         headers: {
           "apikey": SUPABASE_KEY,
@@ -94,6 +109,7 @@ module.exports = async (req, res) => {
       name: r.company_name || "",
       href: `/directory/members/${r.wca_id}`,
       networks: r.networks || [],
+      countryCode: r.country_code || "",
     }));
 
     const networkCounts = {};
@@ -103,10 +119,10 @@ module.exports = async (req, res) => {
       }
     }
 
-    console.log(`[load-directory] ${country}: ${members.length} members loaded from Supabase`);
+    console.log(`[load-directory] ${country || "ALL"}: ${members.length} members loaded from Supabase`);
     return res.json({
       success: true,
-      countryCode: country,
+      countryCode: country || "ALL",
       members,
       networks: networkCounts,
       total: members.length,

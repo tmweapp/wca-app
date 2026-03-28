@@ -240,37 +240,44 @@ function esc(s){const d=document.createElement("div");d.textContent=s||"";return
 // ══════ LOAD DATA FROM SUPABASE ══════
 async function loadData(){
   try {
-    // 1. Get stats (countries list + counts)
-    const statsResp = await fetch(API+"/api/load-directory?mode=stats");
-    const statsData = await statsResp.json();
-    if(!statsData.success) throw new Error(statsData.error||"stats failed");
+    document.getElementById("pageSubtitle").textContent = "Caricamento tutti i partner da Supabase...";
 
-    document.getElementById("statTotal").textContent = statsData.totalPartners;
-    document.getElementById("statCountries").textContent = statsData.totalCountries;
-
-    // 2. Load members for each country
-    const countryCodes = Object.keys(statsData.byCountry).sort((a,b) => statsData.byCountry[b] - statsData.byCountry[a]);
-    allMembers = [];
-
-    // Load countries in parallel batches of 5
-    for(let i = 0; i < countryCodes.length; i += 5){
-      const batch = countryCodes.slice(i, i+5);
-      const results = await Promise.all(batch.map(async cc => {
-        try {
-          const resp = await fetch(API+"/api/load-directory?country="+cc);
-          const data = await resp.json();
-          if(data.success && data.members){
-            return data.members.map(m => ({ ...m, countryCode: cc }));
-          }
-        } catch(e){}
-        return [];
-      }));
-      for(const r of results) allMembers.push(...r);
-
-      // Update progress
-      const loaded = Math.min(i+5, countryCodes.length);
-      document.getElementById("pageSubtitle").textContent = `Caricamento ${loaded}/${countryCodes.length} paesi...`;
+    // Carica TUTTI i partner in un'unica chiamata (senza filtro country)
+    const resp = await fetch(API+"/api/load-directory?country=");
+    // Se l'endpoint non supporta country vuoto, usiamo il fallback per paese
+    let data;
+    if(resp.ok){
+      data = await resp.json();
     }
+
+    if(data && data.success && data.members){
+      allMembers = data.members;
+    } else {
+      // Fallback: carica per paese
+      const statsResp = await fetch(API+"/api/load-directory?mode=stats");
+      const statsData = await statsResp.json();
+      if(!statsData.success) throw new Error(statsData.error||"stats failed");
+
+      const countryCodes = Object.keys(statsData.byCountry).sort((a,b) => statsData.byCountry[b] - statsData.byCountry[a]);
+      allMembers = [];
+      for(let i = 0; i < countryCodes.length; i += 5){
+        const batch = countryCodes.slice(i, i+5);
+        const results = await Promise.all(batch.map(async cc => {
+          try {
+            const r = await fetch(API+"/api/load-directory?country="+cc);
+            const d = await r.json();
+            if(d.success && d.members) return d.members;
+          } catch(e){}
+          return [];
+        }));
+        for(const r of results) allMembers.push(...r);
+        document.getElementById("pageSubtitle").textContent = `Caricamento ${Math.min(i+5, countryCodes.length)}/${countryCodes.length} paesi...`;
+      }
+    }
+
+    const uniqueCountries = new Set(allMembers.map(m => m.countryCode).filter(Boolean));
+    document.getElementById("statTotal").textContent = allMembers.length;
+    document.getElementById("statCountries").textContent = uniqueCountries.size;
 
     buildCountriesMap();
     renderSidebar();
