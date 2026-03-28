@@ -377,6 +377,7 @@
     </div>
     <div style="padding:0 0 10px 0;display:flex;gap:6px">
       <input type="text" id="countryFilter" placeholder="Filtra paese..." oninput="filterCountries()" style="flex:1;background:var(--bg-input);border:1px solid var(--border-color);color:var(--text-primary);padding:8px 12px;border-radius:8px;font-size:.82rem">
+      <button class="btn btn-sm btn-primary" onclick="selectAllCountries()" style="font-size:.62rem;padding:3px 10px;white-space:nowrap">Tutti</button>
       <button class="btn btn-sm btn-secondary" onclick="clearCountries()">Reset</button>
     </div>
     <div id="countryList" style="max-height:50vh;overflow-y:auto"></div>

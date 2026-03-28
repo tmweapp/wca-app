@@ -73,10 +73,23 @@ function toggleCountry(code, name){
   refreshHeaderFlags();
 }
 
+function selectAllCountries(){
+  selectedCountries = [];
+  for(const group of ALL_COUNTRIES){
+    for(const [code, name] of group.items){
+      selectedCountries.push({code, name});
+    }
+  }
+  document.querySelectorAll("#countryList input[type=checkbox]").forEach(cb => cb.checked = true);
+  updateCountryDisplay();
+  refreshHeaderFlags();
+}
+
 function clearCountries(){
   selectedCountries = [];
   document.querySelectorAll("#countryList input[type=checkbox]").forEach(cb => cb.checked = false);
   updateCountryDisplay();
+  refreshHeaderFlags();
 }
 
 function updateCountryDisplay(){
