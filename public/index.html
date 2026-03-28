@@ -1944,12 +1944,29 @@ async function syncAllDirectories(forceResume){
   for(let i = startIdx; i < orderedCountries.length && scraping; i++){
     const c = orderedCountries[i];
 
-    // Salta se già in cache recente (< 24h)
+    // Se già in cache recente (< 24h), non ri-scarica ma pusha comunque in Supabase
     const age = getFullDirAge(c.code);
     if(age < 24){
+      const cachedDir = getFullDirectory(c.code);
+      if(cachedDir && cachedDir.members && cachedDir.members.length > 0){
+        try {
+          const sr = await fetch(API+"/api/save-directory",{
+            method:"POST",headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({ countryCode: c.code, members: cachedDir.members })
+          });
+          const sd = await sr.json();
+          if(sd.success){
+            log(`💾 DB: ${c.name} — ${sd.saved} salvati (da cache)`,"ok");
+            const stats = await refreshDbCounters();
+            showDbFlash(c.code, sd.saved, stats || 0);
+          }
+        } catch(e){}
+      }
       skipped++;
-      // Salva stato comunque
       saveDirSyncState({ lastIndex: i, lastCountry: c.name, lastCode: c.code, synced, skipped, total, ts: Date.now() });
+      updateDirHeaderCounts();
+      // Pausa breve per non sovraccaricare
+      if(i + 1 < orderedCountries.length && scraping) await sleep(500);
       continue;
     }
 
