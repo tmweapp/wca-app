@@ -1316,7 +1316,7 @@ tr:hover td {
 
 <div class="header">
   <span id="dbFlash" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9999;background:linear-gradient(135deg,rgba(16,185,129,0.95),rgba(6,95,70,0.95));color:#fff;padding:14px 24px;font-size:1.1rem;font-weight:700;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,0.4);transition:opacity .4s;letter-spacing:0.5px;backdrop-filter:blur(8px)"></span>
-  <span id="appVersion" style="position:fixed;top:6px;right:12px;z-index:10000;font-size:0.7rem;color:#ffffff;font-family:'JetBrains Mono',monospace;opacity:0.9">v13</span>
+  <span id="appVersion" style="position:fixed;top:6px;right:12px;z-index:10000;font-size:0.7rem;color:#ffffff;font-family:'JetBrains Mono',monospace;opacity:0.9">v15</span>
   <div class="header-top" style="display:flex;align-items:center;gap:12px">
     <!-- Logo + Titolo a sinistra -->
     <img id="headerDragonLogo" src="logos/dragon.png" alt="Logo" style="width:42px;height:42px;object-fit:contain;filter:drop-shadow(0 3px 12px rgba(167,139,250,0.5))" onerror="this.src='https://dlldkrzoxvjxpgkkttxu.supabase.co/storage/v1/object/public/icons/dragon.png';this.onerror=function(){this.style.display='none'}">
@@ -4242,10 +4242,13 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// TURBO — Procedura veloce che usa Supabase (IDs+networks già noti)
-// Salta completamente Phase 1 Discovery. Ogni profilo scaricato UNA sola volta.
+// TURBO SCRAPING — Scarica profili usando dati Supabase (IDs+networks già noti)
+// • Skip Phase 1 Discovery (dati da Supabase)
+// • Ogni profilo scaricato UNA sola volta dal miglior network
+// • Se già scaricato in DB → skip
+// • Nessun duplicato tra network
 // ═══════════════════════════════════════════════════════════════════════════════
-async function scrapeDiscoverCountryTurbo(country, countryName, updateAddress = false){
+async function scrapeCountryTurbo(country, countryName, updateAddress = false){
   currentScrapingCountry = country;
   resetCompletedNetworks();
   hideCountryCompletion();
@@ -4255,14 +4258,14 @@ async function scrapeDiscoverCountryTurbo(country, countryName, updateAddress = 
   let consecutiveFailures = 0;
   const doneIds = new Set();
 
-  // Carica ID già fatti dalla directory locale
+  // Carica ID già scaricati dalla directory locale
   const existingDir = getDirectory(country);
   if(existingDir && !updateAddress){
     Object.entries(existingDir.ids).forEach(([id, status]) => { if(status === "done") doneIds.add(parseInt(id)); });
-    if(doneIds.size > 0) log(`⚡ TURBO ${countryName}: ${doneIds.size} profili già completati`,"ok");
+    if(doneIds.size > 0) log(`⚡ TURBO ${countryName}: ${doneIds.size} profili già nel DB — verranno saltati`,"ok");
   }
 
-  // === HELPER: scarica un profilo ===
+  // === HELPER: scarica un profilo da un network ===
   async function downloadProfileTurbo(member, networkDomain, networkLabel){
     let retries = 0;
     while(retries <= MAX_RETRIES && scraping){
@@ -4307,24 +4310,23 @@ async function scrapeDiscoverCountryTurbo(country, countryName, updateAddress = 
   }
 
   // ═══════════════════════════════════════════════════════════════
-  // TURBO FASE 1: CARICA DA SUPABASE (skip discovery WCA)
+  // TURBO: CARICA LISTA DA SUPABASE (skip Phase 1 Discovery)
   // ═══════════════════════════════════════════════════════════════
-  log(`⚡ TURBO ${countryName}: carico dati da Supabase...`,"ok");
-  setStatus(`⚡ TURBO: Caricamento da Supabase...`, true);
-  showActivity("⚡", `Carico directory ${countryName} da Supabase...`);
+  log(`⚡ TURBO ${countryName}: leggo lista partner da Supabase...`,"ok");
+  setStatus(`⚡ TURBO: Caricamento lista da Supabase...`, true);
+  showActivity("⚡", `Carico lista ${countryName} da Supabase...`);
 
   const fromDb = await loadDirectoryFromSupabase(country);
   if(!fromDb || !fromDb.members || fromDb.members.length === 0){
     log(`⚠ TURBO ${countryName}: nessun dato in Supabase! Devi prima fare il sync directory.`,"err");
-    setStatus(`⚠ TURBO: nessun dato in Supabase per ${countryName}`, true);
     hideActivity();
-    return { ok:false, error:"no_supabase_data" };
+    return;
   }
 
   const allMembers = fromDb.members;
-  log(`⚡ TURBO ${countryName}: ${allMembers.length} partner caricati da Supabase (Phase 1 SKIPPATA)`,"ok");
+  log(`⚡ TURBO ${countryName}: ${allMembers.length} partner in Supabase — Phase 1 SALTATA`,"ok");
 
-  // Popola risultati
+  // Popola tabella risultati
   for(const m of allMembers){
     if(!discoveredMembers.find(d => d.id === m.id)){
       discoveredMembers.push({id:m.id, name:m.name, networks:m.networks});
@@ -4333,33 +4335,32 @@ async function scrapeDiscoverCountryTurbo(country, countryName, updateAddress = 
   document.getElementById("resultsCard").style.display = "block";
   updateResultsTable();
 
-  updateScrapeStats({ found: allMembers.length, networkName: "TURBO", countryName, downloaded: 0, skipped: 0 });
-  notifyEvent(`⚡ TURBO ${countryName}: ${allMembers.length} partner da Supabase`);
-  refreshCountryCompletion();
-
   // ═══════════════════════════════════════════════════════════════
-  // TURBO FASE 2: DOWNLOAD — ogni profilo UNA sola volta
-  // Sceglie il miglior network (primo della lista networks del membro)
-  // Se fallisce, prova gli alternativi. Nessun duplicato.
+  // TURBO: DOWNLOAD — solo profili mancanti, 1 volta, miglior network
   // ═══════════════════════════════════════════════════════════════
   const toDownload = updateAddress
     ? allMembers
     : allMembers.filter(m => !doneIds.has(m.id));
 
+  const totalMembers = allMembers.length;
+  const alreadyDone = totalMembers - toDownload.length;
+  updateScrapeStats({ found: totalMembers, networkName: "TURBO", countryName, downloaded: 0, skipped: alreadyDone });
+  notifyEvent(`⚡ TURBO ${countryName}: ${totalMembers} totali, ${toDownload.length} da scaricare`);
+  refreshCountryCompletion();
+
   if(toDownload.length === 0){
-    log(`⚡ TURBO ${countryName}: tutti i ${allMembers.length} partner già scaricati!`,"ok");
-    setStatus(`⚡ TURBO: ${countryName} già completo!`, true);
+    log(`⚡ TURBO ${countryName}: tutti i ${totalMembers} partner già nel DB!`,"ok");
+    setStatus(`⚡ TURBO: ${countryName} completo — nulla da scaricare`, true);
     hideActivity();
     markCountryCompleted(country, doneIds.size);
-    return { ok:true, total: allMembers.length, downloaded: 0 };
+    return;
   }
 
-  log(`⚡ TURBO ${countryName}: ${toDownload.length} da scaricare (${allMembers.length - toDownload.length} già fatti)`,"ok");
+  log(`⚡ TURBO ${countryName}: ${toDownload.length} da scaricare (${alreadyDone} già nel DB)`,"ok");
 
-  // Raggruppa per network preferito (primo della lista) per download ordinato
+  // Raggruppa per miglior network (evita duplicati)
   const byNetwork = {};
   for(const m of toDownload){
-    // Scegli il miglior network: primo con siteId > 0, altrimenti wcaworld.com
     let bestNet = "wcaworld.com";
     if(m.networks && m.networks.length > 0){
       const scannable = m.networks.find(n => {
@@ -4396,7 +4397,7 @@ async function scrapeDiscoverCountryTurbo(country, countryName, updateAddress = 
       if(result.ok){
         doneIds.add(member.id);
       } else {
-        // Prova network alternativi
+        // Prova network alternativi del membro
         const altNets = (member.networks || []).filter(d => d !== netDomain);
         let rescued = false;
         for(const altDomain of altNets){
@@ -4424,21 +4425,26 @@ async function scrapeDiscoverCountryTurbo(country, countryName, updateAddress = 
       }
     }
 
-    log(`⚡ TURBO ${netName} completato per ${countryName}`,"ok");
+    log(`⚡ TURBO ${netName} completato`,"ok");
     addCompletedNetworkLogo(netDomain, netName);
   }
 
   hideActivity();
-  log(`═══ ⚡ TURBO ${countryName} COMPLETATO: ${doneIds.size} profili scaricati ═══`,"ok");
+  log(`═══ ⚡ TURBO ${countryName} COMPLETATO: ${doneIds.size}/${totalMembers} profili ═══`,"ok");
   markCountryCompleted(country, doneIds.size);
   removeSuspendedJob(country);
   saveScrapingState();
-  return { ok:true, total: allMembers.length, downloaded: doneIds.size };
 }
 
-// ═══ START TURBO — avviato dal bottone Turbo in home ═══
+// ═══ START TURBO — avviato dal bottone ⚡ in home ═══
 async function startTurbo(){
   if(!sessionCookies){log("Devi prima fare il login","err");return;}
+
+  const countries = selectedCountries.length > 0 ? [...selectedCountries] : [];
+  if(countries.length === 0){
+    log("⚠ Seleziona almeno un paese prima di usare Turbo","warn");
+    return;
+  }
 
   const updateAddress = document.getElementById("chkUpdateAddress").checked;
 
@@ -4452,11 +4458,8 @@ async function startTurbo(){
   document.getElementById("tabsSection").style.display = "block";
   document.body.classList.add("scraping-active");
 
-  log("⚡ ═══ MODALITÀ TURBO ATTIVATA ═══","ok");
-  log("⚡ Usa dati Supabase — skip discovery — ogni profilo scaricato 1 volta","ok");
-
-  const countries = selectedCountries.length > 0 ? [...selectedCountries] : [{code:"", name:"Tutti"}];
-  let skippedAll = 0;
+  log("⚡ ═══ TURBO ATTIVATO ═══","ok");
+  log("⚡ Dati da Supabase → skip discovery → ogni profilo 1 volta → no duplicati","ok");
 
   for(let ci = 0; ci < countries.length && scraping; ci++){
     const c = countries[ci];
@@ -4467,24 +4470,17 @@ async function startTurbo(){
       const ageStr = ageH < 1 ? "meno di 1 ora fa" : ageH < 24 ? `${ageH} ore fa` : `${Math.round(ageH/24)} giorni fa`;
       const action = confirm(`⚡ TURBO — ${countryFlag(c.code)} ${c.name}: GIÀ COMPLETATO\n\n${info.count} partner (${ageStr}).\nPremi OK per verificare, Annulla per saltare.`);
       if(!action){
-        log(`⏭ TURBO ${c.name}: già completato — saltato`,"ok");
-        skippedAll++;
+        log(`⏭ TURBO ${c.name}: saltato`,"ok");
         continue;
       }
     }
 
-    if(countries.length > 1) log(`⚡ ═══ TURBO PAESE ${ci+1}/${countries.length}: ${c.name} (${c.code}) ═══`,"ok");
-    await scrapeDiscoverCountryTurbo(c.code, c.name, updateAddress);
+    if(countries.length > 1) log(`⚡ ═══ TURBO ${ci+1}/${countries.length}: ${c.name} ═══`,"ok");
+    await scrapeCountryTurbo(c.code, c.name, updateAddress);
 
     if(ci + 1 < countries.length && scraping){
-      log(`⏸ Pausa ${COUNTRY_PAUSE}s prima del prossimo paese...`);
       await sleepWithActivity("⏳", `Pausa tra paesi — prossimo: ${countries[ci+1].name}`, COUNTRY_PAUSE * 1000);
     }
-  }
-
-  if(skippedAll === countries.length){
-    log("⚡ TURBO: Tutti i paesi già completi!","ok");
-    setStatus("⚡ TURBO: Tutti i paesi già completi!", true);
   }
 
   scraping = false;
