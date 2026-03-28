@@ -304,7 +304,8 @@ async function ssoLogin(username, password, targetBase) {
 
     const ssoCookies = jar.get(SSO_DOMAIN);
     console.log(`[auth] SSO login complete on ${TARGET_DOMAIN}: cookieLen=${targetCookies.length} hasAuth=${targetCookies.includes(".ASPXAUTH")} hasToken=${!!wcaToken} ssoCookieLen=${ssoCookies.length}`);
-    return { success: true, cookies: targetCookies, ssoCookies, wcaToken, domain: TARGET_DOMAIN };
+    console.log(`[auth] Cookie jar dump: ${JSON.stringify(jar.dump())}`);
+    return { success: true, cookies: targetCookies, ssoCookies, wcaToken, domain: TARGET_DOMAIN, jarDump: jar.dump() };
   } catch (e) {
     console.log(`[auth] ssoLogin error: ${e.message}`);
     return { success: false, error: e.message };
