@@ -80,6 +80,7 @@ module.exports = async (req, res) => {
     }
 
     // Carica tutti i partner (senza country) o per un paese specifico
+    // SOLO quelli con directory_synced_at valorizzato (escludi resettati)
     const countryFilter = country ? `country_code=eq.${country}&` : "";
 
     // Fetch partner con paginazione
@@ -87,7 +88,7 @@ module.exports = async (req, res) => {
     let offset = 0;
     const LIMIT = 1000;
     while (true) {
-      const url = `${SUPABASE_URL}/rest/v1/wca_partners?${countryFilter}select=wca_id,company_name,country_code,networks,directory_synced_at&order=wca_id.asc&limit=${LIMIT}&offset=${offset}`;
+      const url = `${SUPABASE_URL}/rest/v1/wca_partners?${countryFilter}directory_synced_at=not.is.null&select=wca_id,company_name,country_code,networks,directory_synced_at&order=wca_id.asc&limit=${LIMIT}&offset=${offset}`;
       const resp = await fetch(url, {
         headers: {
           "apikey": SUPABASE_KEY,

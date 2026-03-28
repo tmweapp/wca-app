@@ -1316,7 +1316,7 @@ tr:hover td {
 
 <div class="header">
   <span id="dbFlash" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9999;background:linear-gradient(135deg,rgba(16,185,129,0.95),rgba(6,95,70,0.95));color:#fff;padding:14px 24px;font-size:1.1rem;font-weight:700;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,0.4);transition:opacity .4s;letter-spacing:0.5px;backdrop-filter:blur(8px)"></span>
-  <span id="appVersion" style="position:fixed;top:6px;right:12px;z-index:10000;font-size:0.7rem;color:#ffffff;font-family:'JetBrains Mono',monospace;opacity:0.9">v15</span>
+  <span id="appVersion" style="position:fixed;top:6px;right:12px;z-index:10000;font-size:0.7rem;color:#ffffff;font-family:'JetBrains Mono',monospace;opacity:0.9">v16</span>
   <div class="header-top" style="display:flex;align-items:center;gap:12px">
     <!-- Logo + Titolo a sinistra -->
     <img id="headerDragonLogo" src="logos/dragon.png" alt="Logo" style="width:42px;height:42px;object-fit:contain;filter:drop-shadow(0 3px 12px rgba(167,139,250,0.5))" onerror="this.src='https://dlldkrzoxvjxpgkkttxu.supabase.co/storage/v1/object/public/icons/dragon.png';this.onerror=function(){this.style.display='none'}">
@@ -2119,7 +2119,15 @@ async function resetDirectorySupabase(){
     const resp = await fetch(API+"/api/reset-directory",{ method:"POST", headers:{"Content-Type":"application/json"} });
     const data = await resp.json();
     if(data.success){
-      log(`🗑 Directory Supabase resettata: ${data.updated} partner aggiornati`,"ok");
+      // Pulisci anche localStorage directory
+      const allCountries = getAllCountryList();
+      let cleared = 0;
+      for(const c of allCountries){
+        const key = "wca_fulldir_"+c.code;
+        if(localStorage.getItem(key)){ localStorage.removeItem(key); cleared++; }
+      }
+      log(`🗑 Directory resettata: ${data.updated} in Supabase, ${cleared} in localStorage`,"ok");
+      updateDirHeaderCounts();
     } else {
       log(`⚠ Errore reset directory: ${data.error}`,"warn");
     }
