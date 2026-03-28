@@ -196,11 +196,18 @@ async function scrapeCountryTurbo(country, countryName, updateAddress = false){
 
 // ═══ START TURBO — avviato dal bottone ⚡ in home ═══
 async function startTurbo(){
-  if(!sessionCookies){log("Devi prima fare il login","err");return;}
+  if(!sessionCookies){
+    log("Devi prima fare il login","err");
+    if(typeof setStatus==='function') setStatus("⚠ TURBO: devi prima fare il LOGIN", true);
+    alert("⚡ TURBO: devi prima fare il LOGIN WCA!");
+    return;
+  }
 
   const countries = selectedCountries.length > 0 ? [...selectedCountries] : [];
   if(countries.length === 0){
     log("⚠ Seleziona almeno un paese prima di usare Turbo","warn");
+    if(typeof setStatus==='function') setStatus("⚠ TURBO: seleziona almeno un paese", true);
+    alert("⚡ TURBO: seleziona almeno un paese!");
     return;
   }
 
