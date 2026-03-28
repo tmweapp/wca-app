@@ -181,33 +181,29 @@ async function syncAllDirectories(forceResume){
   updateDirHeaderCounts();
 }
 
-// ═══ RETRY SOLO PAESI INCOMPLETI (tasto 🔄 accanto alle bandiere) ═══
+// ═══ RETRY DIRECTORY — riscarica IDs da WCA per paesi con directory incompleta ═══
+// Questo tasto 📂 RETRY scarica la DIRECTORY (lista IDs + networks) da WCA,
+// NON i profili completi. Serve a recuperare IDs persi durante il download.
 async function retryIncompleteDirectories(){
-  if(dirSyncing){ log("Sync già in corso","warn"); return; }
+  if(dirSyncing){ log("Sync directory già in corso","warn"); return; }
 
-  // Trova paesi incompleti (quelli con numeri negativi visibili)
+  // Trova tutti i paesi che hanno dati nella flag bar
   const allCountries = getAllCountryList();
-  const nameMap = {};
-  ALL_COUNTRIES.forEach(g => g.items.forEach(([code, name]) => { nameMap[code] = name; }));
-
-  const incomplete = [];
+  const toRetry = [];
   for(const c of allCountries){
-    const dir = getDirectory(c.code);
-    if(dir && Object.keys(dir.ids).length > 0){
-      const pending = Object.values(dir.ids).filter(s => s === "pending").length;
-      if(pending > 0) incomplete.push({ code: c.code, name: c.name, pending });
+    const fullDir = getFullDirectory(c.code);
+    if(fullDir && fullDir.members && fullDir.members.length > 0){
+      toRetry.push({ code: c.code, name: c.name, currentIds: fullDir.members.length });
     }
   }
 
-  if(incomplete.length === 0){
-    log("✅ Nessun paese incompleto da recuperare","ok");
+  if(toRetry.length === 0){
+    log("📂 Nessun paese con directory da recuperare","ok");
     return;
   }
 
-  // Ordina per numero di pending decrescente
-  incomplete.sort((a,b) => b.pending - a.pending);
-
-  log(`🔄 Retry ${incomplete.length} paesi incompleti: ${incomplete.map(c => c.name+'(-'+c.pending+')').join(', ')}`,"warn");
+  const totalIdsBefore = toRetry.reduce((s, c) => s + c.currentIds, 0);
+  log(`📂 RETRY DIRECTORY: riscarico IDs da WCA per ${toRetry.length} paesi (attualmente ${totalIdsBefore.toLocaleString()} IDs)...`,"warn");
 
   dirSyncing = true;
   scraping = true;
@@ -216,19 +212,27 @@ async function retryIncompleteDirectories(){
   const dlRow = document.getElementById("activeDownloadRow");
   if(dlRow) dlRow.style.display = "flex";
 
-  let synced = 0;
-  for(let i = 0; i < incomplete.length && scraping; i++){
-    const c = incomplete[i];
-    setActiveCountry(c.code, c.name);
-    setStatus(`🔄 Retry ${i+1}/${incomplete.length}: ${c.name} (-${c.pending})`, true);
-    setProgress(i+1, incomplete.length);
+  let synced = 0, newIds = 0;
+  for(let i = 0; i < toRetry.length && scraping; i++){
+    const c = toRetry[i];
+    const before = getFullDirectory(c.code)?.members?.length || 0;
 
-    // Forza re-download directory ignorando cache
+    setActiveCountry(c.code, c.name);
+    setStatus(`📂 Retry directory ${i+1}/${toRetry.length}: ${c.name} (${before} IDs)`, true);
+    setProgress(i+1, toRetry.length);
+
     await discoverFastDirectory(c.code, c.name);
+
+    const after = getFullDirectory(c.code)?.members?.length || 0;
+    const gained = after - before;
+    if(gained > 0){
+      log(`📂 ${c.name}: +${gained} nuovi IDs recuperati (${before} → ${after})`,"ok");
+      newIds += gained;
+    }
     synced++;
 
     updateDirHeaderCounts();
-    if(i + 1 < incomplete.length && scraping) await sleep(3000);
+    if(i + 1 < toRetry.length && scraping) await sleep(3000);
   }
 
   dirSyncing = false;
@@ -237,8 +241,9 @@ async function retryIncompleteDirectories(){
   hideDownloadRow();
   if(btn) btn.style.opacity = ".5";
 
-  setStatus(`🔄 Retry completato: ${synced}/${incomplete.length} paesi riscaricati`, true);
-  log(`✅ Retry completato: ${synced} paesi riscaricati`,"ok");
+  const totalIdsAfter = toRetry.reduce((s, c) => s + (getFullDirectory(c.code)?.members?.length || 0), 0);
+  setStatus(`📂 Retry directory completato: ${synced} paesi, +${newIds} IDs recuperati`, true);
+  log(`✅ Retry directory: ${synced} paesi riscaricati. IDs: ${totalIdsBefore.toLocaleString()} → ${totalIdsAfter.toLocaleString()} (+${newIds})`,"ok");
   updateDirHeaderCounts();
 }
 

@@ -154,10 +154,11 @@ function renderFlagChips(){
       <span class="flag-count ${countClass}">${countLabel}</span>
     </div>`;
   });
-  // Tasto retry solo se ci sono paesi incompleti
+  // Tasto retry DIRECTORY — riscarica IDs mancanti per paesi con directory incompleta
   if(hasIncomplete){
-    chips.push(`<div class="flag-chip" onclick="retryIncompleteDirectories()" title="Riscarica solo i paesi incompleti" style="cursor:pointer;background:rgba(251,191,36,0.15);border:1px solid rgba(251,191,36,0.4)">
-      <span style="font-size:1.1rem">🔄</span>
+    chips.push(`<div class="flag-chip" onclick="retryIncompleteDirectories()" title="📂 Riscarica DIRECTORY (IDs) dei paesi incompleti da WCA" style="cursor:pointer;background:rgba(14,165,233,0.15);border:1px solid rgba(14,165,233,0.4)">
+      <span style="font-size:1rem">📂</span>
+      <span style="font-size:.5rem;font-weight:700;color:#7dd3fc;letter-spacing:.3px">RETRY</span>
     </div>`);
   }
   flagsDiv.innerHTML = chips.join("");

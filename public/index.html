@@ -32,6 +32,11 @@
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
         <span id="failedCountHeader" style="position:absolute;top:-4px;right:-4px;font-size:.5rem;min-width:14px;height:14px;line-height:14px;text-align:center;padding:0 2px;border-radius:7px;background:#ef4444;color:white;font-weight:700;display:none">0</span>
       </button>
+      <!-- Log -->
+      <button onclick="toggleLogPopup()" title="Log" id="btnLogToggle" style="position:relative;display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border:1px solid rgba(255,255,255,0.12);border-radius:6px;background:rgba(255,255,255,0.02);cursor:pointer;transition:all .15s" onmouseover="this.style.background='rgba(99,102,241,0.08)'" onmouseout="this.style.background='rgba(255,255,255,0.02)'">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        <span id="logCountBadge" style="position:absolute;top:-4px;right:-4px;font-size:.5rem;min-width:14px;height:14px;line-height:14px;text-align:center;padding:0 2px;border-radius:7px;background:#6366f1;color:white;font-weight:700;display:none">0</span>
+      </button>
       <!-- Reset -->
       <button onclick="openResetPanel()" title="Gestione dati e reset" style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border:1px solid rgba(248,113,113,0.25);border-radius:6px;background:rgba(255,255,255,0.02);cursor:pointer;transition:all .15s" onmouseover="this.style.background='rgba(239,68,68,0.08)'" onmouseout="this.style.background='rgba(255,255,255,0.02)'">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="1.5"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
@@ -251,58 +256,6 @@
     </div>
   </div>
 
-  <!-- ════════ BUSINESS CARDS ════════ -->
-  <div class="card">
-    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
-      <button class="bc-open-btn" onclick="toggleBusinessCards()">
-        <div class="bc-icon">💼</div>
-        <div style="text-align:left">
-          <div style="font-size:.88rem;color:var(--text-primary);font-weight:700">Business Cards</div>
-          <div style="font-size:.68rem;color:var(--text-muted)">Importa contatti e confronta con i partner WCA</div>
-        </div>
-      </button>
-      <div style="display:flex;gap:6px;align-items:center">
-        <span id="bcTotalBadge" style="font-size:.72rem;color:var(--text-muted);padding:3px 10px;border-radius:6px;background:rgba(255,255,255,0.04)">0 contatti</span>
-        <button onclick="openBcUpload()" title="Importa file CSV/Excel" style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:28px;border:1px solid rgba(99,102,241,0.2);border-radius:6px;background:rgba(99,102,241,0.06);cursor:pointer;transition:all .2s" onmouseover="this.style.background='rgba(99,102,241,0.15)'" onmouseout="this.style.background='rgba(99,102,241,0.06)'">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-        </button>
-        <button class="btn btn-sm btn-danger" onclick="clearBusinessCards()" style="font-size:.62rem;display:none" id="bcClearBtn">Cancella tutto</button>
-      </div>
-    </div>
-
-    <div class="bc-section" id="bcSection">
-      <!-- Stats -->
-      <div class="bc-stats" id="bcStats" style="display:none">
-        <span class="bc-stat" id="bcStatTotal">0 contatti</span>
-        <span class="bc-stat match" id="bcStatMatch">0 trovati in WCA</span>
-        <span class="bc-stat nomatch" id="bcStatNoMatch">0 non trovati</span>
-      </div>
-
-      <!-- List -->
-      <div class="bc-list" id="bcList"></div>
-    </div>
-
-    <!-- BC Upload Popup Overlay -->
-    <div class="bc-upload-overlay" id="bcUploadOverlay" onclick="if(event.target===this)closeBcUpload()">
-      <div class="bc-upload-popup">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-          <h3 style="margin:0">Importa Biglietti da Visita</h3>
-          <button onclick="closeBcUpload()" style="background:none;border:none;color:var(--text-muted);font-size:1.2rem;cursor:pointer">&times;</button>
-        </div>
-        <div class="bc-dropzone" id="bcDropzone"
-             ondragover="event.preventDefault();this.classList.add('dragover')"
-             ondragleave="this.classList.remove('dragover')"
-             ondrop="handleBcDrop(event)"
-             onclick="document.getElementById('bcFileInput').click()">
-          <div style="font-size:2rem;margin-bottom:6px">📂</div>
-          <div>Trascina qui un file <strong>CSV</strong> o <strong>Excel</strong></div>
-          <div style="font-size:.72rem;color:var(--text-muted);margin-top:4px">oppure clicca per sfogliare</div>
-          <input type="file" id="bcFileInput" accept=".csv,.xlsx,.xls,.tsv" style="display:none" onchange="handleBcFile(this.files[0])">
-        </div>
-        <div id="bcUploadStatus" style="margin-top:10px;font-size:.72rem;color:var(--text-muted);text-align:center"></div>
-      </div>
-    </div>
-  </div>
 
   <!-- ════════ MONITOR: BLACKLIST + SCADENZE + DIRECTORY ════════ -->
   <div class="card" id="monitorPanel" style="display:none;border-color:rgba(99,102,241,0.2)">
@@ -365,10 +318,19 @@
     </div>
   </div>
 
-  <!-- LOG -->
-  <div class="card">
-    <h2>Log</h2>
-    <div class="log-area" id="logArea"></div>
+</div>
+
+<!-- LOG POPUP -->
+<div id="logPopupOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9000;backdrop-filter:blur(4px)" onclick="if(event.target===this)toggleLogPopup()">
+  <div style="position:absolute;bottom:0;left:0;right:0;max-height:60vh;background:var(--bg-card,#1a1a2e);border-top:1px solid rgba(165,180,252,0.2);border-radius:16px 16px 0 0;display:flex;flex-direction:column;box-shadow:0 -10px 40px rgba(0,0,0,0.4)" onclick="event.stopPropagation()">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-bottom:1px solid rgba(255,255,255,0.06)">
+      <h3 style="margin:0;font-size:.9rem;color:#a5b4fc;font-weight:700">Log</h3>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button onclick="document.getElementById('logArea').innerHTML='';logCount=0;updateLogBadge()" style="padding:4px 12px;font-size:.65rem;border:1px solid rgba(239,68,68,0.2);border-radius:6px;background:rgba(239,68,68,0.06);color:#fca5a5;cursor:pointer">Pulisci</button>
+        <button onclick="toggleLogPopup()" style="background:none;border:none;color:var(--text-muted);font-size:1.3rem;cursor:pointer;padding:4px">&times;</button>
+      </div>
+    </div>
+    <div class="log-area" id="logArea" style="flex:1;overflow-y:auto;padding:8px 20px;max-height:calc(60vh - 50px)"></div>
   </div>
 </div>
 
@@ -501,7 +463,6 @@
 <script src="js/scraping-network.js"></script>
 <script src="js/turbo.js"></script>
 <script src="js/test-download.js"></script>
-<script src="js/business-cards.js"></script>
 <script src="js/monitor.js"></script>
 <script src="js/monitor-panel.js"></script>
 <script src="js/init.js"></script>
