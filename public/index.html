@@ -1305,32 +1305,30 @@ tr:hover td {
   <span id="appVersion" style="position:fixed;top:6px;right:12px;z-index:10000;font-size:0.7rem;color:#ffffff;font-family:'JetBrains Mono',monospace;opacity:0.9">v8</span>
   <div class="header-top" style="display:flex;align-items:center;gap:12px">
     <!-- Logo + Titolo a sinistra -->
-    <img id="headerDragonLogo" src="logos/dragon.png" alt="Logo" style="width:52px;height:52px;object-fit:contain;filter:drop-shadow(0 3px 12px rgba(167,139,250,0.5))" onerror="this.src='https://dlldkrzoxvjxpgkkttxu.supabase.co/storage/v1/object/public/icons/dragon.png';this.onerror=function(){this.style.display='none'}">
-    <div>
-      <h1 style="margin:0;font-size:1.05rem;line-height:1.2">WCA Partner Scraper</h1>
-      <div class="header-stats" style="display:flex;gap:4px;flex-wrap:wrap;margin-top:3px">
-        <span class="header-stat partners" data-tip="Numero totale di partner salvati nel database"><span id="headerTotalPartners">0</span> partner</span>
-        <span class="header-stat limited" data-tip="Partner con dati incompleti (accesso limitato)"><span id="headerLimitedPartners">0</span> limitati</span>
-        <span class="header-stat" style="background:rgba(14,165,233,0.1);border-color:rgba(14,165,233,0.25);color:#7dd3fc" data-tip="Partner totali censiti nelle directory locali"><span id="headerDirPartners">0</span> dir</span>
-        <span class="header-stat" style="background:rgba(167,139,250,0.1);border-color:rgba(167,139,250,0.25);color:#c4b5fd" data-tip="Paesi con directory locale scaricata"><span id="headerDirCountries">0</span> paesi</span>
-        <span class="header-stat" style="background:rgba(16,185,129,0.1);border-color:rgba(16,185,129,0.25);color:#6ee7b7" data-tip="Partner salvati in Supabase DB"><span id="headerDbPartners">—</span> DB</span>
-        <span class="header-stat" style="background:rgba(16,185,129,0.1);border-color:rgba(16,185,129,0.25);color:#6ee7b7" data-tip="Paesi salvati in Supabase DB"><span id="headerDbCountries">—</span> paesi DB</span>
-      </div>
-    </div>
-    <!-- Menu a destra -->
-    <div class="header-actions" style="margin-left:auto;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-      <button class="btn btn-secondary btn-sm" onclick="openAgenda()" data-tip="Apri l'agenda completa dei partner salvati">Agenda</button>
-      <button class="btn btn-secondary btn-sm" onclick="window.open('directory.html','_blank')" data-tip="Sfoglia la directory completa di tutti i partner WCA" style="color:#a5b4fc;border-color:rgba(99,102,241,0.25)">📂 Directory</button>
-      <button class="btn btn-secondary btn-sm" onclick="window.open('business-cards.html','_blank')" data-tip="Importa e confronta biglietti da visita con i partner WCA">💼 Business Cards</button>
-      <a href="/wca-extension.zip" download class="btn btn-secondary btn-sm" style="text-decoration:none" data-tip="Scarica l'estensione Chrome per catturare i cookies WCA">Estensione</a>
-      <button class="btn btn-secondary btn-sm" onclick="openVerifica()" data-tip="Rivedi i profili non trovati e ritenta il download">Non trovati <span id="failedCountHeader">0</span></button>
-      <button class="btn btn-secondary btn-sm" onclick="openResetPanel()" data-tip="Gestione dati e reset" style="color:#f87171;border-color:rgba(248,113,113,0.25)">
+    <img id="headerDragonLogo" src="logos/dragon.png" alt="Logo" style="width:42px;height:42px;object-fit:contain;filter:drop-shadow(0 3px 12px rgba(167,139,250,0.5))" onerror="this.src='https://dlldkrzoxvjxpgkkttxu.supabase.co/storage/v1/object/public/icons/dragon.png';this.onerror=function(){this.style.display='none'}">
+    <h1 style="margin:0;font-size:1.05rem;line-height:1.2;white-space:nowrap">WCA Partner Scraper</h1>
+    <!-- Badge stats + Reset a destra -->
+    <div style="margin-left:auto;display:flex;align-items:center;gap:4px;flex-wrap:wrap">
+      <span class="header-stat partners" data-tip="Numero totale di partner salvati nel database"><span id="headerTotalPartners">0</span> partner</span>
+      <span class="header-stat limited" data-tip="Partner con dati incompleti (accesso limitato)"><span id="headerLimitedPartners">0</span> limitati</span>
+      <span class="header-stat" style="background:rgba(14,165,233,0.1);border-color:rgba(14,165,233,0.25);color:#7dd3fc" data-tip="Partner totali censiti nelle directory locali"><span id="headerDirPartners">0</span> dir</span>
+      <span class="header-stat" style="background:rgba(16,185,129,0.1);border-color:rgba(16,185,129,0.25);color:#6ee7b7" data-tip="Partner salvati in Supabase DB"><span id="headerDbPartners">—</span> DB</span>
+      <span class="header-stat" style="background:rgba(16,185,129,0.1);border-color:rgba(16,185,129,0.25);color:#6ee7b7" data-tip="Paesi salvati in Supabase DB"><span id="headerDbCountries">—</span> paesi DB</span>
+      <button class="btn btn-secondary btn-sm" onclick="openResetPanel()" data-tip="Gestione dati e reset" style="color:#f87171;border-color:rgba(248,113,113,0.25);margin-left:4px">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="vertical-align:middle;margin-right:3px"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Reset
       </button>
       <button class="login-icon-btn off" id="btnLogin" onclick="doLogin()" data-tip="Login WCA — clicca per autenticarti">
         <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
       </button>
     </div>
+  </div>
+  <!-- Menu bottoni al centro -->
+  <div style="display:flex;align-items:center;justify-content:center;gap:6px;padding:4px 0;border-top:1px solid rgba(255,255,255,0.04);flex-wrap:wrap">
+    <button class="btn btn-secondary btn-sm" onclick="openAgenda()" data-tip="Apri l'agenda completa dei partner salvati">Agenda</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.open('directory.html','_blank')" data-tip="Sfoglia la directory completa di tutti i partner WCA" style="color:#a5b4fc;border-color:rgba(99,102,241,0.25)">📂 Directory</button>
+    <button class="btn btn-secondary btn-sm" onclick="window.open('business-cards.html','_blank')" data-tip="Importa e confronta biglietti da visita con i partner WCA">💼 Business Cards</button>
+    <a href="/wca-extension.zip" download class="btn btn-secondary btn-sm" style="text-decoration:none" data-tip="Scarica l'estensione Chrome per catturare i cookies WCA">Estensione</a>
+    <button class="btn btn-secondary btn-sm" onclick="openVerifica()" data-tip="Rivedi i profili non trovati e ritenta il download">Non trovati <span id="failedCountHeader">0</span></button>
   </div>
 
   <!-- ═══ TOOLBAR: ricerca + filtro network ═══ -->
