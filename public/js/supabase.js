@@ -169,3 +169,8 @@ async function saveToSupabase(profile){
     }
   } catch(e){log(`❌ Errore save ${profile.wca_id}: ${e.message}`,"err");}
 }
+
+// Auto-backfill directory da localStorage a Supabase se non ancora fatto
+if(!localStorage.getItem("wca_dir_backfill_done")){
+  setTimeout(() => { if(!dirSyncing) backfillDirectoryToSupabase(); }, 5000);
+}
