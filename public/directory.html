@@ -116,11 +116,23 @@ body{font-family:"SF Pro Display","Geist",'Inter',system-ui,sans-serif;backgroun
 .filter-bar{background:rgba(26,26,46,0.5);border-bottom:1px solid rgba(255,255,255,0.05);padding:8px 20px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .filter-bar label{font-size:.68rem;color:var(--text-muted);text-transform:uppercase;font-weight:600;letter-spacing:.5px}
 
+/* COUNTRIES SUMMARY TABLE */
+.countries-summary{background:rgba(26,26,46,0.6);backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,0.06);padding:16px 24px;margin-bottom:12px}
+.countries-summary h2{font-size:.85rem;text-transform:uppercase;letter-spacing:1px;color:#6366f1;margin-bottom:12px;font-weight:700}
+.countries-table{width:100%;border-collapse:collapse;font-size:.8rem}
+.countries-table th{background:rgba(99,102,241,0.1);color:#a5b4fc;padding:8px 12px;text-align:left;font-weight:600;border-bottom:1px solid rgba(99,102,241,0.25);font-size:.75rem;text-transform:uppercase}
+.countries-table td{padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.05);color:var(--text-secondary)}
+.countries-table tr:hover{background:rgba(99,102,241,0.06)}
+.countries-table .flag{font-size:1.2rem;width:28px}
+.countries-table .count{text-align:right;font-weight:600;color:#a5b4fc}
+.countries-table .total-row{background:rgba(255,255,255,0.08);font-weight:700;color:var(--text-primary)}
+
 @media(max-width:768px){
   .country-sidebar{width:60px}
   .country-name,.country-count{display:none}
   .net-logo{width:14px;height:14px}
   .filter-bar{display:none}
+  .countries-summary{display:none}
 }
 </style>
 </head>
@@ -140,6 +152,8 @@ body{font-family:"SF Pro Display","Geist",'Inter',system-ui,sans-serif;backgroun
     <span>Visualizzati: <strong id="statFiltered">0</strong></span>
   </div>
 </div>
+
+<div id="countriesSummaryContainer"></div>
 
 <div class="filter-bar">
   <label>Ordina:</label>
@@ -280,6 +294,7 @@ async function loadData(){
     document.getElementById("statCountries").textContent = uniqueCountries.size;
 
     buildCountriesMap();
+    renderCountriesSummaryTable();
     renderSidebar();
     renderNetworkFilter();
     buildLetterIndex();
@@ -297,6 +312,43 @@ function buildCountriesMap(){
     if(!countriesMap[cc]) countriesMap[cc]={name:COUNTRY_NAMES[cc]||cc,flag:countryFlag(cc),members:[]};
     countriesMap[cc].members.push(m);
   }
+}
+
+function renderCountriesSummaryTable(){
+  const container = document.getElementById("countriesSummaryContainer");
+  const codes = Object.keys(countriesMap).sort((a,b) => countriesMap[b].members.length - countriesMap[a].members.length);
+
+  let html = `<div class="countries-summary">
+    <h2>📊 Conteggi Partner per Paese</h2>
+    <table class="countries-table">
+      <thead>
+        <tr>
+          <th class="flag">🚩</th>
+          <th>Paese</th>
+          <th class="count">Partner</th>
+        </tr>
+      </thead>
+      <tbody>`;
+
+  let total = 0;
+  for(const code of codes){
+    const c = countriesMap[code];
+    const count = c.members.length;
+    total += count;
+    html += `<tr>
+      <td class="flag">${c.flag}</td>
+      <td>${esc(c.name)}</td>
+      <td class="count">${count}</td>
+    </tr>`;
+  }
+
+  html += `<tr class="total-row">
+    <td class="flag">✅</td>
+    <td>TOTALE</td>
+    <td class="count">${total}</td>
+  </tr></tbody></table></div>`;
+
+  container.innerHTML = html;
 }
 
 function renderSidebar(){
