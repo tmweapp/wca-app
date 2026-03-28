@@ -185,24 +185,32 @@ async function syncAllDirectories(forceResume){
 // Questo tasto 📂 RETRY scarica la DIRECTORY (lista IDs + networks) da WCA,
 // NON i profili completi. Serve a recuperare IDs persi durante il download.
 async function retryIncompleteDirectories(){
-  if(dirSyncing){ log("Sync directory già in corso","warn"); return; }
+  if(dirSyncing){ setStatus("⚠ Sync directory già in corso", true); return; }
+
+  setStatus("📂 Analisi paesi incompleti...", true);
 
   // Trova paesi con IDs mancanti: confronta directory IDs (additiva) vs fullDirectory members
   const allCountries = getAllCountryList();
   const toRetry = [];
+  let totalDir = 0, totalFull = 0;
   for(const c of allCountries){
     const dir = getDirectory(c.code);
     const fullDir = getFullDirectory(c.code);
     if(!dir) continue;
     const dirTotal = Object.keys(dir.ids).length;
     const fullTotal = (fullDir && fullDir.members) ? fullDir.members.length : 0;
+    totalDir += dirTotal;
+    totalFull += fullTotal;
     // Paese incompleto se: ha IDs nella directory ma fullDirectory ha meno members
     if(dirTotal > 0 && fullTotal < dirTotal){
       toRetry.push({ code: c.code, name: c.name, currentIds: fullTotal, expectedIds: dirTotal, missing: dirTotal - fullTotal });
     }
   }
 
+  log(`📂 Analisi: directory IDs totali=${totalDir}, fullDirectory members totali=${totalFull}, differenza=${totalDir - totalFull}`,"ok");
+
   if(toRetry.length === 0){
+    setStatus(`✅ Nessun paese con IDs mancanti (dir=${totalDir}, full=${totalFull})`, true);
     log("✅ Nessun paese con IDs mancanti nella directory","ok");
     return;
   }
