@@ -1311,6 +1311,8 @@ tr:hover td {
       <span class="header-stat limited" data-tip="Partner con dati incompleti (accesso limitato)"><span id="headerLimitedPartners">0</span> limitati</span>
       <span class="header-stat" style="background:rgba(14,165,233,0.1);border-color:rgba(14,165,233,0.25);color:#7dd3fc" data-tip="Partner totali censiti nelle directory locali"><span id="headerDirPartners">0</span> in directory</span>
       <span class="header-stat" style="background:rgba(167,139,250,0.1);border-color:rgba(167,139,250,0.25);color:#c4b5fd" data-tip="Paesi con directory locale scaricata"><span id="headerDirCountries">0</span> paesi</span>
+      <span class="header-stat" style="background:rgba(16,185,129,0.1);border-color:rgba(16,185,129,0.25);color:#6ee7b7" data-tip="Partner salvati in Supabase DB"><span id="headerDbPartners">—</span> DB</span>
+      <span class="header-stat" style="background:rgba(16,185,129,0.1);border-color:rgba(16,185,129,0.25);color:#6ee7b7" data-tip="Paesi salvati in Supabase DB"><span id="headerDbCountries">—</span> paesi DB</span>
     </div>
     <div class="header-actions" style="margin-left:auto">
       <button class="btn btn-secondary btn-sm" onclick="openAgenda()" data-tip="Apri l'agenda completa dei partner salvati">Agenda</button>
@@ -1782,11 +1784,19 @@ async function discoverFastDirectory(countryCode, countryName){
   // ═══ SALVA IN SUPABASE ═══
   if(allMembers.length > 0){
     try {
-      await fetch(API+"/api/save-directory",{
+      const saveResp = await fetch(API+"/api/save-directory",{
         method:"POST",headers:{"Content-Type":"application/json"},
         body:JSON.stringify({ countryCode, members: allMembers })
       });
-    } catch(e){ console.log("save-directory error:", e.message); }
+      const saveData = await saveResp.json();
+      if(saveData.success){
+        log(`💾 DB: ${countryName} — ${saveData.saved} salvati in Supabase`,"ok");
+      } else {
+        log(`⚠ DB: ${countryName} — errore salvataggio: ${saveData.error||"unknown"}`,"warn");
+      }
+      // Aggiorna contatori DB in tempo reale
+      refreshDbCounters();
+    } catch(e){ log(`⚠ DB save error ${countryName}: ${e.message}`,"warn"); }
   }
 
   return result;
@@ -2041,8 +2051,27 @@ async function loadDirStatsFromSupabase(){
       const el2 = document.getElementById("headerDirCountries");
       if(el1) el1.textContent = data.totalPartners.toLocaleString();
       if(el2) el2.textContent = data.totalCountries;
+      // Aggiorna anche contatori DB
+      const dbP = document.getElementById("headerDbPartners");
+      const dbC = document.getElementById("headerDbCountries");
+      if(dbP) dbP.textContent = data.totalPartners.toLocaleString();
+      if(dbC) dbC.textContent = data.totalCountries;
     }
   } catch(e){ console.log("loadDirStats error:", e.message); }
+}
+
+// Aggiorna contatori DB real-time (chiamata leggera dopo ogni save)
+async function refreshDbCounters(){
+  try {
+    const resp = await fetch(API+"/api/load-directory?mode=stats");
+    const data = await resp.json();
+    if(data.success){
+      const dbP = document.getElementById("headerDbPartners");
+      const dbC = document.getElementById("headerDbCountries");
+      if(dbP) dbP.textContent = data.totalPartners.toLocaleString();
+      if(dbC) dbC.textContent = data.totalCountries;
+    }
+  } catch(e){}
 }
 
 // Carica directory di un paese da Supabase se non in localStorage
@@ -2103,9 +2132,10 @@ setTimeout(()=>{
   }
 }, 3000);
 
-// Aggiorna contatori all'avvio — prima localStorage, poi Supabase
+// Aggiorna contatori all'avvio — prima localStorage, poi Supabase + DB
 setTimeout(updateDirHeaderCounts, 500);
-setTimeout(loadDirStatsFromSupabase, 4000);
+setTimeout(loadDirStatsFromSupabase, 2000);
+setTimeout(refreshDbCounters, 2500);
 
 // Toggle: avvia/ferma sync directory
 function toggleDirSync(){
