@@ -116,3 +116,21 @@ if("Notification" in window && Notification.permission === "default"){
 loadHeaderCounts();
 // Aggiorna ogni 30s durante lo scraping
 setInterval(()=>{ if(scraping || bgJobId) loadHeaderCounts(); }, 30000);
+
+// ═══ Calcola altezza header per il layout a due colonne ═══
+function updateLayoutHeight(){
+  const header = document.querySelector('.header');
+  if(header){
+    const h = header.offsetHeight;
+    document.documentElement.style.setProperty('--header-h', h + 'px');
+  }
+}
+updateLayoutHeight();
+window.addEventListener('resize', updateLayoutHeight);
+// Ricalcola dopo che le bandiere vengono renderizzate (possono cambiare altezza header)
+const _origRenderFlagChips = typeof renderFlagChips === 'function' ? renderFlagChips : null;
+if(_origRenderFlagChips){
+  // Non sovrascrivere: le bandiere ora sono nel pannello sinistro, non nel header
+  // L'altezza del header non cambia più con le bandiere
+}
+setTimeout(updateLayoutHeight, 500);
