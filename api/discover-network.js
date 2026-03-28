@@ -35,8 +35,9 @@ module.exports = async (req, res) => {
     if (!cookies) {
       console.log(`[discover-network] SSO login su ${baseUrl}...`);
       const loginResult = await ssoLogin(null, null, baseUrl);
-      if (!loginResult.success) return res.status(500).json({ error: `SSO login fallito su ${networkDomain}: ` + loginResult.error });
+      if (!loginResult.success) return res.json({ success: false, error: `SSO login fallito su ${networkDomain}: ` + loginResult.error, loginDebug: loginResult });
       cookies = loginResult.cookies;
+      console.log(`[discover-network] SSO login OK, cookies length=${cookies?.length}, hasAuth=${cookies?.includes('.ASPXAUTH')}`);
       await saveCookiesToCache(cookies, networkDomain, loginResult.ssoCookies || "");
     }
 
@@ -96,6 +97,15 @@ module.exports = async (req, res) => {
     const hasNext = allMembers.length >= pageSize;
     console.log(`[discover-network] ${networkDomain} ${country}: ${allMembers.length} members, total=${totalResults}, loggedIn=${isLoggedIn}`);
 
-    return res.json({ success: true, networkDomain, country, page, pageSize, members: allMembers, totalResults, hasNext, isLoggedIn });
+    // Debug info
+    const debug = {
+      cookiesLength: cookies?.length || 0,
+      hasASPXAUTH: cookies?.includes('.ASPXAUTH') || false,
+      respStatus: resp.status,
+      respUrl: resp.url?.substring(0, 120),
+      htmlSnippet: html.substring(0, 300),
+    };
+
+    return res.json({ success: true, networkDomain, country, page, pageSize, members: allMembers, totalResults, hasNext, isLoggedIn, debug });
   } catch (err) { return res.status(500).json({ success: false, error: err.message }); }
 };
