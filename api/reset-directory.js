@@ -17,21 +17,17 @@ module.exports = async (req, res) => {
   if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
 
   try {
-    // Update tutti i record: networks=[], directory_synced_at=null
+    // CANCELLA tutti i record directory da Supabase (quelli con directory_synced_at not null)
     const resp = await fetch(
       `${SUPABASE_URL}/rest/v1/wca_partners?directory_synced_at=not.is.null`,
       {
-        method: "PATCH",
+        method: "DELETE",
         headers: {
           "Content-Type": "application/json",
           "apikey": SUPABASE_KEY,
           "Authorization": `Bearer ${SUPABASE_KEY}`,
-          "Prefer": "return=headers-only,count=exact",
-        },
-        body: JSON.stringify({
-          networks: [],
-          directory_synced_at: null,
-        }),
+          "Prefer": "return=representation,count=exact",
+        }
       }
     );
 
@@ -42,9 +38,9 @@ module.exports = async (req, res) => {
     }
 
     const count = resp.headers.get("content-range");
-    const updated = count ? parseInt(count.split("/")[1]) || 0 : 0;
-    console.log(`[reset-directory] Reset completato: ${updated} partner aggiornati`);
-    return res.json({ success: true, updated });
+    const deleted = count ? parseInt(count.split("/")[1]) || 0 : 0;
+    console.log(`[reset-directory] Cancellati ${deleted} record directory da Supabase`);
+    return res.json({ success: true, deleted });
   } catch (err) {
     console.log(`[reset-directory] Exception: ${err.message}`);
     return res.status(500).json({ success: false, error: err.message });

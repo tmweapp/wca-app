@@ -90,18 +90,30 @@ function resetLocalScrapeData(){
   log(`🗑 Dati locali scraping resettati: ${keysToRemove.length} chiavi rimosse`,"ok");
 }
 
-function resetDirectoryCache(){
-  if(!confirm("Cancellare tutta la cache directory locale?\n\nI dati in Supabase NON verranno toccati.\nPotrai ricaricarli da Supabase o riscaricarli da WCA.")) return;
-  const allCountries = getAllCountryList();
-  let removed = 0;
-  for(const c of allCountries){
-    const key = "wca_fulldir_" + c.code;
-    if(localStorage.getItem(key)){ localStorage.removeItem(key); removed++; }
-    const dirKey = "wca_dir_" + c.code;
-    if(localStorage.getItem(dirKey)) localStorage.removeItem(dirKey);
-  }
-  localStorage.removeItem("wca_dir_sync_state");
-  localStorage.removeItem("wca_dir_backfill_done");
-  updateDirHeaderCounts();
-  log(`🗑 Cache directory resettata: ${removed} paesi rimossi dal localStorage`,"ok");
+async function resetDirectoryCache(){
+  if(!confirm("Cancellare la DIRECTORY (IDs + networks) da Supabase?\n\nPotrai ricaricarli da zero da WCA.\nI profili scaricati (email, contatti) restano intatti.")) return;
+  if(!confirm("SEI SICURO? Cancella directory per TUTTI i paesi da Supabase.")) return;
+  closeResetPanel();
+  try {
+    log("🗑 Reset directory da Supabase in corso...","warn");
+    const resp = await fetch(API+"/api/reset-directory",{ method:"POST", headers:{"Content-Type":"application/json"} });
+    const data = await resp.json();
+    if(data.success){
+      // Pulisci anche localStorage
+      const allCountries = getAllCountryList();
+      let cleared = 0;
+      for(const c of allCountries){
+        const key = "wca_fulldir_"+c.code;
+        if(localStorage.getItem(key)){ localStorage.removeItem(key); cleared++; }
+        const dirKey = "wca_dir_"+c.code;
+        if(localStorage.getItem(dirKey)) localStorage.removeItem(dirKey);
+      }
+      localStorage.removeItem("wca_dir_sync_state");
+      localStorage.removeItem("wca_dir_backfill_done");
+      log(`🗑 Directory resettata: ${data.deleted} da Supabase, ${cleared} da localStorage`,"ok");
+      updateDirHeaderCounts();
+    } else {
+      log(`⚠ Errore reset directory: ${data.error}`,"warn");
+    }
+  } catch(e){ log(`⚠ Errore reset directory: ${e.message}`,"warn"); }
 }

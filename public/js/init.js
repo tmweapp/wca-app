@@ -1,6 +1,6 @@
 // WCA — Initialization & Startup
 
-const bellAudio = new Audio("data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1lZWltbW1zc3V1dXZ2dnV1c3FtaWViXltYVlRSUlRWWFxgZGhtcnZ6fX+BgoKBgH58eXVxbGdiXlpXVFJRUlRXW19kZ2xxdXh7foCBgoGAf316d3NuamViXltYVlVVVlhbXmJma3B0eHt+gIGCgYCAf3x5dnJuamZjYF5cW1tcXWBjZ2xwdHh7foCBgoGAf316d3RwbGlmYmBfXl5fYGNmaWxwc3d6fH6AgYKBgH9+e3h1cnBtamhmZWRkZGVmaWttcHN2eXt9f4CBgYGAf358e3l3dXNxcG9ub25vcHFzdXd5e31/gIGBgYB/fn17enl4d3Z2dXV1dXZ3eHl7fH5/gIGBgYCAf359fHt6enl5eXl5eXp7fH1+f4CBgYGAgH9+fXx8e3t7e3t7e3t8fH1+f3+AgYGBgIB/fn19fHx8fHx8fHx8fX1+fn9/gICBgYCAf39+fn19fX19fX1+fn5/f3+AgICBgICAf39/fn5+fn5+fn5+fn9/f39/gICAgICAf39/f39/fn5+fn5/f39/f39/gICAgICAf39/f39/f39/f39/f39/f4CAgICAgH9/f39/f39/f39/f39/f3+AgICAgIB/f39/f39/f39/f39/f39/f4CAgICAgH9/f39/f3+AgICAgH9/f39/f39/gICAgICAgH9/f39/gA==");
+// bellAudio is declared in notifications.js
 
 // scrapeStats is declared in scraping-stats.js
 // activityTimerInterval is declared in ui-status.js
