@@ -27,16 +27,7 @@ function clearSearchPopup(){
   closeSearchPopup();
 }
 
-// Country Popup
-function openCountryPopup(){
-  document.getElementById("countryPopupOverlay").classList.add("open");
-  const f = document.getElementById("countryFilter");
-  if(f){ f.value = ""; filterCountries(); }
-  setTimeout(() => { if(f) f.focus(); }, 100);
-}
-function closeCountryPopup(){
-  document.getElementById("countryPopupOverlay").classList.remove("open");
-}
+// Country Popup — definite in countries.js (openCountryPopup, closeCountryPopup)
 
 // Network Popup
 function openNetworkPopup(){

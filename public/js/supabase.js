@@ -172,5 +172,5 @@ async function saveToSupabase(profile){
 
 // Auto-backfill directory da localStorage a Supabase se non ancora fatto
 if(!localStorage.getItem("wca_dir_backfill_done")){
-  setTimeout(() => { if(!dirSyncing) backfillDirectoryToSupabase(); }, 5000);
+  setTimeout(() => { if(typeof dirSyncing !== 'undefined' && !dirSyncing) backfillDirectoryToSupabase(); }, 5000);
 }

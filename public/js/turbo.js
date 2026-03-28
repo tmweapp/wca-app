@@ -19,7 +19,7 @@ async function scrapeCountryTurbo(country, countryName, updateAddress = false){
   // Carica ID già scaricati dalla directory locale
   const existingDir = getDirectory(country);
   if(existingDir && !updateAddress){
-    Object.entries(existingDir.ids).forEach(([id, status]) => { if(status === "done") doneIds.add(parseInt(id)); });
+    Object.entries(existingDir.ids).forEach(([id, status]) => { if(status === "done") doneIds.add(Number(id)); });
     if(doneIds.size > 0) log(`⚡ TURBO ${countryName}: ${doneIds.size} profili già nel DB — verranno saltati`,"ok");
   }
 
@@ -48,7 +48,7 @@ async function scrapeCountryTurbo(country, countryName, updateAddress = false){
           trimScrapedTabs(MAX_TABS);
           const limited = profile.access_limited ? " [LIMITATO]" : "";
           log(`⚡ ${profile.company_name} (${profile.wca_id}) contatti:${profile.contacts?.length||0}${limited} [${networkLabel}]`,"ok");
-          saveToSupabase(profile);
+          await saveToSupabase(profile);
           markIdDone(country, profile.wca_id);
           updateResultRow(profile.wca_id, "ok");
           totalScraped++;
@@ -98,7 +98,7 @@ async function scrapeCountryTurbo(country, countryName, updateAddress = false){
   // ═══════════════════════════════════════════════════════════════
   const toDownload = updateAddress
     ? allMembers
-    : allMembers.filter(m => !doneIds.has(m.id));
+    : allMembers.filter(m => !doneIds.has(Number(m.id)));
 
   const totalMembers = allMembers.length;
   const alreadyDone = totalMembers - toDownload.length;
@@ -144,7 +144,7 @@ async function scrapeCountryTurbo(country, countryName, updateAddress = false){
 
     for(let i = 0; i < netMembers.length && scraping; i++){
       const member = netMembers[i];
-      if(doneIds.has(member.id) && !updateAddress){ globalIdx++; continue; }
+      if(doneIds.has(Number(member.id)) && !updateAddress){ globalIdx++; continue; }
 
       globalIdx++;
       setStatus(`⚡ TURBO [${netName}] ${globalIdx}/${toDownload.length} — ${member.name||member.id}`, true);
@@ -153,7 +153,7 @@ async function scrapeCountryTurbo(country, countryName, updateAddress = false){
 
       const result = await downloadProfileTurbo(member, netDomain, netName);
       if(result.ok){
-        doneIds.add(member.id);
+        doneIds.add(Number(member.id));
       } else {
         // Prova network alternativi del membro
         const altNets = (member.networks || []).filter(d => d !== netDomain);
@@ -163,7 +163,7 @@ async function scrapeCountryTurbo(country, countryName, updateAddress = false){
           const altNet = ALL_NETWORKS.find(n => n.domain === altDomain);
           const altName = altNet?.name || altDomain;
           const altResult = await downloadProfileTurbo(member, altDomain, altName);
-          if(altResult.ok){ doneIds.add(member.id); rescued = true; break; }
+          if(altResult.ok){ doneIds.add(Number(member.id)); rescued = true; break; }
         }
         if(!rescued){
           consecutiveFailures++;

@@ -84,12 +84,12 @@ async function discoverFastDirectory(countryCode, countryName){
     if(updated){ dir.total = Object.keys(dir.ids).length; saveDirectory(countryCode, dir); }
   }
 
-  // ═══ SALVA IN SUPABASE ═══
-  if(allMembers.length > 0){
+  // ═══ SALVA IN SUPABASE (dati mergiati, non solo i nuovi) ═══
+  if(mergedMembers.length > 0){
     try {
       const saveResp = await fetch(API+"/api/save-directory",{
         method:"POST",headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({ countryCode, members: allMembers })
+        body:JSON.stringify({ countryCode, members: mergedMembers })
       });
       const saveData = await saveResp.json();
       if(saveData.success){

@@ -138,42 +138,4 @@ function infoRow(label, val){
 }
 
 // esc() is defined in utils.js
-
-async function refreshSingleProfile(wcaId){
-  log(`Aggiornamento profilo ${wcaId}...`);
-  const btn = event?.target;
-  if(btn){ btn.disabled = true; btn.textContent = "⏳..."; }
-  try {
-    const resp = await fetch(API+"/api/scrape",{
-      method:"POST",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({wcaIds:[wcaId]})
-    });
-    const data = await resp.json();
-    if(!data.success){
-      log(`Errore aggiornamento ${wcaId}: ${data.error}`,"err");
-      if(btn){ btn.disabled = false; btn.textContent = "↻ Aggiorna"; }
-      return;
-    }
-    const profile = data.results?.[0];
-    if(profile && profile.state === "ok"){
-      // Aggiorna nell'array locale
-      const idx = scrapedProfiles.findIndex(p => p.wca_id === wcaId);
-      if(idx >= 0){
-        scrapedProfiles[idx] = profile;
-        refreshScrapedTab(idx, profile);
-      } else {
-        scrapedProfiles.unshift(profile);
-        addScrapedTab(profile, 0);
-      }
-      // Salva in Supabase
-      await saveToSupabase(profile);
-      log(`✓ Profilo ${profile.company_name} (${wcaId}) aggiornato — contatti:${profile.contacts?.length||0}`,"ok");
-      showScrapedProfile(profile);
-    } else {
-      log(`Profilo ${wcaId}: stato ${profile?.state || "errore"}`,"warn");
-    }
-  } catch(e){
-    log(`Errore aggiornamento: ${e.message}`,"err");
-  }
-  if(btn){ btn.disabled = false; btn.textContent = "↻ Aggiorna"; }
-}
+// refreshSingleProfile() is defined in export.js

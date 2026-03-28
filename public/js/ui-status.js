@@ -1,10 +1,12 @@
 // UI Status Module — status display, progress bar, active country/download management
 
 function setStatus(text, online=false){
-  document.getElementById("statusText").textContent = text;
+  const st = document.getElementById("statusText");
+  if(st) st.textContent = text;
   const fb = document.getElementById("statusTextFallback");
   if(fb) fb.textContent = text;
-  document.getElementById("statusDot").className = "status-dot " + (online?"on":"off");
+  const dot = document.getElementById("statusDot");
+  if(dot) dot.className = "status-dot " + (online?"on":"off");
   // Mostra la riga download attivo quando online
   const dlRow = document.getElementById("activeDownloadRow");
   if(dlRow && online) dlRow.style.display = "flex";
@@ -12,8 +14,10 @@ function setStatus(text, online=false){
 
 function setProgress(current, total){
   const pct = total > 0 ? (current/total*100) : 0;
-  document.getElementById("progressFill").style.width = pct+"%";
-  document.getElementById("progressText").textContent = `${current}/${total}`;
+  const fill = document.getElementById("progressFill");
+  if(fill) fill.style.width = pct+"%";
+  const pt = document.getElementById("progressText");
+  if(pt) pt.textContent = `${current}/${total}`;
 }
 
 // === COUNTRY BADGE — bandiera + nome paese attivo ===
@@ -21,16 +25,19 @@ function setActiveCountry(code, name){
   const badge = document.getElementById("activeCountryBadge");
   const dlRow = document.getElementById("activeDownloadRow");
   const fb = document.getElementById("statusTextFallback");
-  if(!code && !name){ badge.style.display = "none"; if(fb) fb.style.display = ""; return; }
-  document.getElementById("activeCountryFlag").textContent = countryFlag(code);
-  document.getElementById("activeCountryName").textContent = name || code;
-  badge.style.display = "flex";
+  if(!code && !name){ if(badge) badge.style.display = "none"; if(fb) fb.style.display = ""; return; }
+  const cf = document.getElementById("activeCountryFlag");
+  if(cf) cf.textContent = countryFlag(code);
+  const cn = document.getElementById("activeCountryName");
+  if(cn) cn.textContent = name || code;
+  if(badge) badge.style.display = "flex";
   if(dlRow) dlRow.style.display = "flex";
   if(fb) fb.style.display = "none";
 }
 
 function hideActiveCountry(){
-  document.getElementById("activeCountryBadge").style.display = "none";
+  const b = document.getElementById("activeCountryBadge");
+  if(b) b.style.display = "none";
   const fb = document.getElementById("statusTextFallback");
   if(fb) fb.style.display = "";
 }
@@ -47,15 +54,17 @@ let activityTimerInterval = null;
 
 function showActivity(icon, text){
   const bar = document.getElementById("activityBar");
+  if(!bar) return;
   bar.style.display = "flex";
-  document.getElementById("activityIcon").textContent = icon;
-  document.getElementById("activityText").textContent = text;
-  document.getElementById("activityTimer").textContent = "";
+  const ai = document.getElementById("activityIcon"); if(ai) ai.textContent = icon;
+  const at = document.getElementById("activityText"); if(at) at.textContent = text;
+  const atr = document.getElementById("activityTimer"); if(atr) atr.textContent = "";
   if(activityTimerInterval){ clearInterval(activityTimerInterval); activityTimerInterval = null; }
 }
 
 function hideActivity(){
-  document.getElementById("activityBar").style.display = "none";
+  const bar = document.getElementById("activityBar");
+  if(bar) bar.style.display = "none";
   if(activityTimerInterval){ clearInterval(activityTimerInterval); activityTimerInterval = null; }
 }
 

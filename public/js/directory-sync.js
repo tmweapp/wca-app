@@ -181,45 +181,51 @@ async function syncAllDirectories(forceResume){
   updateDirHeaderCounts();
 }
 
-// ═══ RETRY DIRECTORY — riscarica IDs da WCA per paesi con directory incompleta ═══
-// Questo tasto 📂 RETRY scarica la DIRECTORY (lista IDs + networks) da WCA,
-// NON i profili completi. Serve a recuperare IDs persi durante il download.
+// ═══ RETRY DIRECTORY — confronta locale vs SUPABASE, riscarica mancanti da WCA ═══
 async function retryIncompleteDirectories(){
   if(dirSyncing){ setStatus("⚠ Sync directory già in corso", true); return; }
 
-  setStatus("📂 Analisi paesi incompleti...", true);
+  setStatus("📂 Confronto locale vs Supabase...", true);
+  log("📂 Carico conteggi da Supabase...","ok");
 
-  // Trova paesi con IDs mancanti: confronta directory IDs (additiva) vs fullDirectory members
+  // 1. Chiedi a Supabase i conteggi per paese
+  let dbByCountry = {};
+  let dbTotal = 0;
+  try {
+    const resp = await fetch(API + "/api/load-directory?mode=stats");
+    const data = await resp.json();
+    if(!data.success){ setStatus("⚠ Errore caricamento stats Supabase", true); return; }
+    dbByCountry = data.byCountry || {};
+    dbTotal = data.totalPartners || 0;
+  } catch(e){ setStatus("⚠ Errore connessione Supabase: " + e.message, true); return; }
+
+  // 2. Confronta locale vs Supabase per ogni paese
   const allCountries = getAllCountryList();
   const toRetry = [];
-  let totalDir = 0, totalFull = 0;
+  let localTotal = 0;
   for(const c of allCountries){
-    const dir = getDirectory(c.code);
     const fullDir = getFullDirectory(c.code);
-    if(!dir) continue;
-    const dirTotal = Object.keys(dir.ids).length;
-    const fullTotal = (fullDir && fullDir.members) ? fullDir.members.length : 0;
-    totalDir += dirTotal;
-    totalFull += fullTotal;
-    // Paese incompleto se: ha IDs nella directory ma fullDirectory ha meno members
-    if(dirTotal > 0 && fullTotal < dirTotal){
-      toRetry.push({ code: c.code, name: c.name, currentIds: fullTotal, expectedIds: dirTotal, missing: dirTotal - fullTotal });
+    const localCount = (fullDir && fullDir.members) ? fullDir.members.length : 0;
+    const dbCount = dbByCountry[c.code] || 0;
+    localTotal += localCount;
+    // Paese incompleto se Supabase ha più IDs del locale
+    if(dbCount > localCount){
+      toRetry.push({ code: c.code, name: c.name, localCount, dbCount, missing: dbCount - localCount });
     }
   }
 
-  log(`📂 Analisi: directory IDs totali=${totalDir}, fullDirectory members totali=${totalFull}, differenza=${totalDir - totalFull}`,"ok");
+  log(`📂 Confronto: locale=${localTotal.toLocaleString()}, Supabase=${dbTotal.toLocaleString()}, differenza=${(dbTotal - localTotal).toLocaleString()}`,"ok");
 
   if(toRetry.length === 0){
-    setStatus(`✅ Nessun paese con IDs mancanti (dir=${totalDir}, full=${totalFull})`, true);
-    log("✅ Nessun paese con IDs mancanti nella directory","ok");
+    setStatus(`✅ Locale allineato con Supabase (${localTotal.toLocaleString()} IDs)`, true);
+    log("✅ Nessun paese con IDs mancanti rispetto a Supabase","ok");
     return;
   }
 
   toRetry.sort((a,b) => b.missing - a.missing);
-
-  const totalIdsBefore = toRetry.reduce((s, c) => s + c.currentIds, 0);
   const totalMissing = toRetry.reduce((s, c) => s + c.missing, 0);
-  log(`📂 RETRY DIRECTORY: ${toRetry.length} paesi con ${totalMissing} IDs mancanti`,"warn");
+
+  log(`📂 RETRY: ${toRetry.length} paesi con ${totalMissing} IDs mancanti vs Supabase`,"warn");
   log(`📂 Paesi: ${toRetry.map(c => c.name+'(-'+c.missing+')').join(', ')}`,"warn");
 
   dirSyncing = true;
@@ -235,15 +241,16 @@ async function retryIncompleteDirectories(){
     const before = getFullDirectory(c.code)?.members?.length || 0;
 
     setActiveCountry(c.code, c.name);
-    setStatus(`📂 Retry directory ${i+1}/${toRetry.length}: ${c.name} (${before} IDs)`, true);
+    setStatus(`📂 Retry ${i+1}/${toRetry.length}: ${c.name} (locale ${before}, DB ${c.dbCount}, -${c.missing})`, true);
     setProgress(i+1, toRetry.length);
 
+    // Scarica directory da WCA (merge con esistente)
     await discoverFastDirectory(c.code, c.name);
 
     const after = getFullDirectory(c.code)?.members?.length || 0;
     const gained = after - before;
     if(gained > 0){
-      log(`📂 ${c.name}: +${gained} nuovi IDs recuperati (${before} → ${after})`,"ok");
+      log(`📂 ${c.name}: +${gained} IDs recuperati (${before} → ${after}, DB=${c.dbCount})`,"ok");
       newIds += gained;
     }
     synced++;
@@ -258,9 +265,9 @@ async function retryIncompleteDirectories(){
   hideDownloadRow();
   if(btn) btn.style.opacity = ".5";
 
-  const totalIdsAfter = toRetry.reduce((s, c) => s + (getFullDirectory(c.code)?.members?.length || 0), 0);
-  setStatus(`📂 Retry directory completato: ${synced} paesi, +${newIds} IDs recuperati`, true);
-  log(`✅ Retry directory: ${synced} paesi riscaricati. IDs: ${totalIdsBefore.toLocaleString()} → ${totalIdsAfter.toLocaleString()} (+${newIds})`,"ok");
+  const newLocalTotal = allCountries.reduce((s, c) => s + (getFullDirectory(c.code)?.members?.length || 0), 0);
+  setStatus(`📂 Retry completato: ${synced} paesi, +${newIds} IDs recuperati (${newLocalTotal.toLocaleString()} totali)`, true);
+  log(`✅ Retry: ${synced} paesi. IDs: ${localTotal.toLocaleString()} → ${newLocalTotal.toLocaleString()} (+${newIds}) — DB: ${dbTotal.toLocaleString()}`,"ok");
   updateDirHeaderCounts();
 }
 

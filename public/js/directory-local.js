@@ -56,5 +56,12 @@ function isCountryCompleted(code){
 
 function markCountryCompleted(code, count){
   const cName = selectedCountries.find(c => c.code === code)?.name || code;
-  addCompletedJob(code, cName, count, currentMode);
+  addCompletedJob(code, cName, count, typeof currentMode !== 'undefined' ? currentMode : 'unknown');
+  // Salva anche in completedCountries per tracking cross-reload
+  try {
+    if(typeof completedCountries !== 'undefined'){
+      completedCountries[code] = { count, ts: Date.now(), name: cName };
+      localStorage.setItem("wca_completed_countries", JSON.stringify(completedCountries));
+    }
+  } catch(e){ console.warn("markCountryCompleted save err:", e.message); }
 }

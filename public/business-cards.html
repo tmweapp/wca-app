@@ -1152,11 +1152,7 @@ async function deleteSelected(){
   renderAll();
   if(errors) alert("Cancellati "+deleted+", errori: "+errors);
 }
-function filterByCountry(cc){
-  currentCountryFilter=currentCountryFilter===cc?"":cc;
-  renderFlagRow();
-  renderPage();
-}
+// filterByCountry() definita sotto nella sezione FLAG CAROUSEL (versione completa)
 
 // ==================== FLAG CAROUSEL ====================
 let flagCountries=[]; // [{cc,name,count}] sorted by count desc
