@@ -94,7 +94,7 @@ body{font-family:"SF Pro Display","Geist",'Inter',system-ui,sans-serif;backgroun
 .agenda-line .line-detail{font-size:.72rem;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px}
 .agenda-line .line-detail .city{color:var(--text-secondary)}
 .agenda-line .line-right{display:flex;align-items:center;gap:5px;flex-shrink:0}
-.net-logo{width:18px;height:18px;border-radius:3px;object-fit:contain;opacity:.85;transition:opacity .15s}
+.net-logo{width:36px;height:36px;border-radius:4px;object-fit:contain;opacity:.85;transition:opacity .15s}
 .net-logo:hover{opacity:1}
 .net-count-badge{font-size:.65rem;background:rgba(99,102,241,0.18);color:#a5b4fc;padding:2px 7px;border-radius:6px;font-weight:600;white-space:nowrap}
 .net-row{display:flex;align-items:center;gap:5px;width:100%;padding:2px 0 0 38px}
@@ -121,7 +121,7 @@ body{font-family:"SF Pro Display","Geist",'Inter',system-ui,sans-serif;backgroun
 @media(max-width:768px){
   .country-sidebar{width:60px}
   .country-name,.country-count{display:none}
-  .net-logo{width:14px;height:14px}
+  .net-logo{width:28px;height:28px}
   .filter-bar{display:none}
   .countries-summary{display:none}
 }
@@ -137,6 +137,7 @@ body{font-family:"SF Pro Display","Geist",'Inter',system-ui,sans-serif;backgroun
   <a href="agenda.html" class="btn btn-back">📖 Agenda</a>
   <h1>WCA Directory</h1>
   <input type="text" id="searchInput" placeholder="Cerca partner..." oninput="onSearch()" style="min-width:180px">
+  <button onclick="openNetPopup()" class="btn btn-back" id="btnNetFilter" style="display:inline-flex;align-items:center;gap:4px">🌐 Network <span id="netFilterCount" style="font-size:.65rem;background:rgba(99,102,241,0.3);padding:1px 6px;border-radius:4px"></span></button>
   <div class="stats">
     <span>Partner: <strong id="statTotal">0</strong></span>
     <span>Paesi: <strong id="statCountries">0</strong></span>
@@ -474,23 +475,15 @@ function renderPage(){
     const flag = countryFlag(cc);
     const countryLabel = COUNTRY_NAMES[cc]||cc;
 
-    // Network logos
+    // Network logos — mostra TUTTI in orizzontale
     let netHtml = "";
     const nets = m.networks||[];
-    if(nets.length > 0){
-      // Show up to 5 logos, then +N badge
-      const maxShow = 5;
-      for(let ni=0; ni<Math.min(nets.length, maxShow); ni++){
-        const net = NET_BY_DOMAIN[nets[ni]];
-        if(net){
-          netHtml += `<img class="net-logo" src="${net.logo}" alt="${net.name}" title="${net.name}" onerror="this.style.display='none'">`;
-        }
-      }
-      if(nets.length > maxShow){
-        netHtml += `<span class="net-count-badge">+${nets.length-maxShow}</span>`;
+    for(const nd of nets){
+      const net = NET_BY_DOMAIN[nd];
+      if(net){
+        netHtml += `<img class="net-logo" src="${net.logo}" alt="${net.name}" title="${net.name}" onerror="this.style.display='none'">`;
       }
     }
-    const netCountBadge = nets.length > 0 ? `<span class="net-count-badge" title="${nets.length} networks">${nets.length}</span>` : '';
 
     html += `<div class="agenda-line" onclick="openWcaProfile('${m.id}')">
       <span class="line-num">${num}</span>
@@ -499,7 +492,7 @@ function renderPage(){
         <div class="line-company">${esc(m.name)}</div>
         <div class="line-detail"><span class="city">${esc(countryLabel)}</span> · ID: ${esc(m.id+"")}</div>
       </div>
-      ${nets.length > 0 ? `<div class="net-row">${netHtml}${netCountBadge}</div>` : ''}
+      ${netHtml ? `<div class="net-row">${netHtml}</div>` : ''}
     </div>`;
   }
   lines.innerHTML = html;
@@ -560,8 +553,86 @@ document.addEventListener("keydown",e=>{
   if(e.key==="ArrowRight") nextPage();
 });
 
+// ══════ NETWORK POPUP ══════
+function openNetPopup(){
+  const ov = document.getElementById("netPopupOverlay");
+  const grid = document.getElementById("netPopupGrid");
+  // Conta network presenti nei dati
+  const netCounts = {};
+  for(const m of allMembers){
+    if(m.networks) for(const n of m.networks){ netCounts[n] = (netCounts[n]||0)+1; }
+  }
+  const sorted = Object.entries(netCounts).sort((a,b)=>b[1]-a[1]);
+  grid.innerHTML = sorted.map(([domain, count]) => {
+    const net = NET_BY_DOMAIN[domain];
+    const name = net ? net.name : domain;
+    const logo = net ? net.logo : '';
+    const checked = activeNetworkFilters.has(domain) ? 'checked' : '';
+    return `<label class="net-popup-item" data-domain="${domain}">
+      <input type="checkbox" ${checked} onchange="toggleNetPopupItem('${domain}',this.checked)">
+      ${logo ? `<img src="${logo}" style="width:28px;height:28px;object-fit:contain;border-radius:3px" onerror="this.style.display='none'">` : ''}
+      <span>${esc(name)}</span>
+      <span style="opacity:.4;font-size:.7rem;margin-left:auto">${count}</span>
+    </label>`;
+  }).join("");
+  ov.classList.add("open");
+}
+function closeNetPopup(){ document.getElementById("netPopupOverlay").classList.remove("open"); }
+function toggleNetPopupItem(domain, checked){
+  if(checked) activeNetworkFilters.add(domain);
+  else activeNetworkFilters.delete(domain);
+}
+function confirmNetPopup(){
+  closeNetPopup();
+  updateNetFilterCount();
+  currentPage = 0;
+  renderPage();
+  // Sync chip nella filter-bar
+  document.querySelectorAll(".net-chip").forEach(el => {
+    el.classList.toggle("active", activeNetworkFilters.has(el.dataset.domain));
+  });
+}
+function clearNetPopup(){
+  activeNetworkFilters.clear();
+  document.querySelectorAll("#netPopupGrid input[type=checkbox]").forEach(c=>c.checked=false);
+}
+function selectAllNetPopup(){
+  document.querySelectorAll("#netPopupGrid input[type=checkbox]").forEach(c=>{c.checked=true; activeNetworkFilters.add(c.parentElement.dataset.domain);});
+}
+function updateNetFilterCount(){
+  const el = document.getElementById("netFilterCount");
+  el.textContent = activeNetworkFilters.size > 0 ? activeNetworkFilters.size : '';
+}
+
 // ══════ START ══════
 loadData();
 </script>
+
+<!-- NETWORK POPUP -->
+<div class="network-popup-overlay" id="netPopupOverlay" onclick="if(event.target===this)closeNetPopup()">
+  <div class="network-popup" style="max-width:520px">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px 12px;border-bottom:1px solid rgba(255,255,255,0.08)">
+      <h3 style="margin:0;font-size:.95rem;color:#a5b4fc">Filtra Network</h3>
+      <div style="display:flex;align-items:center;gap:8px">
+        <button onclick="selectAllNetPopup()" style="font-size:.65rem;padding:3px 10px;background:rgba(99,102,241,0.15);color:#a5b4fc;border:none;border-radius:6px;cursor:pointer">Tutti</button>
+        <button onclick="clearNetPopup()" style="font-size:.65rem;padding:3px 10px;background:rgba(255,255,255,0.06);color:var(--text-muted);border:none;border-radius:6px;cursor:pointer">Nessuno</button>
+        <button onclick="closeNetPopup()" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:1.2rem;padding:4px">&times;</button>
+      </div>
+    </div>
+    <div id="netPopupGrid" style="padding:12px 20px;display:flex;flex-direction:column;gap:6px;max-height:60vh;overflow-y:auto"></div>
+    <div style="display:flex;justify-content:center;padding:12px 0 16px">
+      <button onclick="confirmNetPopup()" style="padding:10px 40px;font-size:.88rem;font-weight:700;border-radius:10px;background:linear-gradient(135deg,#6366f1,#818cf8);color:#fff;border:none;cursor:pointer;letter-spacing:0.5px">Conferma</button>
+    </div>
+  </div>
+</div>
+
+<style>
+.network-popup-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;justify-content:center;align-items:center;backdrop-filter:blur(4px)}
+.network-popup-overlay.open{display:flex}
+.network-popup{background:var(--bg-card,#1a1a2e);border:1px solid rgba(255,255,255,0.1);border-radius:14px;width:90vw;box-shadow:0 20px 60px rgba(0,0,0,0.5)}
+.net-popup-item{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;cursor:pointer;transition:background .15s;font-size:.82rem;color:var(--text-secondary)}
+.net-popup-item:hover{background:rgba(99,102,241,0.08)}
+.net-popup-item input[type=checkbox]{accent-color:#6366f1}
+</style>
 </body>
 </html>
