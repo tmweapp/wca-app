@@ -21,6 +21,7 @@ const CONTACT_LABELS = {
 
 // ═══ NAME → DOMAIN per auto-retry ═══
 const NAME_TO_DOMAIN = {
+  // Network con dominio proprio
   "wca projects": "wcaprojects.com",
   "wca dangerous goods": "wcadangerousgoods.com",
   "wca perishables": "wcaperishables.com",
@@ -38,6 +39,20 @@ const NAME_TO_DOMAIN = {
   "egln": "elitegln.com",
   "ifc8": "ifc8.network",
   "infinite connection": "ifc8.network",
+  // Network WCA su wcaworld.com (siteId diversi, dominio virtuale)
+  "wca first": "wca-first",
+  "wca advanced": "wca-advanced",
+  "advanced professional": "wca-advanced",
+  "china global": "wca-chinaglobal",
+  "wca china": "wca-chinaglobal",
+  "inter global": "wca-interglobal",
+  "wca inter": "wca-interglobal",
+  "wca vendor": "wca-vendors",
+  // Badge aggiuntivi visibili nella directory WCA
+  "all world shipping": "allworldshipping",
+  "cass": "cass",
+  "quality standard": "qs",
+  "iata": "iata",
 };
 
 // ═══ NETWORK DOMAINS ═══
@@ -55,6 +70,22 @@ const NETWORK_DOMAINS = {
   "wcarelocations.com":        { siteId: 15,  base: "https://www.wcarelocations.com" },
   "wcaecommercesolutions.com": { siteId: 107, base: "https://www.wcaecommercesolutions.com" },
   "wcaexpo.com":               { siteId: 124, base: "https://www.wcaexpo.com" },
+  // Network WCA su wcaworld.com con siteId propri (dominio virtuale)
+  "wca-first":                 { siteId: 1,   base: "https://www.wcaworld.com" },
+  "wca-advanced":              { siteId: 2,   base: "https://www.wcaworld.com" },
+  "wca-chinaglobal":           { siteId: 3,   base: "https://www.wcaworld.com" },
+  "wca-interglobal":           { siteId: 4,   base: "https://www.wcaworld.com" },
+  "wca-vendors":               { siteId: 38,  base: "https://www.wcaworld.com" },
+};
+
+// Domini redirect usati nei link della directory WCA → dominio virtuale
+const REDIRECT_DOMAINS = {
+  "wcafirst.com": "wca-first",
+  "wcaadvancedprofessionals.com": "wca-advanced",
+  "wcachinaglobal.com": "wca-chinaglobal",
+  "wcainterglobal.com": "wca-interglobal",
+  "wcavendors.com": "wca-vendors",
+  "allworldshipping.com": "allworldshipping",
 };
 
 // Helper: base URL per un dominio
@@ -485,7 +516,7 @@ function extractProfile($, wcaId, sourceBase) {
 }
 
 // ═══ KNOWN NETWORK DOMAINS per matching dai link directory ═══
-const KNOWN_NETWORK_HOSTS = Object.keys(NETWORK_DOMAINS); // wcaworld.com, lognetglobal.com, etc.
+const KNOWN_NETWORK_HOSTS = Object.keys(NETWORK_DOMAINS).concat(Object.keys(REDIRECT_DOMAINS));
 
 // ═══ ESTRAZIONE MEMBRI DA DIRECTORY HTML ═══
 function extractMembersFromHtml(html) {
@@ -493,15 +524,30 @@ function extractMembersFromHtml(html) {
   const seenIds = new Set();
   const $ = cheerio.load(html);
 
-  // Estrai domini network noti da un href (link nella directory)
-  function extractNetworkDomain(href) {
+  // Estrai dominio da un href, mappando domini redirect → virtuali
+  function extractNetworkFromHref(href) {
     if (!href) return null;
     try {
-      // href può essere //www.wcaprojects.com/... o https://www.wcaprojects.com/... o wcaprojects.com/...
       const normalized = href.startsWith("//") ? "https:" + href : href.startsWith("http") ? href : "https://" + href;
       const host = new URL(normalized).hostname.replace(/^www\./, "");
-      return KNOWN_NETWORK_HOSTS.includes(host) ? host : null;
+      // Prima check: dominio redirect (wcafirst.com → wca-first, etc.)
+      if (REDIRECT_DOMAINS[host]) return REDIRECT_DOMAINS[host];
+      // Poi: dominio diretto noto (wcaprojects.com, lognetglobal.com, etc.)
+      if (KNOWN_NETWORK_HOSTS.includes(host) && host !== "wcaworld.com") return host;
+      // Caso speciale: allworldshipping.com con parametro cid
+      if (host === "allworldshipping.com") return "allworldshipping";
+      return null;
     } catch { return null; }
+  }
+
+  // Estrai network dal title di un <a> via NAME_TO_DOMAIN
+  function extractNetworkFromTitle(title) {
+    if (!title) return null;
+    const lower = title.toLowerCase().trim();
+    for (const [key, domain] of Object.entries(NAME_TO_DOMAIN)) {
+      if (lower.includes(key)) return domain;
+    }
+    return null;
   }
 
   // Prima prova li.directoyname (typo WCA originale) e li.directoryname
@@ -516,26 +562,34 @@ function extractMembersFromHtml(html) {
       const id = parseInt(match[1]);
       if (!seenIds.has(id)) {
         seenIds.add(id);
-        // Cerca tutti i link nella stessa li per estrarre i network
         const networks = [];
+        function addNet(n) { if (n && !networks.includes(n)) networks.push(n); }
+
+        // 1) Network logos dentro span.directory_networklogo > a[title][href]
+        $li.find("span.directory_networklogo a").each((_, a) => {
+          const $a = $(a);
+          addNet(extractNetworkFromHref($a.attr("href")));
+          addNet(extractNetworkFromTitle($a.attr("title")));
+        });
+
+        // 2) Servizi/badge aggiuntivi: a > img.icon_membership → a[title]
+        $li.find("img.icon_membership").each((_, img) => {
+          const $a = $(img).parent("a");
+          if ($a.length) addNet(extractNetworkFromTitle($a.attr("title")));
+        });
+
+        // 3) Fallback: qualsiasi altro a[href] nella li (escluso profilo)
         $li.find("a[href]").each((_, a) => {
           const aHref = $(a).attr("href") || "";
-          // Salta il link al profilo stesso
           if (aHref.includes("/directory/members/")) return;
-          const domain = extractNetworkDomain(aHref);
-          if (domain && domain !== "wcaworld.com" && !networks.includes(domain)) {
-            networks.push(domain);
-          }
+          addNet(extractNetworkFromHref(aHref));
         });
-        // Cerca anche img con alt che contiene nomi di network (badge/loghi)
+
+        // 4) Fallback: img[alt] per network
         $li.find("img[alt]").each((_, img) => {
-          const alt = ($(img).attr("alt") || "").toLowerCase();
-          for (const [key, domain] of Object.entries(NAME_TO_DOMAIN)) {
-            if (alt.includes(key) && !networks.includes(domain)) {
-              networks.push(domain);
-            }
-          }
+          addNet(extractNetworkFromTitle($(img).attr("alt")));
         });
+
         members.push({ id, name: memberLink.text().trim(), href, networks });
       }
     }
