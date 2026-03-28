@@ -2,7 +2,7 @@
  * api/discover-network.js — Discover membri di un network specifico per paese
  *
  * STRATEGY (in order):
- *   1. API endpoint /Api/directories/view con cookies SSO → HTML parziale con li.directoyname
+ *   1. API endpoint /Api/directories/view con cookies SSO
  *   2. API endpoint senza auth (directory pubblica per listing base)
  *   3. Full HTML page /Directory con scraping classico
  *   4. Fallback: JSON API se disponibile
@@ -219,7 +219,6 @@ module.exports = async (req, res) => {
           const hasLogout = /logout|sign.?out/i.test(html);
           const htmlResult = extractMembersFromHtml(html);
 
-          // Cerchiamo wcaToken nel HTML per un ultimo tentativo API
           if (!wcaToken) {
             const tokenMatch = html.match(/window\.wca\.token\s*=\s*["']([^"']+)["']/) || html.match(/wca\.token\s*=\s*["']([^"']+)["']/);
             if (tokenMatch) wcaToken = tokenMatch[1];
@@ -235,7 +234,6 @@ module.exports = async (req, res) => {
             hasLogout,
             hasWcaToken: !!wcaToken,
             htmlLength: html.length,
-            // Diagnostica HTML: cerca elementi chiave
             hasLiDirectoyname: (html.match(/class="directoyname"/g) || []).length,
             hasLiDirectoryname: (html.match(/class="directoryname"/g) || []).length,
             hasDirectoryMembers: (html.match(/\/directory\/members\//gi) || []).length,
@@ -246,7 +244,6 @@ module.exports = async (req, res) => {
 
           if (htmlResult.totalResults && !totalResults) totalResults = htmlResult.totalResults;
 
-          console.log(`[discover-network] Strategy 4 (HTML): status=${resp.status} members=${htmlResult.members.length} total=${htmlResult.totalResults} loggedIn=${isLoggedIn} logout=${hasLogout}`);
           if (htmlResult.members.length > 0) {
             allMembers = htmlResult.members;
             totalResults = htmlResult.totalResults;
@@ -258,7 +255,7 @@ module.exports = async (req, res) => {
       }
     }
 
-    // ═══ STRATEGY 5: API con wcaToken estratto dal HTML (ultimo tentativo) ═══
+    // ═══ STRATEGY 5: API con wcaToken estratto dal HTML ═══
     if (allMembers.length === 0 && wcaToken) {
       try {
         const apiUrl = `${baseUrl}/Api/directories/view?${params.toString()}`;
@@ -283,7 +280,6 @@ module.exports = async (req, res) => {
           responseLength: apiText.length,
           snippet: apiText.substring(0, 500),
         });
-        console.log(`[discover-network] Strategy 5 (API+token): status=${apiResp.status} members=${apiResult.members.length}`);
         if (apiResult.members.length > 0) {
           allMembers = apiResult.members;
           totalResults = apiResult.totalResults;
@@ -298,8 +294,6 @@ module.exports = async (req, res) => {
     const hasNext = allMembers.length >= pageSize;
     debug.winningStrategy = winningStrategy;
     debug.totalMembers = allMembers.length;
-
-    console.log(`[discover-network] ${networkDomain} ${country}: ${allMembers.length} members via ${winningStrategy}, total=${totalResults}, auth=${authMethod}`);
 
     return res.json({
       success: true,
