@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WCA Settings - Network Access</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-page: #0e0e18;
+  --bg-card: #1a1a2e;
+  --bg-input: #12121e;
+  --bg-header: rgba(26,26,46,0.92);
+  --text-primary: #e2e8f0;
+  --text-secondary: #a0aec0;
+  --text-muted: #64748b;
+  --border-color: rgba(99,102,241,0.15);
+  --border-subtle: rgba(99,102,241,0.08);
+  --accent: #6366f1;
+  --accent-hover: #818cf8;
+  --accent-soft: rgba(99,102,241,0.15);
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --gradient: linear-gradient(135deg, #6366f1, #818cf8, #a5b4fc);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"SF Pro Display","Geist",'Inter',system-ui,sans-serif;background:var(--bg-page);color:var(--text-primary);min-height:100vh}
+
+.header{background:var(--bg-header);backdrop-filter:blur(20px);padding:14px 24px;display:flex;align-items:center;gap:16px;border-bottom:1px solid rgba(255,255,255,0.07)}
+.header h1{font-size:1.15rem;font-weight:700;background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.btn{padding:8px 18px;border:none;border-radius:8px;font-size:.82rem;font-weight:600;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:6px;color:var(--text-primary)}
+.btn-back{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);text-decoration:none;color:var(--text-secondary)}
+.btn-back:hover{background:rgba(255,255,255,0.08)}
+.btn-primary{background:var(--accent-soft);color:#a5b4fc;border:1px solid rgba(99,102,241,0.25)}.btn-primary:hover{background:rgba(99,102,241,0.25)}
+.btn-success{background:rgba(16,185,129,0.12);color:#6ee7b7;border:1px solid rgba(16,185,129,0.2)}.btn-success:hover{background:rgba(16,185,129,0.2)}
+.btn-warning{background:rgba(245,158,11,0.12);color:#fbbf24;border:1px solid rgba(245,158,11,0.2)}.btn-warning:hover{background:rgba(245,158,11,0.2)}
+.btn-danger{background:rgba(239,68,68,0.12);color:#fca5a5;border:1px solid rgba(239,68,68,0.2)}.btn-danger:hover{background:rgba(239,68,68,0.2)}
+.btn-sm{padding:6px 14px;font-size:.78rem}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+
+.container{max-width:1000px;margin:0 auto;padding:20px}
+.card{background:var(--bg-card);border-radius:12px;border:1px solid rgba(255,255,255,0.06);padding:20px;margin-bottom:16px}
+.card h2{font-size:.9rem;color:var(--text-secondary);margin-bottom:16px;display:flex;align-items:center;gap:8px;font-weight:600}
+.card h2 .count{background:var(--accent-soft);color:#a5b4fc;font-size:.68rem;padding:2px 10px;border-radius:10px;font-weight:700}
+.row{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin-bottom:12px}
+.field{display:flex;flex-direction:column;gap:4px;flex:1;min-width:200px}
+.field label{font-size:.72rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;font-weight:600}
+.field input{background:var(--bg-input);border:1px solid var(--border-color);color:var(--text-primary);padding:9px 12px;border-radius:8px;font-size:.85rem;outline:none;transition:border-color .2s}
+.field input:focus{border-color:var(--accent)}
+
+.test-status{padding:12px 16px;border-radius:10px;margin:16px 0;font-size:.82rem;display:none}
+.test-status.running{display:flex;align-items:center;gap:10px;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.2);color:#a5b4fc}
+.test-status.done{display:block;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);color:#6ee7b7}
+
+.network-grid{display:grid;grid-template-columns:1fr;gap:8px}
+.network-row{display:flex;align-items:center;gap:12px;padding:12px 16px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:10px;transition:all .2s}
+.network-row:hover{background:rgba(99,102,241,0.04)}
+.network-row.available{border-color:rgba(16,185,129,0.25)}
+.network-row.unavailable{border-color:rgba(245,158,11,0.2)}
+.network-row.testing{border-color:rgba(99,102,241,0.3);opacity:.7}
+.network-row.untested{opacity:.5}
+
+.net-icon{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0}
+.net-icon.available{background:rgba(16,185,129,0.12);color:#6ee7b7}
+.net-icon.unavailable{background:rgba(245,158,11,0.12);color:#fbbf24}
+.net-icon.untested{background:rgba(255,255,255,0.04);color:var(--text-muted)}
+.net-icon.testing{background:rgba(99,102,241,0.12);color:#a5b4fc}
+
+.net-info{flex:1;min-width:0}
+.net-name{font-weight:600;font-size:.88rem;color:var(--text-primary)}
+.net-domain{font-size:.72rem;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.net-detail{font-size:.75rem;color:var(--text-secondary);margin-top:2px}
+
+.net-status{font-size:.72rem;font-weight:700;padding:4px 12px;border-radius:6px;white-space:nowrap}
+.net-status.available{background:rgba(16,185,129,0.12);color:#6ee7b7}
+.net-status.unavailable{background:rgba(245,158,11,0.12);color:#fbbf24}
+.net-status.testing{background:rgba(99,102,241,0.12);color:#a5b4fc}
+.net-status.untested{background:rgba(255,255,255,0.04);color:var(--text-muted)}
+
+.net-creds{display:flex;gap:6px;align-items:center}
+.net-creds input{background:var(--bg-input);border:1px solid var(--border-color);color:var(--text-primary);padding:5px 8px;border-radius:6px;font-size:.78rem;width:120px;outline:none}
+.net-creds input::placeholder{color:#475569}
+.net-creds input:focus{border-color:var(--accent)}
+
+.summary-bar{display:flex;gap:16px;padding:16px;background:rgba(255,255,255,0.02);border-radius:12px;margin-bottom:16px;border:1px solid rgba(255,255,255,0.06)}
+.summary-item{text-align:center;flex:1}
+.summary-item .num{font-size:1.8rem;font-weight:700}
+.summary-item .label{font-size:.72rem;color:var(--text-muted);text-transform:uppercase;font-weight:600}
+.summary-item.available .num{color:#6ee7b7}
+.summary-item.unavailable .num{color:#fbbf24}
+.summary-item.total .num{color:#a5b4fc}
+
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(99,102,241,0.2);border-top-color:#818cf8;border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <a href="/" class="btn btn-back">
+    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 12H5m7-7-7 7 7 7"/></svg>
+    Scraper
+  </a>
+  <h1>Impostazioni Network</h1>
+  <div style="flex:1"></div>
+  <button class="btn btn-primary" id="btnTestAll" onclick="testAllNetworks()">
+    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+    Test Tutti i Network
+  </button>
+</div>
+
+<div class="container">
+  <div class="card">
+    <h2>
+      <svg width="16" height="16" fill="none" stroke="#a5b4fc" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+      Credenziali Predefinite
+    </h2>
+    <div class="row">
+      <div class="field">
+        <label>Username</label>
+        <input type="text" id="defaultUser" value="tmsrlmin" placeholder="Username WCA">
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" id="defaultPass" value="G0u3v!VvCn" placeholder="Password WCA">
+      </div>
+      <button class="btn btn-success btn-sm" onclick="saveCredentials()">Salva</button>
+    </div>
+    <p style="font-size:.72rem;color:var(--text-muted);margin-top:8px">Queste credenziali vengono usate per tutti i network che non hanno credenziali dedicate.</p>
+  </div>
+
+  <div class="test-status" id="testStatus"></div>
+
+  <div class="summary-bar" id="summaryBar" style="display:none">
+    <div class="summary-item available">
+      <div class="num" id="sumAvail">0</div>
+      <div class="label">Disponibili</div>
+    </div>
+    <div class="summary-item unavailable">
+      <div class="num" id="sumUnavail">0</div>
+      <div class="label">Non Disponibili</div>
+    </div>
+    <div class="summary-item total">
+      <div class="num" id="sumTotal">0</div>
+      <div class="label">Totale</div>
+    </div>
+  </div>
+
+  <div class="card" id="availCard" style="display:none">
+    <h2>Network Disponibili <span class="count" id="availCount">0</span></h2>
+    <div class="network-grid" id="availGrid"></div>
+  </div>
+
+  <div class="card" id="unavailCard" style="display:none">
+    <h2>Network Non Disponibili <span class="count" id="unavailCount">0</span></h2>
+    <p style="font-size:.78rem;color:var(--text-muted);margin-bottom:12px">Questi network richiedono credenziali dedicate. Inserisci username e password per ciascuno e clicca "Ri-testa" per verificare l'accesso.</p>
+    <div class="network-grid" id="unavailGrid"></div>
+  </div>
+
+  <div class="card" id="allNetworksCard">
+    <h2>Tutti i Network <span class="count">17</span></h2>
+    <p style="font-size:.78rem;color:var(--text-muted);margin-bottom:12px">Clicca "Test Tutti i Network" per verificare l'accesso ai dati di contatto su ogni network.</p>
+    <div class="network-grid" id="allGrid"></div>
+  </div>
+</div>
+
+<script>
+const API = window.location.origin;
+const NETWORKS = [
+  "WCA First", "WCA Advanced Professionals", "WCA China Global", "WCA Inter Global",
+  "Lognet Global", "Global Affinity Alliance", "Elite Global Logistics Network",
+  "InFinite Connection (IFC8)", "WCA Projects", "WCA Dangerous Goods", "WCA Perishables",
+  "WCA Time Critical", "WCA Relocations", "WCA Pharma", "WCA Vendors",
+  "WCA eCommerce Solutions", "WCA Live Events and Expo"
+];
+
+let networkResults = {};
+let networkCreds = {};
+
+try {
+  const saved = localStorage.getItem("wca_network_results");
+  if (saved) networkResults = JSON.parse(saved);
+  const savedCreds = localStorage.getItem("wca_network_creds");
+  if (savedCreds) networkCreds = JSON.parse(savedCreds);
+} catch(e) {}
+
+function init() {
+  if (networkCreds.default) {
+    document.getElementById("defaultUser").value = networkCreds.default.user || "tmsrlmin";
+    document.getElementById("defaultPass").value = networkCreds.default.pass || "";
+  }
+  if (Object.keys(networkResults).length > 0) renderResults();
+  else renderAllNetworks();
+}
+
+function renderAllNetworks() {
+  const grid = document.getElementById("allGrid");
+  grid.innerHTML = "";
+  for (const name of NETWORKS) {
+    const status = networkResults[name];
+    const cls = status ? (status.group || "untested") : "untested";
+    const icon = cls === "available" ? "✓" : cls === "unavailable" ? "🔒" : "?";
+    grid.innerHTML += `
+      <div class="network-row ${cls}">
+        <div class="net-icon ${cls}">${icon}</div>
+        <div class="net-info">
+          <div class="net-name">${name}</div>
+          <div class="net-detail">${status ? (status.fullAccess ? "Accesso completo" : status.error || "Accesso limitato") : "Non testato"}</div>
+        </div>
+        <span class="net-status ${cls}">${cls === "available" ? "DISPONIBILE" : cls === "unavailable" ? "NON DISPONIBILE" : "DA TESTARE"}</span>
+      </div>`;
+  }
+}
+
+function renderResults() {
+  const available = NETWORKS.filter(n => networkResults[n]?.group === "available" || networkResults[n]?.group === "partial");
+  const unavailable = NETWORKS.filter(n => !available.includes(n));
+
+  document.getElementById("summaryBar").style.display = "flex";
+  document.getElementById("sumAvail").textContent = available.length;
+  document.getElementById("sumUnavail").textContent = unavailable.length;
+  document.getElementById("sumTotal").textContent = NETWORKS.length;
+
+  if (available.length) {
+    document.getElementById("availCard").style.display = "block";
+    document.getElementById("availCount").textContent = available.length;
+    const grid = document.getElementById("availGrid");
+    grid.innerHTML = "";
+    for (const name of available) {
+      const r = networkResults[name];
+      const isPartial = r.group === "partial";
+      const pt = r.profileTest;
+      let detail = "Autenticato";
+      if (pt) {
+        if (pt.fullAccess) detail = "Accesso completo — email visibili";
+        else if (pt.membersOnlyCount) detail = `Autenticato — ${pt.membersOnlyCount} campi protetti`;
+        else detail = "Autenticato — directory accessibile";
+        if (pt.companyName) detail += ` — test: ${pt.companyName}`;
+      }
+      if (r.customCredentials) detail += " (credenziali dedicate)";
+      const icon = isPartial ? "⚡" : "✓";
+      grid.innerHTML += `
+        <div class="network-row available">
+          <div class="net-icon available">${icon}</div>
+          <div class="net-info">
+            <div class="net-name">${name}</div>
+            <div class="net-domain">${r.domain || ""}</div>
+            <div class="net-detail">${detail}</div>
+          </div>
+          <span class="net-status available">DISPONIBILE</span>
+        </div>`;
+    }
+  }
+
+  if (unavailable.length) {
+    document.getElementById("unavailCard").style.display = "block";
+    document.getElementById("unavailCount").textContent = unavailable.length;
+  } else {
+    document.getElementById("unavailCard").style.display = "none";
+  }
+  const ugrid = document.getElementById("unavailGrid");
+  ugrid.innerHTML = "";
+  for (const name of unavailable) {
+    const r = networkResults[name] || {};
+    const savedCred = networkCreds.networks?.[name];
+    const userVal = savedCred?.user || "";
+    const passVal = savedCred?.pass || "";
+    let errorDetail = r.error || "Non autenticato";
+    if (r.status === "login_failed") errorDetail = r.error || "Login fallito";
+    else if (r.status === "not_authenticated") errorDetail = "Login OK ma non autenticato sul dominio";
+    ugrid.innerHTML += `
+      <div class="network-row unavailable" id="netrow-${name.replace(/[^a-zA-Z0-9]/g,"")}">
+        <div class="net-icon unavailable">🔒</div>
+        <div class="net-info">
+          <div class="net-name">${name}</div>
+          <div class="net-domain">${r.domain || ""}</div>
+          <div class="net-detail">${errorDetail}</div>
+          <div class="net-creds" style="margin-top:6px">
+            <input type="text" placeholder="Username" value="${userVal}" data-net="${name}" data-field="user">
+            <input type="password" placeholder="Password" value="${passVal}" data-net="${name}" data-field="pass">
+            <button class="btn btn-warning btn-sm" onclick="retestNetwork('${name}')">Ri-testa</button>
+          </div>
+        </div>
+        <span class="net-status unavailable">NON DISPONIBILE</span>
+      </div>`;
+  }
+
+  document.getElementById("allNetworksCard").style.display = "none";
+  saveNetworkGroups();
+}
+
+function saveCredentials() {
+  networkCreds.default = {
+    user: document.getElementById("defaultUser").value,
+    pass: document.getElementById("defaultPass").value,
+  };
+  localStorage.setItem("wca_network_creds", JSON.stringify(networkCreds));
+}
+
+function getCredentials() {
+  const creds = {
+    default: {
+      user: document.getElementById("defaultUser").value || "tmsrlmin",
+      pass: document.getElementById("defaultPass").value || "G0u3v!VvCn",
+    },
+    networks: {}
+  };
+  document.querySelectorAll(".net-creds input[data-net]").forEach(inp => {
+    const net = inp.dataset.net;
+    const field = inp.dataset.field;
+    if (!creds.networks[net]) creds.networks[net] = {};
+    creds.networks[net][field] = inp.value;
+  });
+  for (const [k, v] of Object.entries(creds.networks)) {
+    if (!v.user && !v.pass) delete creds.networks[k];
+  }
+  return creds;
+}
+
+async function testAllNetworks() {
+  const btn = document.getElementById("btnTestAll");
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Testing...';
+  const statusEl = document.getElementById("testStatus");
+  statusEl.className = "test-status running";
+  const creds = getCredentials();
+  networkCreds = creds;
+  localStorage.setItem("wca_network_creds", JSON.stringify(creds));
+  let tested = 0;
+  const total = NETWORKS.length;
+  for (const name of NETWORKS) {
+    tested++;
+    statusEl.innerHTML = `<span class="spinner"></span> Testing ${name}... (${tested}/${total})`;
+    try {
+      const resp = await fetch(API + "/api/test-networks", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ network: name, credentials: creds }),
+      });
+      const data = await resp.json();
+      if (data.success && data.details[name]) networkResults[name] = data.details[name];
+      else networkResults[name] = { group: "unavailable", error: data.error || "Test failed" };
+    } catch (e) {
+      networkResults[name] = { group: "unavailable", error: e.message };
+    }
+    localStorage.setItem("wca_network_results", JSON.stringify(networkResults));
+    renderResults();
+    if (tested < total) await new Promise(r => setTimeout(r, 2000));
+  }
+  statusEl.className = "test-status done";
+  const avail = Object.values(networkResults).filter(r => r.group === "available").length;
+  statusEl.innerHTML = `✓ Test completato: <strong>${avail}</strong> disponibili, <strong>${total - avail}</strong> non disponibili`;
+  btn.disabled = false;
+  btn.innerHTML = '<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg> Test Tutti i Network';
+}
+
+async function retestNetwork(name) {
+  const creds = getCredentials();
+  networkCreds = creds;
+  localStorage.setItem("wca_network_creds", JSON.stringify(creds));
+  const rowId = "netrow-" + name.replace(/[^a-zA-Z0-9]/g, "");
+  const row = document.getElementById(rowId);
+  if (row) {
+    const statusSpan = row.querySelector(".net-status");
+    statusSpan.className = "net-status testing";
+    statusSpan.textContent = "TESTING...";
+    row.className = "network-row testing";
+  }
+  try {
+    const resp = await fetch(API + "/api/test-networks", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ network: name, credentials: creds }),
+    });
+    const data = await resp.json();
+    if (data.success && data.details[name]) networkResults[name] = data.details[name];
+    else networkResults[name] = { group: "unavailable", error: data.error || "Test failed" };
+  } catch (e) {
+    networkResults[name] = { group: "unavailable", error: e.message };
+  }
+  localStorage.setItem("wca_network_results", JSON.stringify(networkResults));
+  renderResults();
+}
+
+function saveNetworkGroups() {
+  const groups = { available: [], unavailable: [] };
+  for (const name of NETWORKS) {
+    if (networkResults[name]?.group === "available") groups.available.push(name);
+    else groups.unavailable.push(name);
+  }
+  localStorage.setItem("wca_network_groups", JSON.stringify(groups));
+}
+
+init();
+</script>
+</body>
+</html>

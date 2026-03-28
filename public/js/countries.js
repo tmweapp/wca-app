@@ -1,0 +1,189 @@
+// WCA — Country Selector & Flag Display
+
+const ALL_COUNTRIES = [
+  {g:"Principali",items:[["IT","Italia"],["US","Stati Uniti"],["GB","Regno Unito"],["DE","Germania"],["FR","Francia"],["ES","Spagna"],["CN","Cina"],["IN","India"],["BR","Brasile"],["AE","Emirati Arabi"],["TR","Turchia"],["NL","Paesi Bassi"],["AU","Australia"],["JP","Giappone"],["KR","Corea del Sud"],["SG","Singapore"],["HK","Hong Kong"],["TH","Thailandia"],["MX","Messico"],["CA","Canada"]]},
+  {g:"Europa",items:[["AL","Albania"],["AD","Andorra"],["AT","Austria"],["BY","Bielorussia"],["BE","Belgio"],["BA","Bosnia"],["BG","Bulgaria"],["HR","Croazia"],["CY","Cipro"],["CZ","Rep. Ceca"],["DK","Danimarca"],["EE","Estonia"],["FI","Finlandia"],["GR","Grecia"],["HU","Ungheria"],["IS","Islanda"],["IE","Irlanda"],["LV","Lettonia"],["LT","Lituania"],["LU","Lussemburgo"],["MT","Malta"],["MD","Moldavia"],["ME","Montenegro"],["MK","Macedonia Nord"],["NO","Norvegia"],["PL","Polonia"],["PT","Portogallo"],["RO","Romania"],["RS","Serbia"],["SK","Slovacchia"],["SI","Slovenia"],["SE","Svezia"],["CH","Svizzera"],["UA","Ucraina"]]},
+  {g:"Asia-Pacifico",items:[["AF","Afghanistan"],["BD","Bangladesh"],["KH","Cambogia"],["ID","Indonesia"],["IQ","Iraq"],["IR","Iran"],["IL","Israele"],["JO","Giordania"],["KW","Kuwait"],["LB","Libano"],["MY","Malesia"],["MM","Myanmar"],["NP","Nepal"],["NZ","Nuova Zelanda"],["OM","Oman"],["PK","Pakistan"],["PH","Filippine"],["QA","Qatar"],["SA","Arabia Saudita"],["LK","Sri Lanka"],["TW","Taiwan"],["VN","Vietnam"]]},
+  {g:"Africa",items:[["DZ","Algeria"],["AO","Angola"],["CM","Camerun"],["CI","Costa d'Avorio"],["CD","RD Congo"],["EG","Egitto"],["ET","Etiopia"],["GH","Ghana"],["KE","Kenya"],["LY","Libia"],["MA","Marocco"],["MZ","Mozambico"],["NG","Nigeria"],["SN","Senegal"],["ZA","Sudafrica"],["TZ","Tanzania"],["TN","Tunisia"],["UG","Uganda"]]},
+  {g:"Americhe",items:[["AR","Argentina"],["BO","Bolivia"],["CL","Cile"],["CO","Colombia"],["CR","Costa Rica"],["CU","Cuba"],["DO","Rep. Dominicana"],["EC","Ecuador"],["SV","El Salvador"],["GT","Guatemala"],["HN","Honduras"],["JM","Giamaica"],["NI","Nicaragua"],["PA","Panama"],["PY","Paraguay"],["PE","Perù"],["PR","Porto Rico"],["TT","Trinidad e Tobago"],["UY","Uruguay"],["VE","Venezuela"]]},
+  {g:"Altro",items:[["RU","Russia"],["GE","Georgia"],["AM","Armenia"],["AZ","Azerbaigian"],["KZ","Kazakistan"],["UZ","Uzbekistan"],["FJ","Fiji"],["PG","Papua Nuova Guinea"]]}
+];
+
+let countryPartnerCounts = {};
+async function loadCountryCounts(){
+  try {
+    const resp = await fetch(API+"/api/partners?action=country_counts");
+    const data = await resp.json();
+    if(data.success && data.counts) countryPartnerCounts = data.counts;
+    renderFlagChips();
+  } catch(e){ console.warn("loadCountryCounts error:", e.message); }
+}
+
+function incrementPartnerCount(cc){
+  if(!cc) return;
+  const code=cc.toUpperCase();
+  countryPartnerCounts[code]=(countryPartnerCounts[code]||0)+1;
+  renderFlagChips();
+}
+
+async function initCountrySelector(){
+  await loadCountryCounts();
+  const list = document.getElementById("countryList");
+  let html = "";
+  for(const group of ALL_COUNTRIES){
+    html += `<div style="padding:4px 8px;font-size:.65rem;color:#6366f1;font-weight:700;text-transform:uppercase;letter-spacing:1px;background:rgba(0,0,0,0.3)">${group.g}</div>`;
+    for(const [code, name] of group.items){
+      const flag = countryFlag(code);
+      const cnt = countryPartnerCounts[code] || 0;
+      const cntBadge = cnt > 0 ? `<span style="margin-left:auto;background:rgba(16,185,129,0.15);color:#6ee7b7;font-size:.65rem;padding:1px 6px;border-radius:8px;min-width:20px;text-align:center">${cnt}</span>` : `<span style="margin-left:auto;color:#475569;font-size:.65rem">0</span>`;
+      const doneBadge = isCountryCompleted(code) ? `<span style="background:rgba(16,185,129,0.15);color:#6ee7b7;font-size:.6rem;padding:1px 5px;border-radius:4px">done</span>` : "";
+      html += `<label style="display:flex;align-items:center;gap:6px;padding:5px 8px;font-size:.78rem;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.04);transition:all 0.15s" data-code="${code}" data-name="${name.toLowerCase()}" onmouseover="this.style.background='rgba(99,102,241,0.08)'" onmouseout="this.style.background='transparent'">
+        <input type="checkbox" value="${code}" onchange="toggleCountry('${code}','${name}')" style="accent-color:#6366f1"> ${flag} ${name} (${code}) ${doneBadge} ${cntBadge}
+      </label>`;
+    }
+  }
+  list.innerHTML = html;
+}
+
+function openCountryPopup(){
+  document.getElementById("countryPopupOverlay").classList.add("open");
+  const f = document.getElementById("countryFilter");
+  if(f){ f.value = ""; filterCountries(); }
+  setTimeout(() => { if(f) f.focus(); }, 100);
+}
+
+function closeCountryPopup(){
+  document.getElementById("countryPopupOverlay").classList.remove("open");
+}
+
+function toggleCountryDropdown(){ openCountryPopup(); }
+
+function filterCountries(){
+  const q = document.getElementById("countryFilter").value.toLowerCase();
+  document.querySelectorAll("#countryList label").forEach(l => {
+    l.style.display = (l.dataset.name.includes(q) || l.dataset.code.toLowerCase().includes(q)) ? "flex" : "none";
+  });
+}
+
+function toggleCountry(code, name){
+  const idx = selectedCountries.findIndex(c => c.code === code);
+  if(idx >= 0) selectedCountries.splice(idx, 1);
+  else selectedCountries.push({code, name});
+  updateCountryDisplay();
+  refreshHeaderFlags();
+}
+
+function clearCountries(){
+  selectedCountries = [];
+  document.querySelectorAll("#countryList input[type=checkbox]").forEach(cb => cb.checked = false);
+  updateCountryDisplay();
+}
+
+function updateCountryDisplay(){
+  const cnt = selectedCountries.length;
+  // Update popup count
+  const popCnt = document.getElementById("countrySelCount");
+  if(popCnt) popCnt.textContent = cnt + " selezionati";
+  // Aggiorna monitor country select
+  if(typeof updateMonitorCountrySelect === "function") try { updateMonitorCountrySelect(); } catch(e){}
+  // Update ALL picker badges (discover + network panels)
+  ["countrySelBadge"].forEach(id => {
+    const b = document.getElementById(id);
+    if(b){ if(cnt > 0){ b.textContent = cnt; b.style.display = "block"; } else { b.style.display = "none"; } }
+  });
+  // Update selected countries preview with flags
+  const preview = document.getElementById("selectedCountriesPreview");
+  if(preview){
+    if(cnt === 0){
+      preview.style.display = "none";
+      preview.innerHTML = "";
+    } else {
+      preview.style.display = "flex";
+      preview.innerHTML = selectedCountries.map(c => {
+        const pCnt = countryPartnerCounts[c.code] || 0;
+        const done = isCountryCompleted(c.code);
+        const bg = done ? "rgba(16,185,129,0.12)" : "rgba(99,102,241,0.1)";
+        const border = done ? "rgba(16,185,129,0.3)" : "rgba(99,102,241,0.25)";
+        const color = done ? "#6ee7b7" : "#c7d2fe";
+        return `<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:8px;background:${bg};border:1px solid ${border};font-size:.75rem;color:${color};font-weight:500;white-space:nowrap">${countryFlag(c.code)} ${c.name}${pCnt > 0 ? ' <span style="opacity:.6;font-size:.65rem">('+pCnt+')</span>' : ''}${done ? ' <span style="font-size:.6rem">✓</span>' : ''}<span onclick="event.stopPropagation();removeCountry('${c.code}')" style="cursor:pointer;opacity:.5;margin-left:2px;font-size:.8rem">×</span></span>`;
+      }).join("");
+    }
+  }
+}
+
+function removeCountry(code){
+  selectedCountries = selectedCountries.filter(c => c.code !== code);
+  const cb = document.querySelector(`#countryList input[value="${code}"]`);
+  if(cb) cb.checked = false;
+  updateCountryDisplay();
+  refreshHeaderFlags();
+}
+
+function refreshHeaderFlags(){
+  renderFlagChips();
+}
+
+function renderFlagChips(){
+  const flagsDiv = document.getElementById("headerFlags");
+  if(!flagsDiv) return;
+  const nameMap = {};
+  ALL_COUNTRIES.forEach(g => g.items.forEach(([code, name]) => { nameMap[code] = name; }));
+  const sorted = Object.entries(countryPartnerCounts).filter(([,v]) => v > 0).sort((a,b) => b[1] - a[1]);
+  flagsDiv.innerHTML = sorted.map(([code, cnt]) => {
+    const isSelected = selectedCountries.some(c => c.code === code);
+    const dir = getDirectory(code);
+    const dirTotal = dir ? Object.keys(dir.ids).length : 0;
+    const doneCount = dir ? Object.values(dir.ids).filter(s => s === "done").length : 0;
+    const completed = dir ? (Object.values(dir.ids).filter(s => s === "pending").length === 0) : false;
+    let countClass, countLabel;
+    if(!dir || dirTotal === 0){
+      countClass = "neutral";
+      countLabel = cnt;
+    } else if(completed){
+      countClass = "complete";
+      countLabel = cnt;
+    } else {
+      const missing = dirTotal - doneCount;
+      countClass = "incomplete";
+      countLabel = "-" + missing;
+    }
+    return `<div class="flag-chip ${isSelected?'selected':''}" onclick="selectFlagCountry('${code}','${nameMap[code]||code}')" title="${nameMap[code]||code}: ${cnt} partner${dir ? ' | '+doneCount+'/'+dirTotal+' scaricati' : ''}">
+      <span class="flag-emoji">${countryFlag(code)}</span>
+      <span class="flag-count ${countClass}">${countLabel}</span>
+    </div>`;
+  }).join("");
+}
+
+function _initAllPopups(){ initCountrySelector(); initNetworksGrid(); }
+if(document.readyState === "loading"){ document.addEventListener("DOMContentLoaded", _initAllPopups); }
+else { _initAllPopups(); }
+
+function toggleAllCountriesMode(){
+  const chk = document.getElementById("chkAllCountries");
+  const hint = document.getElementById("allCountriesHint");
+  if(hint) hint.style.display = chk.checked ? "inline" : "none";
+}
+
+function getAllCountriesList(){
+  const all = [];
+  for(const group of ALL_COUNTRIES){
+    for(const [code, name] of group.items){
+      all.push({code, name});
+    }
+  }
+  return all;
+}
+
+function selectFlagCountry(code, name){
+  // Se non è già selezionato, aggiungilo
+  if(!selectedCountries.some(c => c.code === code)){
+    selectedCountries.push({code, name});
+    const cb = document.querySelector(`#countryList input[value="${code}"]`);
+    if(cb) cb.checked = true;
+    updateCountryDisplay();
+  }
+  // Scroll al pannello download
+  document.querySelector(".container").scrollIntoView({behavior:"smooth"});
+  // Aggiorna evidenziazione flags
+  loadHeaderCounts();
+}

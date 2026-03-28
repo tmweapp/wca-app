@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{width:400px;font-family:'Segoe UI',system-ui,sans-serif;background:#0f172a;color:#e2e8f0;padding:12px}
+h1{font-size:1rem;color:#38bdf8;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+h1 .badge{background:#059669;color:#fff;font-size:.6rem;padding:2px 6px;border-radius:8px}
+.card{background:#1e293b;border:1px solid #334155;border-radius:8px;padding:10px;margin-bottom:8px}
+.card h2{font-size:.75rem;color:#94a3b8;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+.row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+select,input[type=text]{background:#0f172a;border:1px solid #475569;color:#e2e8f0;padding:5px 8px;border-radius:4px;font-size:.8rem;flex:1}
+.btn{padding:5px 12px;border:none;border-radius:4px;font-size:.75rem;font-weight:600;cursor:pointer;transition:all .2s}
+.btn-primary{background:#2563eb;color:#fff}.btn-primary:hover{background:#1d4ed8}
+.btn-success{background:#059669;color:#fff}.btn-success:hover{background:#047857}
+.btn-danger{background:#dc2626;color:#fff}.btn-danger:hover{background:#b91c1c}
+.btn-warning{background:#d97706;color:#fff}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-sm{padding:4px 10px;font-size:.7rem}
+.status{font-size:.75rem;padding:6px 8px;background:#0f172a;border:1px solid #334155;border-radius:6px;margin-bottom:8px;min-height:28px;display:flex;align-items:center;gap:6px}
+.status .dot{width:8px;height:8px;border-radius:50%;background:#dc2626;flex-shrink:0}
+.status .dot.on{background:#22c55e;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+.progress{background:#334155;border-radius:3px;height:4px;overflow:hidden;margin:6px 0}
+.progress-fill{height:100%;background:linear-gradient(90deg,#2563eb,#38bdf8);transition:width .3s;width:0}
+.log{max-height:180px;overflow-y:auto;font-size:.7rem;font-family:monospace;background:#0f172a;border:1px solid #334155;border-radius:6px;padding:6px}
+.log-line{padding:1px 0;border-bottom:1px solid #1e293b}
+.log-line.ok{color:#34d399}.log-line.err{color:#f87171}.log-line.warn{color:#fbbf24}
+.jobs{margin-bottom:8px}
+.job-item{display:flex;align-items:center;gap:6px;padding:4px 8px;background:#334155;border-radius:6px;margin-bottom:4px;font-size:.75rem}
+.job-item .info{flex:1}
+.job-item .counts{color:#94a3b8;font-size:.65rem}
+.hidden{display:none}
+</style>
+</head>
+<body>
+<h1>WCA Scraper <span class="badge" id="loginBadge">OFFLINE</span></h1>
+
+<div class="status">
+  <div class="dot" id="statusDot"></div>
+  <span id="statusText">Premi Login per iniziare</span>
+</div>
+<div class="progress"><div class="progress-fill" id="progressFill"></div></div>
+
+<!-- LOGIN -->
+<div class="card">
+  <h2>Connessione</h2>
+  <div class="row">
+    <button class="btn btn-primary" id="btnLogin" onclick="doLogin()">Login WCA</button>
+    <span id="loginInfo" style="font-size:.7rem;color:#64748b"></span>
+  </div>
+</div>
+
+<!-- PAESE -->
+<div class="card">
+  <h2>Paese</h2>
+  <div class="row">
+    <select id="selCountry">
+      <option value="">— Seleziona —</option>
+      <option value="IT">🇮🇹 Italia</option><option value="US">🇺🇸 Stati Uniti</option>
+      <option value="GB">🇬🇧 Regno Unito</option><option value="DE">🇩🇪 Germania</option>
+      <option value="FR">🇫🇷 Francia</option><option value="ES">🇪🇸 Spagna</option>
+      <option value="CN">🇨🇳 Cina</option><option value="IN">🇮🇳 India</option>
+      <option value="BR">🇧🇷 Brasile</option><option value="AE">🇦🇪 Emirati</option>
+      <option value="TR">🇹🇷 Turchia</option><option value="NL">🇳🇱 Paesi Bassi</option>
+      <option value="AU">🇦🇺 Australia</option><option value="JP">🇯🇵 Giappone</option>
+      <option value="KR">🇰🇷 Corea</option><option value="SG">🇸🇬 Singapore</option>
+      <option value="TH">🇹🇭 Thailandia</option><option value="MX">🇲🇽 Messico</option>
+      <option value="CA">🇨🇦 Canada</option><option value="RU">🇷🇺 Russia</option>
+      <option value="PL">🇵🇱 Polonia</option><option value="SE">🇸🇪 Svezia</option>
+      <option value="CH">🇨🇭 Svizzera</option><option value="AT">🇦🇹 Austria</option>
+      <option value="BE">🇧🇪 Belgio</option><option value="PT">🇵🇹 Portogallo</option>
+      <option value="GR">🇬🇷 Grecia</option><option value="EG">🇪🇬 Egitto</option>
+      <option value="ZA">🇿🇦 Sudafrica</option><option value="NG">🇳🇬 Nigeria</option>
+      <option value="KE">🇰🇪 Kenya</option><option value="AR">🇦🇷 Argentina</option>
+      <option value="CL">🇨🇱 Cile</option><option value="CO">🇨🇴 Colombia</option>
+    </select>
+  </div>
+  <div class="row" style="margin-top:6px">
+    <button class="btn btn-success" id="btnStart" onclick="startScraping()" disabled>▶ Avvia</button>
+    <button class="btn btn-danger btn-sm" id="btnStop" onclick="stopScraping()" disabled>■ Stop</button>
+  </div>
+</div>
+
+<!-- JOBS SOSPESI -->
+<div class="card" id="jobsCard" style="display:none">
+  <h2>Jobs Sospesi</h2>
+  <div id="jobsList"></div>
+</div>
+
+<!-- LOG -->
+<div class="card">
+  <h2>Attività</h2>
+  <div class="log" id="logBox"></div>
+</div>
+
+<script src="popup.js"></script>
+</body>
+</html>

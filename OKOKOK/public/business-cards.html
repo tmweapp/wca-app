@@ -1,0 +1,1962 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WCA Business Cards</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-page: #0e0e18;
+  --bg-card: #1a1a2e;
+  --bg-input: #12121e;
+  --bg-header: rgba(26,26,46,0.92);
+  --text-primary: #e2e8f0;
+  --text-secondary: #a0aec0;
+  --text-muted: #64748b;
+  --border-color: rgba(99,102,241,0.15);
+  --border-subtle: rgba(99,102,241,0.08);
+  --accent: #6366f1;
+  --accent-hover: #818cf8;
+  --accent-soft: rgba(99,102,241,0.15);
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --sky: #0ea5e9;
+  --card-radius: 12px;
+  --gradient: linear-gradient(135deg, #6366f1, #818cf8, #a5b4fc);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"SF Pro Display","Geist",'Inter',system-ui,sans-serif;background:var(--bg-page);color:var(--text-primary);min-height:100vh;display:flex;flex-direction:column}
+
+.topbar{background:var(--bg-header);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.07);padding:10px 20px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:200;flex-wrap:wrap}
+.topbar h1{font-size:1.1rem;font-weight:700;background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;white-space:nowrap}
+.topbar input,.topbar select{padding:7px 12px;border-radius:8px;border:1px solid var(--border-color);background:var(--bg-input);color:var(--text-primary);font-size:.8rem;outline:none;transition:border-color .2s}
+.topbar input:focus{border-color:var(--accent)}
+.topbar .stats{margin-left:auto;font-size:.72rem;color:var(--text-muted);display:flex;gap:12px}
+.topbar .stats strong{color:var(--text-primary)}
+.btn{padding:6px 14px;border:none;border-radius:8px;font-size:.78rem;font-weight:600;cursor:pointer;color:var(--text-primary);text-decoration:none;transition:all .2s;display:inline-flex;align-items:center;gap:6px}
+.btn-back{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08)}
+.btn-back:hover{background:rgba(255,255,255,0.08)}
+.btn-accent{background:var(--accent-soft);color:#a5b4fc;border:1px solid rgba(99,102,241,0.25)}
+.btn-accent:hover{background:rgba(99,102,241,0.25)}
+.btn-danger{background:rgba(239,68,68,0.1);color:#fca5a5;border:1px solid rgba(239,68,68,0.2)}
+.btn-danger:hover{background:rgba(239,68,68,0.2)}
+
+.main-wrap{display:flex;flex:1;overflow:hidden}
+
+/* SIDEBAR */
+.filter-sidebar{width:240px;background:var(--bg-card);overflow-y:auto;flex-shrink:0;border-right:1px solid rgba(255,255,255,0.07)}
+.filter-sidebar h3{padding:12px 14px 8px;font-size:.65rem;text-transform:uppercase;letter-spacing:1px;color:#6366f1;border-bottom:1px solid var(--border-subtle);font-weight:700}
+.filter-item{display:flex;align-items:center;gap:8px;padding:8px 14px;cursor:pointer;font-size:.8rem;border-bottom:1px solid rgba(255,255,255,0.03);transition:all .15s;color:var(--text-secondary)}
+.filter-item:hover{background:rgba(99,102,241,0.08);color:var(--text-primary)}
+.filter-item.active{background:rgba(99,102,241,0.15);color:#fff;font-weight:600;border-left:3px solid var(--accent)}
+.filter-icon{font-size:1rem;flex-shrink:0}
+.filter-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.76rem}
+.filter-count{font-size:.65rem;padding:2px 8px;border-radius:10px;min-width:24px;text-align:center;background:rgba(255,255,255,0.05);color:var(--text-muted)}
+.filter-count.has{background:rgba(99,102,241,0.2);color:#a5b4fc;font-weight:600}
+.filter-date{font-size:.6rem;color:var(--text-muted);margin-top:1px}
+
+/* PAGE */
+.page-area{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg-page);position:relative}
+.page-header{background:rgba(26,26,46,0.6);backdrop-filter:blur(12px);padding:14px 24px;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.page-header .page-icon{font-size:2rem}
+.page-header .page-title{font-size:1.15rem;font-weight:700;color:var(--text-primary)}
+.page-header .page-subtitle{font-size:.75rem;color:var(--text-muted)}
+
+/* EVENT TABS */
+.event-tabs{display:flex;gap:0;padding:0 24px;border-bottom:1px solid rgba(255,255,255,0.06);background:rgba(26,26,46,0.3);overflow-x:auto;flex-shrink:0}
+.event-tab{padding:10px 18px;font-size:.78rem;font-weight:600;color:var(--text-muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;white-space:nowrap;flex-shrink:0}
+.event-tab:hover{color:var(--text-primary);background:rgba(99,102,241,0.05)}
+.event-tab.active{color:#a5b4fc;border-bottom-color:#6366f1;background:rgba(99,102,241,0.08)}
+.event-tab .tab-count{font-size:.62rem;background:rgba(99,102,241,0.2);color:#a5b4fc;padding:1px 6px;border-radius:8px;margin-left:6px}
+
+/* DROPZONE */
+.dropzone{border:2px dashed rgba(99,102,241,0.3);border-radius:14px;padding:32px 20px;text-align:center;color:var(--text-muted);font-size:.85rem;cursor:pointer;transition:all .3s;background:rgba(99,102,241,0.03);margin:20px 24px}
+.dropzone:hover,.dropzone.dragover{border-color:#6366f1;background:rgba(99,102,241,0.08);color:var(--text-primary)}
+
+/* IMPORT FORM */
+.import-form{padding:16px 24px;background:rgba(99,102,241,0.04);border-bottom:1px solid rgba(99,102,241,0.12);display:none;gap:12px;flex-wrap:wrap;align-items:end}
+.import-form label{font-size:.72rem;color:var(--text-secondary);font-weight:600;display:flex;flex-direction:column;gap:4px}
+.import-form input,.import-form select{padding:7px 12px;border-radius:8px;border:1px solid var(--border-color);background:var(--bg-input);color:var(--text-primary);font-size:.8rem;outline:none}
+.import-form input:focus,.import-form select:focus{border-color:var(--accent)}
+
+/* CARDS GRID — glassmorphism */
+.card-lines{flex:1;overflow-y:auto;padding:16px 20px;display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px;align-content:start}
+.card-lines.list-view{grid-template-columns:1fr;gap:6px}
+/* === CARD SHELL === */
+.bc-card{background:rgba(255,255,255,0.04);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:14px 16px;transition:all .25s;cursor:default;position:relative;overflow:hidden;display:flex;flex-direction:column;gap:0}
+.bc-card::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,rgba(165,180,252,0.4),transparent);opacity:0;transition:opacity .3s}
+.bc-card:hover{background:rgba(99,102,241,0.06);border-color:rgba(165,180,252,0.25);transform:translateY(-2px);box-shadow:0 8px 32px rgba(0,0,0,0.3),0 0 20px rgba(99,102,241,0.06)}
+.bc-card:hover::before{opacity:1}
+.bc-card.selected{border-color:rgba(129,140,248,0.6);background:rgba(99,102,241,0.1);box-shadow:0 0 16px rgba(99,102,241,0.15)}
+.list-view .bc-card{border-radius:10px;padding:10px 14px}
+.list-view .bc-card:hover{transform:none}
+.list-view .bc-card .card-fields.visible{flex-direction:row;flex-wrap:wrap;gap:4px 14px}
+/* === CARD LAYOUT: flag left | content center | match right === */
+.bc-card .card-top{display:flex;align-items:stretch;gap:0;margin-bottom:0}
+/* FLAG — big, clickable, acts as select */
+.bc-card .card-flag-wrap{flex-shrink:0;width:60px;display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:12px;transition:all .2s;margin-right:12px;position:relative}
+.bc-card .card-flag-wrap:hover{background:rgba(165,180,252,0.08)}
+.bc-card.selected .card-flag-wrap{background:rgba(99,102,241,0.15)}
+.bc-card.selected .card-flag-wrap::after{content:"✓";position:absolute;bottom:2px;right:2px;font-size:.5rem;color:#fff;background:#6366f1;width:14px;height:14px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700}
+.bc-card .card-flag{font-size:2.8rem;filter:drop-shadow(0 3px 8px rgba(0,0,0,0.4));line-height:1}
+/* CONTENT — left aligned column */
+.bc-card .card-body{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:1px}
+.bc-card .card-company-name{font-size:.88rem;font-weight:700;color:#f1f5f9;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;letter-spacing:.2px;line-height:1.3}
+.bc-card .card-contact-name{font-size:.74rem;font-weight:500;color:#cbd5e1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.bc-card .card-contact-role{font-size:.64rem;color:#64748b;font-style:italic;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.bc-card .card-geo{display:flex;align-items:center;gap:6px;margin-top:3px;font-size:.64rem;color:#94a3b8}
+.bc-card .card-country-name{font-weight:600;color:#a5b4fc;text-transform:uppercase;letter-spacing:.6px;font-size:.6rem}
+.bc-card .card-city{color:#94a3b8;font-size:.6rem}
+.bc-card .card-city::before{content:"·";margin-right:0;color:#475569}
+/* MATCH — top right */
+.bc-card .card-match{flex-shrink:0;margin-left:auto;padding-left:8px;display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+.bc-card .card-person{display:none}
+.bc-card .inferred{opacity:.7;font-style:italic}
+.bc-card .inferred::after{content:" ~";color:#a5b4fc;font-size:.5rem}
+/* === INFO TOGGLE + COLLAPSIBLE FIELDS === */
+.bc-card .card-details-row{display:flex;align-items:center;margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.04)}
+.bc-card .info-toggle{background:none;border:none;cursor:pointer;font-size:.6rem;padding:2px 0;color:#64748b;transition:all .2s;display:flex;align-items:center;gap:4px;letter-spacing:.3px;font-weight:600}
+.bc-card .info-toggle:hover{color:#a5b4fc}
+.bc-card .info-toggle.open{color:#a5b4fc}
+.bc-card .info-toggle .arrow{display:inline-block;transition:transform .2s;font-size:.5rem}
+.bc-card .info-toggle.open .arrow{transform:rotate(90deg)}
+.bc-card .card-fields{display:none;flex-direction:column;gap:1px;margin-top:4px;padding:6px 0 2px;animation:fieldSlide .2s ease}
+.bc-card .card-fields.visible{display:flex}
+@keyframes fieldSlide{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+.bc-card .card-field{font-size:.68rem;color:#94a3b8;display:flex;align-items:center;gap:6px;overflow:hidden;padding:2px 0}
+.bc-card .card-field .f-icon{flex-shrink:0;width:14px;text-align:center;font-size:.64rem;color:rgba(165,180,252,0.7)}
+.bc-card .card-field .f-val{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#e2e8f0;font-size:.68rem}
+.bc-card .card-field a{color:#a5b4fc;text-decoration:none}
+.bc-card .card-field a:hover{text-decoration:underline}
+/* === BOTTOM BAR === */
+.bc-card .card-bottom{display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding-top:6px}
+.bc-card .card-date{font-size:.56rem;color:#475569}
+/* NOTES ICON + PREVIEW */
+.bc-card .notes-btn{background:none;border:none;cursor:pointer;font-size:.72rem;padding:3px 5px;opacity:.35;transition:all .2s;color:#a5b4fc;border-radius:6px}
+.bc-card .notes-btn:hover{opacity:1;background:rgba(165,180,252,0.1)}
+.bc-card .notes-btn.has-notes{opacity:.85}
+.bc-card.has-notes-card{border-left:3px solid rgba(165,180,252,0.35)}
+.bc-card .notes-preview{font-size:.62rem;color:#94a3b8;line-height:1.4;padding:5px 0 0;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;cursor:pointer;transition:color .2s}
+.bc-card .notes-preview:hover{color:#cbd5e1}
+.notes-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:500;align-items:center;justify-content:center}
+.notes-overlay.open{display:flex}
+.notes-modal{background:#1a1a2e;border:1px solid rgba(165,180,252,0.2);border-radius:16px;padding:20px;width:90%;max-width:440px;box-shadow:0 20px 60px rgba(0,0,0,0.5)}
+.notes-modal h3{font-size:.9rem;color:#a5b4fc;margin-bottom:12px;font-weight:700}
+.notes-modal textarea{width:100%;min-height:120px;background:#12121e;border:1px solid rgba(165,180,252,0.15);border-radius:10px;color:#e2e8f0;font-size:.82rem;padding:12px;resize:vertical;outline:none;font-family:inherit}
+.notes-modal textarea:focus{border-color:#a5b4fc}
+.notes-modal .modal-btns{display:flex;gap:8px;margin-top:12px;justify-content:flex-end}
+/* SELECTION BAR */
+.selection-bar{display:none;padding:8px 24px;background:rgba(99,102,241,0.1);border-bottom:1px solid rgba(165,180,252,0.2);align-items:center;gap:12px;flex-wrap:wrap}
+.selection-bar.visible{display:flex}
+/* FLAG CAROUSEL */
+.flag-carousel-wrap{border-bottom:1px solid rgba(255,255,255,0.04);position:relative}
+.flag-search-wrap{padding:8px 24px 4px;position:relative}
+.flag-search-wrap input{width:220px;padding:6px 12px 6px 30px;border-radius:8px;border:1px solid rgba(165,180,252,0.15);background:var(--bg-input);color:var(--text-primary);font-size:.78rem;outline:none;transition:border-color .2s}
+.flag-search-wrap input:focus{border-color:#a5b4fc}
+.flag-search-wrap .search-icon{position:absolute;left:34px;top:50%;transform:translateY(-50%);color:#a5b4fc;font-size:.78rem;pointer-events:none}
+.flag-dropdown{position:absolute;top:100%;left:24px;width:260px;max-height:220px;overflow-y:auto;background:#1a1a2e;border:1px solid rgba(165,180,252,0.2);border-radius:10px;z-index:100;display:none;box-shadow:0 12px 40px rgba(0,0,0,0.5)}
+.flag-dropdown.open{display:block}
+.flag-dd-item{padding:8px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;font-size:.8rem;color:#e2e8f0;transition:background .15s}
+.flag-dd-item:hover{background:rgba(99,102,241,0.12)}
+.flag-dd-item .dd-flag{font-size:1.3rem}
+.flag-dd-item .dd-name{flex:1}
+.flag-dd-item .dd-count{font-size:.65rem;color:#a5b4fc;font-weight:700}
+.flag-track-outer{overflow-x:auto;overflow-y:hidden;position:relative;padding:6px 0 10px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.flag-track-outer::-webkit-scrollbar{display:none}
+.flag-track{display:flex;gap:6px;padding:0 24px;width:max-content}
+.flag-chip{display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;padding:5px 8px;border-radius:10px;transition:all .3s;position:relative;flex-shrink:0;min-width:52px}
+.flag-chip:hover{background:rgba(99,102,241,0.12)}
+.flag-chip.selected{background:rgba(99,102,241,0.18);outline:2px solid rgba(165,180,252,0.5);transform:scale(1.15)}
+.flag-chip .flag-emoji{font-size:1.7rem;line-height:1;transition:transform .3s}
+.flag-chip.selected .flag-emoji{transform:scale(1.1)}
+.flag-chip .flag-label{font-size:.5rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;max-width:52px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.flag-chip.selected .flag-label{color:#a5b4fc}
+.flag-chip .flag-count{font-size:.6rem;font-weight:700;padding:1px 6px;border-radius:6px;min-width:18px;text-align:center;background:rgba(99,102,241,0.2);color:#a5b4fc}
+.match-badge{font-size:.62rem;font-weight:700;padding:3px 10px;border-radius:8px;white-space:nowrap;letter-spacing:.3px;cursor:pointer;transition:all .2s}
+.match-badge:hover{transform:scale(1.08);filter:brightness(1.2)}
+.match-badge.found{background:linear-gradient(135deg,rgba(16,185,129,0.15),rgba(16,185,129,0.08));color:#6ee7b7;border:1px solid rgba(16,185,129,0.3);box-shadow:0 2px 8px rgba(16,185,129,0.1)}
+.match-badge.partial{background:linear-gradient(135deg,rgba(245,158,11,0.15),rgba(245,158,11,0.08));color:#fbbf24;border:1px solid rgba(245,158,11,0.3);box-shadow:0 2px 8px rgba(245,158,11,0.1)}
+.match-badge.not-found{background:rgba(239,68,68,0.06);color:#fca5a5;border:1px solid rgba(239,68,68,0.12)}
+.match-sub{font-size:.55rem;color:var(--text-muted);margin-top:2px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* SORT BAR */
+.sort-bar{display:flex;gap:6px;padding:8px 24px;border-bottom:1px solid rgba(255,255,255,0.04);align-items:center;flex-wrap:wrap}
+.sort-bar label{font-size:.68rem;color:var(--text-muted);font-weight:600}
+.sort-btn{padding:3px 10px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);border-radius:6px;color:var(--text-secondary);font-size:.68rem;cursor:pointer;transition:all .15s}
+.sort-btn:hover{background:rgba(99,102,241,0.1);color:#a5b4fc}
+.sort-btn.active{background:rgba(99,102,241,0.15);color:#a5b4fc;border-color:rgba(99,102,241,0.3)}
+
+/* STATS BAR */
+.stats-bar{display:flex;gap:10px;padding:10px 24px;border-bottom:1px solid rgba(255,255,255,0.04);flex-wrap:wrap}
+.stat-chip{font-size:.72rem;padding:4px 14px;border-radius:8px;font-weight:600}
+.stat-chip.total{background:rgba(255,255,255,0.04);color:var(--text-secondary)}
+.stat-chip.matched{background:rgba(16,185,129,0.12);color:#6ee7b7}
+.stat-chip.partial-stat{background:rgba(245,158,11,0.12);color:#fbbf24}
+.stat-chip.unmatched{background:rgba(239,68,68,0.08);color:#fca5a5}
+
+.letter-index{width:28px;background:var(--bg-card);display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:4px 0;overflow-y:auto;flex-shrink:0;border-left:1px solid rgba(255,255,255,0.06)}
+.letter-index a{color:var(--text-muted);font-size:.62rem;font-weight:600;padding:2px 0;text-decoration:none;display:block;width:100%;text-align:center;line-height:1.4;transition:all .15s}
+.letter-index a:hover{color:#a5b4fc;background:rgba(99,102,241,0.1)}
+.letter-index a.has-entries{color:#a5b4fc;font-size:.68rem}
+
+.empty-page{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;color:var(--text-muted);font-size:.9rem;gap:8px}
+
+/* ==================== MOBILE RESPONSIVE ==================== */
+@media(max-width:768px){
+  /* TOPBAR: stack vertically */
+  .topbar{padding:8px 12px;gap:8px}
+  .topbar h1{font-size:.95rem;order:-1;width:100%}
+  .topbar input[type="text"],.topbar select{min-width:0!important;flex:1;font-size:.75rem;padding:6px 10px}
+  .topbar .stats{margin-left:0;width:100%;justify-content:space-between;font-size:.65rem}
+  /* AI KEY: full width */
+  .topbar>div:has(#aiKeyInput){width:100%;order:5}
+  #aiKeyInput{width:100%!important;font-size:.72rem}
+
+  /* SIDEBAR: collapse to bottom sheet or hide */
+  .main-wrap{flex-direction:column}
+  .filter-sidebar{width:100%;max-height:0;overflow:hidden;border-right:none;border-bottom:1px solid rgba(255,255,255,0.07);transition:max-height .3s;order:2}
+  .filter-sidebar.mobile-open{max-height:50vh;overflow-y:auto}
+  .filter-sidebar h3{padding:10px 14px 6px}
+  .filter-item{padding:6px 12px}
+
+  /* PAGE AREA: full width */
+  .page-area{width:100%;order:1}
+  .page-header{padding:10px 14px;gap:8px;flex-wrap:wrap}
+  .page-header .page-icon{font-size:1.5rem}
+  .page-header .page-title{font-size:1rem}
+  .page-header .page-subtitle{font-size:.68rem}
+  .page-header>div:last-child{width:100%;justify-content:stretch}
+  .page-header .btn{flex:1;justify-content:center;font-size:.72rem;padding:8px 10px}
+
+  /* IMPORT FORM: stack */
+  .import-form{padding:12px 14px;flex-direction:column;gap:10px}
+  .import-form label{width:100%}
+  .import-form select,.import-form input{width:100%!important;min-width:0!important}
+
+  /* FLAG CAROUSEL */
+  .flag-carousel-wrap{padding:0}
+  .flag-search-wrap{padding:6px 14px 2px}
+  .flag-search-wrap input{width:100%;font-size:.75rem}
+  .flag-track{padding:0 14px;gap:4px}
+  .flag-chip{padding:4px 5px;min-width:44px}
+  .flag-chip .flag-emoji{font-size:1.4rem}
+  .flag-chip .flag-label{font-size:.42rem;max-width:44px}
+  .flag-chip .flag-count{font-size:.52rem;padding:0 4px}
+  .flag-dropdown{left:14px;width:calc(100% - 28px)}
+
+  /* STATS BAR */
+  .stats-bar{padding:6px 14px;gap:6px}
+  .stat-chip{font-size:.65rem;padding:3px 10px}
+
+  /* SORT BAR */
+  .sort-bar{padding:6px 14px;gap:4px}
+  .sort-btn{font-size:.62rem;padding:3px 8px}
+
+  /* SELECTION BAR */
+  .selection-bar{padding:6px 14px;gap:8px}
+  .selection-bar .btn{font-size:.65rem;padding:5px 10px}
+
+  /* CARDS: single column, show fields */
+  .card-lines{grid-template-columns:1fr;padding:10px 12px;gap:10px}
+  .bc-card{padding:12px 14px;border-radius:12px}
+  .bc-card .card-flag-wrap{width:50px;margin-right:10px}
+  .bc-card .card-flag{font-size:2.2rem}
+  .bc-card .card-company-name{font-size:.8rem}
+  .bc-card .card-contact-name{font-size:.68rem}
+  .bc-card .card-contact-role{font-size:.58rem}
+  .bc-card .card-fields.visible{display:flex!important;flex-direction:column;gap:2px}
+  .bc-card .card-field{font-size:.64rem}
+  .bc-card .card-field .f-icon{font-size:.62rem}
+  .match-badge{font-size:.58rem;padding:2px 8px}
+  .match-sub{font-size:.5rem;max-width:120px}
+
+  /* LETTER INDEX: hide on mobile */
+  .letter-index{display:none}
+
+  /* DROPZONE */
+  .dropzone{margin:12px 14px;padding:24px 14px}
+
+  /* NOTES MODAL */
+  .notes-modal{width:95%;padding:16px}
+
+  /* SIDEBAR TOGGLE (mobile) */
+  .mobile-sidebar-toggle{display:flex!important}
+}
+@media(min-width:769px){
+  .mobile-sidebar-toggle{display:none!important}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a href="/" class="btn btn-back">
+    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 12H5m7-7-7 7 7 7"/></svg>
+    Scraper
+  </a>
+  <a href="/agenda.html" class="btn btn-back">Agenda</a>
+  <h1>💼 Business Cards</h1>
+  <div style="position:relative;display:flex;align-items:center;gap:6px">
+    <span id="aiKeyIcon" onclick="document.getElementById('aiKeyInput').focus()" style="cursor:pointer;font-size:1rem;margin-right:-28px;z-index:1;filter:grayscale(1);transition:filter .3s" title="OpenAI API Key">🤖</span>
+    <input type="password" id="aiKeyInput" placeholder="OpenAI API Key..." oninput="onAiKeyChange()" style="padding:7px 12px 7px 30px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:var(--bg-input);color:var(--text-primary);font-size:.75rem;width:180px;outline:none;transition:border-color .3s">
+    <span id="aiKeyStatus" style="font-size:.65rem;color:var(--text-muted);white-space:nowrap"></span>
+  </div>
+  <input type="text" id="searchInput" placeholder="Cerca contatto..." oninput="onSearch()" style="min-width:180px">
+  <select id="filterMatch" onchange="onFilterChange()" style="min-width:100px">
+    <option value="all">Tutti</option>
+    <option value="found">In WCA</option>
+    <option value="partial">Parziale</option>
+    <option value="not-found">Non trovati</option>
+  </select>
+  <div class="stats">
+    <span>Contatti: <strong id="statTotal">0</strong></span>
+    <span>In WCA: <strong id="statMatched">0</strong></span>
+    <span>Parziali: <strong id="statPartial">0</strong></span>
+  </div>
+</div>
+
+<div class="main-wrap">
+  <button class="btn btn-back mobile-sidebar-toggle" id="sidebarToggle" onclick="toggleMobileSidebar()" style="display:none;position:fixed;bottom:16px;left:16px;z-index:300;border-radius:50%;width:44px;height:44px;justify-content:center;background:rgba(99,102,241,0.2);border:1px solid rgba(165,180,252,0.3);font-size:1.1rem;box-shadow:0 4px 20px rgba(0,0,0,0.4)">🌍</button>
+  <div class="filter-sidebar" id="filterSidebar">
+    <h3>Paesi</h3>
+  </div>
+
+  <div class="page-area" id="pageArea">
+    <div class="page-header" id="pageHeader">
+      <span class="page-icon">💼</span>
+      <div>
+        <div class="page-title" id="pageTitle">Business Cards</div>
+        <div class="page-subtitle" id="pageSubtitle">Importa contatti e confronta con i partner WCA</div>
+      </div>
+      <div style="margin-left:auto;display:flex;gap:6px">
+        <label class="btn btn-accent" style="cursor:pointer" id="btnImportLabel">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4m4-5 5-5 5 5m-5-5v12"/></svg>
+          Importa File <input type="file" accept=".csv,.xlsx,.xls,.tsv" id="fileInput" onchange="onFileSelected(this.files[0])" style="display:none">
+        </label>
+        <button class="btn btn-danger" onclick="clearAll()" id="btnClear" style="display:none">Cancella tutto</button>
+      </div>
+    </div>
+
+    <!-- EVENT TABS (horizontal) -->
+    <div class="event-tabs" id="eventTabs" style="display:none"></div>
+
+    <!-- IMPORT FORM (shown after file selected) -->
+    <div class="import-form" id="importForm">
+      <label>
+        Nome Evento
+        <div style="display:flex;gap:6px">
+          <select id="selEvent" onchange="onEventSelect()" style="min-width:180px">
+            <option value="">-- Nuovo evento --</option>
+          </select>
+          <input type="text" id="txtEventName" placeholder="es. Transport Logistic 2025" style="min-width:200px">
+        </div>
+      </label>
+      <label>
+        Data Contatto
+        <input type="date" id="txtContactDate" value="">
+      </label>
+      <label>
+        File selezionato
+        <span id="importFileName" style="font-size:.8rem;color:var(--text-primary);padding:7px 0">—</span>
+      </label>
+      <button class="btn btn-accent" onclick="confirmImport()" style="align-self:end">Importa</button>
+      <button class="btn btn-back" onclick="cancelImport()" style="align-self:end">Annulla</button>
+    </div>
+
+    <!-- STATS BAR -->
+    <div class="stats-bar" id="statsBar" style="display:none">
+      <span class="stat-chip total" id="chipTotal" style="cursor:pointer" onclick="setMatchFilter('all')" title="Mostra tutti">0 contatti</span>
+      <span class="stat-chip matched" id="chipMatched" style="cursor:pointer" onclick="setMatchFilter('found')" title="Filtra: solo trovati in WCA">0 in WCA</span>
+      <span class="stat-chip partial-stat" id="chipPartial" style="cursor:pointer" onclick="setMatchFilter('partial')" title="Filtra: solo match parziali">0 parziali</span>
+      <span class="stat-chip unmatched" id="chipUnmatched" style="cursor:pointer" onclick="setMatchFilter('not-found')" title="Filtra: solo non trovati">0 non trovati</span>
+      <span class="stat-chip" id="chipNotes" style="background:rgba(165,180,252,0.1);color:#a5b4fc;cursor:pointer" onclick="toggleNotesFilter()" title="Filtra contatti con note">📝 0 con note</span>
+      <span class="stat-chip" id="chipCountries" style="margin-left:auto;background:linear-gradient(135deg,rgba(99,102,241,0.15),rgba(165,180,252,0.1));color:#a5b4fc;font-weight:700;letter-spacing:.3px;border:1px solid rgba(165,180,252,0.2)">🌍 0 paesi</span>
+    </div>
+
+    <!-- FLAG CAROUSEL -->
+    <div class="flag-carousel-wrap" id="flagCarousel" style="display:none">
+      <div class="flag-search-wrap">
+        <span class="search-icon">⌕</span>
+        <input type="text" id="flagSearchInput" placeholder="Cerca paese..." oninput="onFlagSearch()" onfocus="onFlagSearch()" autocomplete="off">
+        <div class="flag-dropdown" id="flagDropdown"></div>
+      </div>
+      <div class="flag-track-outer">
+        <div class="flag-track" id="flagTrack"></div>
+      </div>
+    </div>
+
+    <!-- SORT BAR -->
+    <div class="sort-bar" id="sortBar" style="display:none">
+      <label>Ordina:</label>
+      <button class="sort-btn active" onclick="setSort('company')" id="sortCompany">Azienda</button>
+      <button class="sort-btn" onclick="setSort('name')" id="sortName">Nome</button>
+      <button class="sort-btn" onclick="setSort('country')" id="sortCountry">Paese</button>
+      <button class="sort-btn" onclick="setSort('city')" id="sortCity">Città</button>
+      <button class="sort-btn" onclick="setSort('match')" id="sortMatch">Match</button>
+      <button class="sort-btn" onclick="toggleNotesFilter()" id="filterNotes" title="Mostra solo contatti con note">📝 Con note</button>
+      <span style="margin-left:auto;display:flex;gap:4px;align-items:center">
+        <button class="sort-btn" onclick="refreshData()" id="btnRefresh" title="Aggiorna dati da database" style="color:#6ee7b7;border-color:rgba(16,185,129,0.3)">🔄 Aggiorna</button>
+        <button class="sort-btn" onclick="aiMatchAll()" id="btnAiMatch" style="display:none;color:#c4b5fd;border-color:rgba(165,140,252,0.3)" title="Screening AI: verifica corrispondenza con WCA">🤖 AI Screening</button>
+        <span style="width:1px;height:16px;background:rgba(255,255,255,0.08);margin:0 2px"></span>
+        <button class="sort-btn" onclick="setView('grid')" id="viewGrid" title="Griglia">▦</button>
+        <button class="sort-btn active" onclick="setView('list')" id="viewList" title="Elenco">☰</button>
+      </span>
+    </div>
+
+    <!-- SELECTION BAR -->
+    <div class="selection-bar" id="selectionBar">
+      <span style="font-size:.78rem;color:#a5b4fc;font-weight:600" id="selCount">0 selezionati</span>
+      <button class="btn btn-accent" onclick="selectAllVisible()" style="font-size:.7rem">Seleziona tutti</button>
+      <button class="btn btn-back" onclick="deselectAll()" style="font-size:.7rem">Deseleziona</button>
+      <button class="btn btn-danger" onclick="deleteSelected()" style="font-size:.7rem">🗑 Cancella selezionati</button>
+    </div>
+
+    <!-- DROPZONE -->
+    <div class="dropzone" id="dropzone"
+         ondragover="event.preventDefault();this.classList.add('dragover')"
+         ondragleave="this.classList.remove('dragover')"
+         ondrop="handleDrop(event)"
+         onclick="document.getElementById('fileInput').click()">
+      <div style="font-size:3rem;margin-bottom:8px">📂</div>
+      <div style="font-size:1rem;font-weight:600;margin-bottom:4px">Trascina qui un file CSV o Excel</div>
+      <div style="font-size:.78rem">oppure clicca per sfogliare</div>
+    </div>
+
+    <div class="card-lines" id="cardLines"></div>
+  </div>
+
+  <div class="letter-index" id="letterIndex"></div>
+</div>
+
+<!-- NOTES POPUP -->
+<div class="notes-overlay" id="notesOverlay" onclick="if(event.target===this)closeNotes()">
+  <div class="notes-modal">
+    <h3 id="notesTitle">Note</h3>
+    <textarea id="notesTextarea" placeholder="Aggiungi note..."></textarea>
+    <div class="modal-btns">
+      <button class="btn btn-back" onclick="closeNotes()">Annulla</button>
+      <button class="btn btn-accent" onclick="saveNotes()">Salva</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = "https://dlldkrzoxvjxpgkkttxu.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRsbGRrcnpveHZqeHBna2t0dHh1Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1ODcyMDU4NCwiZXhwIjoyMDc0Mjk2NTg0fQ.py_d96kA6Mqvi0ugBm4gmIlJSoOC_KbwUM7cgDR-O_E";
+const SB_HEADERS = {"Content-Type":"application/json","apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY};
+let OPENAI_KEY = "";
+let aiKeyTestTimer=null;
+function onAiKeyChange(){
+  const inp=document.getElementById("aiKeyInput");
+  const icon=document.getElementById("aiKeyIcon");
+  const status=document.getElementById("aiKeyStatus");
+  OPENAI_KEY=inp.value.trim();
+  if(!OPENAI_KEY||!OPENAI_KEY.startsWith("sk-")){
+    icon.style.filter="grayscale(1)";
+    inp.style.borderColor="rgba(255,255,255,0.08)";
+    status.textContent="";
+    return;
+  }
+  // Debounce: test after 500ms of no typing
+  status.textContent="⏳ Test...";
+  status.style.color="var(--text-muted)";
+  clearTimeout(aiKeyTestTimer);
+  aiKeyTestTimer=setTimeout(()=>testOpenAIKey(),500);
+}
+async function testOpenAIKey(){
+  const inp=document.getElementById("aiKeyInput");
+  const icon=document.getElementById("aiKeyIcon");
+  const status=document.getElementById("aiKeyStatus");
+  try{
+    const r=await fetch("https://api.openai.com/v1/models",{
+      headers:{"Authorization":"Bearer "+OPENAI_KEY}
+    });
+    if(r.ok){
+      icon.style.filter="none";
+      inp.style.borderColor="rgba(16,185,129,0.6)";
+      status.textContent="✅ Connesso";
+      status.style.color="#10b981";
+      if(allCards.length) document.getElementById("btnAiMatch").style.display="inline-flex";
+    } else {
+      const err=await r.json().catch(()=>({}));
+      icon.style.filter="grayscale(1)";
+      inp.style.borderColor="rgba(239,68,68,0.5)";
+      status.textContent="❌ "+(err.error?.message||"Chiave non valida");
+      status.style.color="#ef4444";
+      OPENAI_KEY="";
+    }
+  }catch(e){
+    icon.style.filter="grayscale(1)";
+    inp.style.borderColor="rgba(239,68,68,0.5)";
+    status.textContent="❌ Errore connessione";
+    status.style.color="#ef4444";
+    OPENAI_KEY="";
+  }
+}
+
+let allCards = [];
+let allPartners = [];
+let allEvents = [];
+let currentFilter = "all";
+let currentEvent = "all";
+let pendingFile = null;
+let pendingRows = [];
+
+function esc(s){const d=document.createElement("div");d.textContent=s||"";return d.innerHTML;}
+function ccFlag(cc){
+  if(!cc||cc.length!==2) return "🏳️";
+  return String.fromCodePoint(...[...cc.toUpperCase()].map(c=>0x1F1E6+c.charCodeAt(0)-65));
+}
+const COUNTRY_CODES={"afghanistan":"AF","albania":"AL","algeria":"DZ","argentina":"AR","armenia":"AM","australia":"AU","austria":"AT","azerbaijan":"AZ","bahrain":"BH","bangladesh":"BD","belarus":"BY","belgium":"BE","bolivia":"BO","bosnia":"BA","brazil":"BR","brasile":"BR","brunei":"BN","bulgaria":"BG","cambodia":"KH","cameroon":"CM","canada":"CA","chile":"CL","china":"CN","cina":"CN","colombia":"CO","costa rica":"CR","croatia":"HR","cuba":"CU","cyprus":"CY","czech republic":"CZ","czechia":"CZ","denmark":"DK","danimarca":"DK","dominican republic":"DO","ecuador":"EC","egypt":"EG","egitto":"EG","el salvador":"SV","estonia":"EE","ethiopia":"ET","finland":"FI","finlandia":"FI","france":"FR","francia":"FR","georgia":"GE","germany":"DE","germania":"DE","ghana":"GH","greece":"GR","grecia":"GR","guatemala":"GT","honduras":"HN","hong kong":"HK","hungary":"HU","ungheria":"HU","iceland":"IS","india":"IN","indonesia":"ID","iran":"IR","iraq":"IQ","ireland":"IE","irlanda":"IE","israel":"IL","israele":"IL","italy":"IT","italia":"IT","ivory coast":"CI","jamaica":"JM","japan":"JP","giappone":"JP","jordan":"JO","giordania":"JO","kazakhstan":"KZ","kenya":"KE","korea":"KR","south korea":"KR","corea":"KR","corea del sud":"KR","kuwait":"KW","laos":"LA","latvia":"LV","lebanon":"LB","libano":"LB","libya":"LY","libia":"LY","lithuania":"LT","luxembourg":"LU","lussemburgo":"LU","malaysia":"MY","malesia":"MY","maldives":"MV","malta":"MT","mauritius":"MU","mexico":"MX","messico":"MX","mongolia":"MN","montenegro":"ME","morocco":"MA","marocco":"MA","mozambique":"MZ","myanmar":"MM","nepal":"NP","netherlands":"NL","paesi bassi":"NL","olanda":"NL","new zealand":"NZ","nuova zelanda":"NZ","nicaragua":"NI","nigeria":"NG","norway":"NO","norvegia":"NO","oman":"OM","pakistan":"PK","panama":"PA","panamá":"PA","paraguay":"PY","peru":"PE","perù":"PE","philippines":"PH","filippine":"PH","poland":"PL","polonia":"PL","portugal":"PT","portogallo":"PT","qatar":"QA","romania":"RO","russia":"RU","saudi arabia":"SA","arabia saudita":"SA","senegal":"SN","serbia":"RS","singapore":"SG","slovakia":"SK","slovenia":"SI","south africa":"ZA","sudafrica":"ZA","spain":"ES","spagna":"ES","sri lanka":"LK","sudan":"SD","sweden":"SE","svezia":"SE","switzerland":"CH","svizzera":"CH","syria":"SY","siria":"SY","taiwan":"TW","tanzania":"TZ","thailand":"TH","tailandia":"TH","tunisia":"TN","turkey":"TR","turchia":"TR","turkiye":"TR","uae":"AE","uganda":"UG","ukraine":"UA","ucraina":"UA","united arab emirates":"AE","emirati arabi":"AE","emirati arabi uniti":"AE","united kingdom":"GB","uk":"GB","gran bretagna":"GB","regno unito":"GB","united states":"US","usa":"US","stati uniti":"US","uruguay":"UY","uzbekistan":"UZ","venezuela":"VE","vietnam":"VN","yemen":"YE","zambia":"ZM","zimbabwe":"ZW"};
+function resolveCountryCode(name){
+  if(!name) return "";
+  const n=name.toLowerCase().trim();
+  return COUNTRY_CODES[n]||"";
+}
+function fmtDate(d){ if(!d) return ""; try{ return new Date(d).toLocaleDateString("it-IT",{day:"2-digit",month:"short",year:"numeric"}); }catch(e){ return d; }}
+
+// ==================== SMART MATCHING ====================
+function normalize(s){
+  return (s||"").toLowerCase().trim()
+    .replace(/[.,\-_/\\()'"!@#$%^&*+=\[\]{}|<>:;`~]/g," ")
+    .replace(/\b(ltd|llc|inc|corp|gmbh|srl|s\.r\.l|s\.p\.a|spa|sa|ag|bv|nv|co|pvt|private|limited|international|intl|logistics|log|freight|forwarding|fwd|shipping|transport|trading|group|holding)\b/gi,"")
+    .replace(/\s+/g," ").trim();
+}
+function extractDomain(email){
+  if(!email) return "";
+  const parts = email.split("@");
+  return parts.length===2 ? parts[1].toLowerCase().replace(/^www\./,"") : "";
+}
+function normalizeWebsite(url){
+  return (url||"").toLowerCase().replace(/^https?:\/\//,"").replace(/^www\./,"").replace(/\/$/,"").trim();
+}
+function tokenize(s){ return normalize(s).split(/\s+/).filter(t=>t.length>=2); }
+function tokenOverlap(a,b){
+  const tokA=tokenize(a), tokB=tokenize(b);
+  if(!tokA.length||!tokB.length) return 0;
+  let m=0;
+  for(const t of tokA){ if(tokB.some(tb=>tb.includes(t)||t.includes(tb))) m++; }
+  return m/Math.max(tokA.length,tokB.length);
+}
+
+function matchCard(card, partners){
+  let bestMatch=null, bestScore=0, bestReason="";
+  const cc=normalize(card.company_name), ce=(card.email||"").toLowerCase().trim(),
+    cd=extractDomain(ce), cp=(card.phone||"").replace(/\D/g,""),
+    cCity=normalize(card.city), cContact=normalize(card.contact_name),
+    cWeb=normalizeWebsite(card.website),
+    cCountry=(card.country_code||"").toUpperCase();
+  // Dominio dal website del biglietto
+  const cWebDomain=cWeb.replace(/\/.*$/,"");
+  const isGenericEmail=cd&&/^(gmail|yahoo|hotmail|outlook|aol|qq|163|naver|hanmail|live|icloud|mail|ymail)\./i.test(cd);
+
+  for(const p of partners){
+    let score=0, reasons=[];
+    const pc=normalize(p.company_name), pe=(p.email||"").toLowerCase().trim(),
+      pd=extractDomain(pe), pp=(p.phone||"").replace(/\D/g,""),
+      pw=normalizeWebsite(p.website),
+      pWebDomain=pw.replace(/\/.*$/,""),
+      pCountry=(p.country_code||"").toUpperCase(),
+      pCity=normalize(p.city||(p.address||"").split(",").slice(-2,-1).join(""));
+
+    // --- NOME AZIENDA ---
+    if(cc&&pc&&cc===pc){ score+=50; reasons.push("azienda esatta"); }
+    else if(cc&&pc){
+      const ov=tokenOverlap(card.company_name,p.company_name);
+      if(ov>=0.6){ score+=35; reasons.push("azienda ~"+Math.round(ov*100)+"%"); }
+      else if(ov>=0.3){ score+=15; reasons.push("azienda parziale"); }
+      if(pc.includes(cc)||cc.includes(pc)){
+        // Verifica che il "core" sia significativo (almeno 2 token o 4+ chars)
+        const shorter=cc.length<pc.length?cc:pc;
+        if(shorter.length>=4||tokenize(shorter).length>=2){
+          score+=20; if(!reasons.some(r=>r.includes("azienda"))) reasons.push("nome contenuto");
+        }
+      }
+    }
+
+    // --- EMAIL ---
+    if(ce&&pe&&ce===pe){ score+=40; reasons.push("email esatta"); }
+    else if(cd&&pd&&cd===pd&&!isGenericEmail){ score+=30; reasons.push("dominio email"); }
+    // Cross: email biglietto ↔ contatti partner
+    if(ce&&p.contacts){
+      for(const c of p.contacts){
+        if(c.email&&c.email.toLowerCase().trim()===ce){ score+=40; reasons.push("email contatto WCA"); break; }
+      }
+      if(cd&&!isGenericEmail&&!reasons.includes("dominio email")){
+        for(const c of p.contacts){ if(c.email&&extractDomain(c.email)===cd){ score+=25; reasons.push("dominio contatto"); break; }}
+      }
+    }
+
+    // --- WEBSITE / DOMINIO CROSS-CHECK ---
+    if(cWeb&&pw&&(cWeb===pw||cWeb.includes(pw)||pw.includes(cWeb))){ score+=30; reasons.push("website"); }
+    // Cross: dominio email biglietto ↔ website partner
+    if(cd&&!isGenericEmail&&pWebDomain&&(pWebDomain.includes(cd.replace(/\.[^.]+$/,""))||cd.includes(pWebDomain.replace(/\.[^.]+$/,"")))){
+      if(!reasons.some(r=>r.includes("dominio")&&r.includes("web"))){ score+=20; reasons.push("email↔web"); }
+    }
+    // Cross: website biglietto ↔ email partner
+    if(cWebDomain&&pd&&(cWebDomain.includes(pd.replace(/\.[^.]+$/,""))||pd.includes(cWebDomain.replace(/\.[^.]+$/,"")))){
+      if(!reasons.some(r=>r.includes("web"))){ score+=20; reasons.push("web↔email"); }
+    }
+
+    // --- TELEFONO ---
+    if(cp.length>=6&&pp.length>=6){
+      if(cp===pp){ score+=30; reasons.push("telefono"); }
+      else if(cp.slice(-8)===pp.slice(-8)){ score+=20; reasons.push("tel parziale"); }
+    }
+    // Controlla anche telefoni dei contatti
+    if(cp.length>=6&&p.contacts){
+      for(const c of p.contacts){
+        const cPhone=(c.direct_line||c.mobile||"").replace(/\D/g,"");
+        if(cPhone.length>=6&&(cp===cPhone||cp.slice(-8)===cPhone.slice(-8))){
+          if(!reasons.includes("telefono")){ score+=20; reasons.push("tel contatto"); }
+          break;
+        }
+      }
+    }
+
+    // --- CONTATTO/PERSONA ---
+    if(cContact&&p.contacts){
+      for(const c of p.contacts){
+        const pn=normalize(c.name);
+        if(pn&&cContact===pn){ score+=25; reasons.push("contatto trovato"); break; }
+        else if(pn&&tokenOverlap(cContact,pn)>=0.5){ score+=12; reasons.push("contatto simile"); break; }
+      }
+    }
+
+    // --- VALIDAZIONE GEOGRAFICA (bonus/malus) ---
+    if(cCountry&&pCountry){
+      if(cCountry===pCountry){
+        score+=8; reasons.push("stesso paese");
+        // Bonus città
+        if(cCity&&pCity&&(cCity.includes(pCity)||pCity.includes(cCity))){ score+=5; reasons.push("stessa città"); }
+      } else if(score>=30){
+        // Paese diverso con altri segnali forti: potrebbe essere filiale, leggera penalità
+        score-=5;
+        reasons.push("paese diverso ("+pCountry+")");
+      }
+    }
+
+    if(score>bestScore){ bestScore=score; bestMatch=p; bestReason=reasons.join(" + "); }
+  }
+
+  let matchType="not-found";
+  if(bestScore>=45) matchType="found";
+  else if(bestScore>=18) matchType="partial";
+  else { bestMatch=null; bestReason=""; }
+  return { partner:bestMatch, score:bestScore, reason:bestReason, type:matchType };
+}
+
+// ==================== AI-POWERED WCA MATCHING ====================
+const AI_MATCH_KB = `
+KNOWLEDGE BASE — WCA PARTNER MATCHING (v2)
+=============================================
+Sei un esperto senior di logistica internazionale, spedizioni, freight forwarding e supply chain.
+Il tuo compito: determinare se un biglietto da visita raccolto a una fiera corrisponde a un partner
+iscritto alla rete WCA (World Cargo Alliance) o a una delle sue sotto-reti.
+
+═══ STRATEGIA DI MATCHING — PRIORITÀ DECRESCENTE ═══
+
+LIVELLO 1 — IDENTITÀ CERTA (confidenza 90-100):
+• Dominio email aziendale identico (email biglietto @acme.com ↔ partner email/website acme.com)
+  → Ignora provider generici: gmail, yahoo, hotmail, outlook, aol, qq, 163, naver, hanmail
+  → Controlla varianti: acme-logistics.com ≈ acmelogistics.com ≈ acmelog.com
+• Email contatto esatto: l'email del biglietto appare nella lista contacts[] del partner
+• Website identico dopo normalizzazione (rimuovi www, http, trailing slash)
+
+LIVELLO 2 — NOME AZIENDA + GEOGRAFIA (confidenza 70-90):
+• Nome azienda match esatto dopo pulizia suffissi legali (Ltd, GmbH, Srl, Inc, LLC, Pte, Co, SA, BV, AS, AG, NV, Pvt, Corp, SpA)
+  + Stesso paese → 90%
+  + Paese diverso → 75% (potrebbe essere filiale, verifica indirizzo)
+• Nome azienda contenuto: "DHL Global Forwarding Italy" contiene "DHL Global Forwarding" → match
+  ATTENZIONE: il nome contenuto deve essere il "core" (≥2 token significativi), non solo "Global" o "Express"
+• Acronimi noti del freight forwarding:
+  KWE = Kintetsu World Express, DSV = DSV (ex Panalpina/UTi), DB = DB Schenker,
+  KN = Kuehne+Nagel, CMA = CMA CGM, MSC = Mediterranean Shipping,
+  CEVA = CEVA Logistics, XPO = XPO Logistics, CH Robinson,
+  Expeditors = Expeditors Int'l, Bolloré = Bolloré Logistics
+• Filiali e branch: "NOME AZIENDA + NOME PAESE/CITTÀ" è spesso una filiale
+  Es: "Agility Italy" = "Agility Logistics" (filiale italiana)
+
+LIVELLO 3 — SEGNALI DI SUPPORTO (confidenza 50-70):
+• Telefono: ultime 8+ cifre identiche (ignora prefisso internazionale)
+  → Il prefisso telefonico DEVE essere coerente col paese dichiarato
+    +39=IT, +49=DE, +65=SG, +44=UK, +1=US/CA, +86=CN, +91=IN, +81=JP, +82=KR, +971=AE
+  → Se il prefisso contraddice il paese → segnala anomalia
+• Nome contatto trovato nella lista contacts[] del partner WCA
+  → Nomi occidentali: match su nome+cognome → forte
+  → Nomi asiatici comuni (Lee, Wang, Kim, Chen, Singh, Nguyen): match solo se abbinato ad altro segnale
+• Indirizzo/Città: stessa città del partner rafforza il match
+  → Confronta la città del biglietto con l'indirizzo del partner (estrai la città dall'address)
+
+LIVELLO 4 — MATCH DEBOLE / NEGATIVO (confidenza 20-49):
+• Solo nome parziale simile senza conferma geografica o contatto
+• Settore simile ma nessun segnale forte
+• Paese diverso senza spiegazione (non è una filiale nota)
+
+═══ VARIANTI NOMI NEL FREIGHT FORWARDING ═══
+Sinonimi da considerare equivalenti durante il confronto nomi:
+Freight / Frt / Fwd / Forwarding | Logistics / Log / Logistic | International / Int'l / Intl
+Shipping / Ship | Transport / Trans / Transportation | Global / Worldwide / World
+Express / Exp | Cargo | Supply Chain / SCM | Solutions / Svcs / Services
+ATTENZIONE: queste parole sono MOLTO comuni nel settore. "Atlas Logistics" e "Zenith Logistics"
+NON sono la stessa azienda solo perché condividono "Logistics". Il core name deve matchare.
+
+═══ ANTI-PATTERN: FALSI POSITIVI DA EVITARE ═══
+• Due aziende diverse che operano nello stesso settore nello stesso paese
+• Nomi generici come "Global Logistics", "Express Cargo", "International Freight" — cercare elementi
+  distintivi (nome proprio, acronimo, fondatore) prima di dichiarare match
+• Email su provider generico (gmail etc.) — NON usare come segnale positivo
+• Nome contatto comune senza altri segnali — NON è un match
+
+═══ VERIFICA GEOGRAFICA ═══
+Il paese è un VALIDATORE CRUCIALE:
+• Stesso nome + stesso paese → rafforza molto il match
+• Stesso nome + paese diverso → potrebbe essere filiale, ma richiede verifica
+  (controlla se il partner WCA ha enrolled_offices in quel paese)
+• Se il biglietto ha città e il partner WCA ha indirizzo, confrontali
+• Il prefisso telefonico deve essere coerente col paese dichiarato
+
+═══ OUTPUT PER OGNI CONTATTO ═══
+- match_type: "found" (confidenza ≥75%), "partial" (40-74%), "not-found" (<40%)
+- confidence: numero 0-100 basato sui livelli sopra
+- reason: spiegazione CONCISA in italiano (max 2 frasi) di quali segnali hai trovato
+- wca_id: ID numerico del partner WCA matchato (null se not-found)
+- company_name_wca: nome azienda WCA (null se not-found)
+- suggestion: consiglio operativo per l'utente (es. "Verificare filiale", "Dominio email identico", "Nome simile ma paese diverso — controllare")
+`;
+
+async function aiMatchAll(){
+  if(!OPENAI_KEY||!OPENAI_KEY.startsWith("sk-")){
+    alert("Inserisci prima una chiave OpenAI valida"); return;
+  }
+  const cards=getFilteredCards().filter(c=>c.id);
+  if(!cards.length){ alert("Nessun contatto da verificare"); return; }
+
+  const btn=document.getElementById("btnAiMatch");
+  const origText=btn.innerHTML;
+  btn.disabled=true;
+  btn.innerHTML="⏳ Analisi AI...";
+
+  // Prepare compact partner list for AI context — include ALL partners
+  const partnersSummary=allPartners.map(p=>{
+    const emails=[p.email||""];
+    if(Array.isArray(p.contacts)) p.contacts.forEach(c=>{ if(c.email) emails.push(c.email); });
+    const contactNames=Array.isArray(p.contacts)?p.contacts.map(c=>c.name).filter(Boolean):[];
+    const phones=[p.phone||""];
+    if(Array.isArray(p.contacts)) p.contacts.forEach(c=>{ if(c.direct_line) phones.push(c.direct_line); if(c.mobile) phones.push(c.mobile); });
+    return {
+      wca_id:p.wca_id, name:p.company_name, cc:p.country_code,
+      city:p.city||"", addr:(p.address||"").substring(0,80),
+      emails:emails.filter(Boolean).join(","),
+      phones:phones.filter(Boolean).join(","),
+      web:p.website||"",
+      contacts:contactNames.join(",")
+    };
+  });
+
+  const BATCH=10;
+  let improved=0, errors=0;
+
+  for(let i=0;i<cards.length;i+=BATCH){
+    const batch=cards.slice(i,i+BATCH);
+    btn.innerHTML=`⏳ AI ${i}/${cards.length}...`;
+
+    const cardsBatch=batch.map(c=>({
+      id:c.id, company:c.company_name, contact:c.contact_name,
+      email:c.email, phone:c.phone, city:c.city, address:c.address||"",
+      country:c.country, country_code:c.country_code||"", web:c.website, role:c.position,
+      algo_match:c._match?.type||"not-found",
+      algo_score:c._match?.score||0,
+      algo_partner:c._match?.partner?.company_name||"",
+      algo_reason:c._match?.reason||""
+    }));
+
+    // Per ridurre token: se ci sono troppi partner, manda solo quelli dello stesso paese + top 200
+    let relevantPartners=partnersSummary;
+    if(partnersSummary.length>300){
+      const batchCountries=new Set(batch.map(c=>(c.country_code||"").toUpperCase()).filter(Boolean));
+      const sameCountry=partnersSummary.filter(p=>batchCountries.has((p.cc||"").toUpperCase()));
+      const others=partnersSummary.filter(p=>!batchCountries.has((p.cc||"").toUpperCase())).slice(0,300);
+      relevantPartners=[...sameCountry,...others];
+    }
+
+    const prompt=`${AI_MATCH_KB}
+
+═══ PARTNER WCA DATABASE (${allPartners.length} totali, ${relevantPartners.length} rilevanti): ═══
+${JSON.stringify(relevantPartners)}
+
+═══ BIGLIETTI DA VISITA DA ANALIZZARE: ═══
+${JSON.stringify(cardsBatch)}
+
+ISTRUZIONI OPERATIVE:
+1. Per OGNI biglietto, confronta sistematicamente: dominio email ↔ email/website partner, nome azienda ↔ nomi partner (con normalizzazione), telefono, nome contatto, paese+città.
+2. L'algoritmo ha già prodotto un match (algo_match/algo_partner). CONFERMA se corretto, CORREGGI se errato, MIGLIORA se hai trovato un match migliore.
+3. CERCA match che l'algoritmo non ha trovato: acronimi, filiali, varianti nome, domini simili.
+4. Per i "partial" algoritmici: valuta se puoi promuoverli a "found" o retrocederli a "not-found" con ragionamento.
+5. SEGNALA anomalie: prefisso tel ≠ paese, email generica su provider pubblico, nome azienda troppo generico.
+
+FORMATO RISPOSTA — JSON array, un oggetto per biglietto:
+[{"id":"uuid","match_type":"found|partial|not-found","confidence":0-100,"wca_id":123,"company_name_wca":"...","reason":"...","suggestion":"..."}]
+Se not-found: wca_id=null, company_name_wca=null.
+Rispondi SOLO con il JSON array.`;
+
+    try{
+      const r=await fetch("https://api.openai.com/v1/chat/completions",{
+        method:"POST",
+        headers:{"Content-Type":"application/json","Authorization":"Bearer "+OPENAI_KEY},
+        body:JSON.stringify({
+          model:"gpt-4o-mini", temperature:0,
+          messages:[{role:"user",content:prompt}],
+          response_format:{type:"json_object"}
+        })
+      });
+      if(!r.ok){ console.error("AI Match error:",await r.text()); errors++; continue; }
+      const data=await r.json();
+      const content=data.choices?.[0]?.message?.content||"";
+      let results=JSON.parse(content);
+      if(results&&!Array.isArray(results)){
+        const key=Object.keys(results).find(k=>Array.isArray(results[k]));
+        if(key) results=results[key]; else results=[];
+      }
+
+      for(const res of results){
+        const card=allCards.find(c=>String(c.id)===String(res.id));
+        if(!card) continue;
+
+        // Find the WCA partner by wca_id or company name
+        let matchedPartner=null;
+        if(res.wca_id) matchedPartner=allPartners.find(p=>String(p.wca_id)===String(res.wca_id));
+        if(!matchedPartner&&res.company_name_wca){
+          matchedPartner=allPartners.find(p=>normalize(p.company_name)===normalize(res.company_name_wca));
+        }
+
+        const aiType=res.match_type||"not-found";
+        const aiConf=res.confidence||0;
+        const oldType=card._match?.type||"not-found";
+        const oldScore=card._match?.score||0;
+
+        // AI improves or changes the match
+        const shouldUpdate=
+          (aiType==="found"&&oldType!=="found") ||
+          (aiType==="found"&&aiConf>oldScore) ||
+          (aiType==="partial"&&oldType==="not-found") ||
+          (aiType==="not-found"&&oldType!=="not-found"&&aiConf<20);
+
+        if(shouldUpdate||aiConf>oldScore){
+          card._match={
+            type:aiType,
+            score:aiConf,
+            reason:"🤖 "+res.reason+(res.suggestion?" | "+res.suggestion:""),
+            partner:matchedPartner||card._match?.partner||null
+          };
+          improved++;
+
+          // Update notes with AI match info
+          const aiNote="[AI Match] "+res.reason+(res.suggestion?" — "+res.suggestion:"");
+          const existingNotes=(card.notes||"").replace(/\[AI Match\][^|]*(|\||$)/g,"").trim();
+          const newNotes=existingNotes?(existingNotes+" | "+aiNote):aiNote;
+
+          // PATCH notes + match result to Supabase
+          const patchData={notes:newNotes, ai_match_type:aiType, ai_match_confidence:aiConf};
+          if(res.wca_id) patchData.ai_match_wca_id=String(res.wca_id);
+          if(res.company_name_wca) patchData.ai_match_wca_name=res.company_name_wca;
+          try{
+            await fetch(`${SUPABASE_URL}/rest/v1/wca_business_cards?id=eq.${card.id}`,{
+              method:"PATCH",
+              headers:{...SB_HEADERS,"Content-Type":"application/json","Prefer":"return=minimal"},
+              body:JSON.stringify(patchData)
+            });
+            card.notes=newNotes;
+            card.ai_match_type=aiType;
+            card.ai_match_confidence=aiConf;
+          }catch(e){ console.error("PATCH match error:",e); }
+        }
+      }
+    }catch(e){ console.error("AI match batch error:",e); errors++; }
+  }
+
+  btn.disabled=false;
+  btn.innerHTML=origText;
+  renderAll();
+
+  const msg=`AI Match completato!\n${improved} contatti aggiornati su ${cards.length} analizzati.`;
+  if(errors) alert(msg+`\n${errors} errori durante l'analisi.`);
+  else alert(msg);
+}
+
+// ==================== DATA LOADING ====================
+async function loadPartners(){
+  try{
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/wca_partners?select=wca_id,company_name,country_code,contacts,email,phone,website,address,logo_url&limit=10000`,{headers:SB_HEADERS});
+    if(r.ok) allPartners=await r.json();
+  }catch(e){}
+}
+async function loadCards(){
+  try{
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/wca_business_cards?select=*&order=created_at.desc&limit=2000`,{headers:SB_HEADERS});
+    if(r.ok) allCards=await r.json();
+  }catch(e){}
+}
+async function loadEvents(){
+  try{
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/wca_bc_events?select=*&order=event_date.desc&limit=100`,{headers:SB_HEADERS});
+    if(r.ok) allEvents=await r.json();
+  }catch(e){ allEvents=[]; }
+}
+
+async function refreshData(){
+  const btn=document.getElementById("btnRefresh");
+  const orig=btn.innerHTML;
+  btn.disabled=true;
+  btn.innerHTML="⏳ Aggiornamento...";
+  try{
+    await Promise.all([loadPartners(), loadCards(), loadEvents()]);
+    // Normalizza partner
+    for(const p of allPartners){
+      if(p.contacts&&typeof p.contacts==="string"){ try{p.contacts=JSON.parse(p.contacts);}catch(e){p.contacts=[];} }
+      if(!Array.isArray(p.contacts)) p.contacts=[];
+    }
+    // Ri-esegui matching su tutti i biglietti
+    let reMatched=0;
+    for(const card of allCards){
+      if(!card.country_code&&card.country) card.country_code=resolveCountryCode(card.country.replace(" [presunto]",""));
+      const oldType=card._match?.type||"not-found";
+      try{ card._match=matchCard(card,allPartners); }catch(e){ card._match={type:"not-found",score:0,reason:"",partner:null}; }
+      if(card._match.type!==oldType) reMatched++;
+    }
+    buildEventsFromCards();
+    renderAll();
+    btn.innerHTML="✅ Aggiornato!";
+    setTimeout(()=>{ btn.innerHTML=orig; btn.disabled=false; },2000);
+    console.log(`Refresh: ${allCards.length} cards, ${allPartners.length} partners, ${reMatched} re-matched`);
+  }catch(e){
+    console.error("Refresh error:",e);
+    btn.innerHTML="⚠ Errore";
+    setTimeout(()=>{ btn.innerHTML=orig; btn.disabled=false; },2000);
+  }
+}
+
+async function init(){
+  await Promise.all([loadPartners(), loadCards(), loadEvents()]);
+  console.log("Loaded:",allCards.length,"cards,",allPartners.length,"partners");
+  // Fix corrupted records (entire CSV row in company_name)
+  try{ cleanCorruptedCards(); }catch(e){ console.error("cleanCorruptedCards error:",e); }
+  // Ensure contacts is always an array
+  for(const p of allPartners){
+    if(p.contacts&&typeof p.contacts==="string"){ try{p.contacts=JSON.parse(p.contacts);}catch(e){p.contacts=[];} }
+    if(!Array.isArray(p.contacts)) p.contacts=[];
+  }
+  for(const card of allCards){
+    if(!card.country_code&&card.country) card.country_code=resolveCountryCode(card.country.replace(" [presunto]",""));
+    // Match algoritmico
+    try{ card._match=matchCard(card,allPartners); }catch(e){ card._match={type:"not-found",score:0,reason:"",partner:null}; }
+    // Se c'è un match AI salvato con confidenza superiore, usa quello
+    if(card.ai_match_type&&card.ai_match_confidence>card._match.score){
+      const aiPartner=card.ai_match_wca_id?allPartners.find(p=>String(p.wca_id)===String(card.ai_match_wca_id)):null;
+      card._match={
+        type:card.ai_match_type,
+        score:card.ai_match_confidence,
+        reason:"🤖 "+(card.ai_match_wca_name||"AI verificato"),
+        partner:aiPartner||card._match.partner
+      };
+    }
+  }
+  // Extract events from cards if events table empty
+  buildEventsFromCards();
+  renderAll();
+  console.log("Init complete, rendered",allCards.length,"cards");
+}
+
+function buildEventsFromCards(){
+  // Legacy — events now derived from notes field if needed
+}
+
+function renderAll(){
+  renderSidebar();
+  renderEventTabs();
+  renderFlagRow();
+  renderPage();
+  updateStats();
+  buildLetterIndex();
+}
+
+// ==================== SIDEBAR (countries) ====================
+function renderSidebar(){
+  const sb=document.getElementById("filterSidebar");
+  const countries={};
+  for(const c of allCards){
+    const cc=(c.country_code||"").toUpperCase();
+    const name=c.country||cc||"—";
+    const key=cc||"??";
+    if(!countries[key]) countries[key]={name,total:0,matched:0,cc:key};
+    countries[key].total++;
+    if(c._match?.type==="found") countries[key].matched++;
+  }
+  let html='<h3>Paesi</h3>';
+  html+=`<div class="filter-item ${!currentCountryFilter?'active':''}" onclick="filterByCountry('')">
+    <span class="filter-icon">🌍</span><span class="filter-name">Tutti i paesi</span>
+    <span class="filter-count has">${allCards.length}</span>
+  </div>`;
+  const sorted=Object.values(countries).sort((a,b)=>b.total-a.total);
+  for(const data of sorted){
+    const active=currentCountryFilter===data.cc?"active":"";
+    html+=`<div class="filter-item ${active}" onclick="filterByCountry('${data.cc}')">
+      <span class="filter-icon">${ccFlag(data.cc)}</span>
+      <div style="flex:1;min-width:0">
+        <span class="filter-name" style="display:block">${esc(data.name)}</span>
+        <span class="filter-date">${data.matched}/${data.total} in WCA</span>
+      </div>
+      <span class="filter-count has">${data.total}</span>
+    </div>`;
+  }
+  sb.innerHTML=html;
+}
+
+// ==================== EVENT TABS (hidden — no event_name in DB) ====================
+function renderEventTabs(){
+  document.getElementById("eventTabs").style.display="none";
+}
+
+// ==================== RENDERING ====================
+let currentSort="company";
+function setSort(key){
+  currentSort=key;
+  document.querySelectorAll(".sort-btn").forEach(b=>b.classList.remove("active"));
+  const btn=document.getElementById("sort"+key.charAt(0).toUpperCase()+key.slice(1));
+  if(btn) btn.classList.add("active");
+  renderPage();
+}
+function sortCards(cards){
+  switch(currentSort){
+    case "company": return cards.sort((a,b)=>(a.company_name||"").localeCompare(b.company_name||""));
+    case "name": return cards.sort((a,b)=>(a.contact_name||"").localeCompare(b.contact_name||""));
+    case "country": return cards.sort((a,b)=>(a.country||a.country_code||"").localeCompare(b.country||b.country_code||""));
+    case "city": return cards.sort((a,b)=>(a.city||"").localeCompare(b.city||""));
+    case "match": return cards.sort((a,b)=>{
+      const order={"found":0,"partial":1,"not-found":2};
+      return (order[a._match?.type]??2)-(order[b._match?.type]??2);
+    });
+    default: return cards;
+  }
+}
+// Estrae solo le note scritte dall'utente, esclude metadati di sistema e spazzatura OCR
+function getUserNotes(raw){
+  if(!raw) return "";
+  let s=raw;
+  // Rimuovi tag di sistema
+  s=s.replace(/\[AI Match\][^|]*/g,"");
+  s=s.replace(/Evento:\s*[^|]*/g,"");
+  s=s.replace(/\|/g," ");
+  // Rimuovi dati OCR/importazione: contengono pattern tipici di scansione biglietti
+  // Se la "nota" inizia con "Data:" seguita da dati grezzi → è spazzatura importata
+  s=s.replace(/Data:\s*\d{4}-\d{2}-\d{2}\s+.*/g,"");
+  // Rimuovi blocchi con UEN, Wechat, codici, sequenze di simboli/numeri
+  s=s.replace(/UEN:\s*\S+/gi,"");
+  s=s.replace(/Wechat:\s*\S+/gi,"");
+  s=s.replace(/WeChat:\s*\S+/gi,"");
+  s=s.trim();
+  // Se il testo residuo è troppo corto o è solo simboli/numeri → non è una nota utile
+  const clean=s.replace(/[^a-zA-ZÀ-ÿ]/g,"");
+  if(clean.length<3) return "";
+  // Se il rapporto simboli/lettere è troppo alto → probabile spazzatura OCR
+  const letters=s.replace(/[^a-zA-ZÀ-ÿ\s]/g,"").length;
+  const total=s.length;
+  if(total>20 && letters/total<0.4) return "";
+  return s;
+}
+function getFilteredCards(){
+  let cards=[...allCards];
+  const q=(document.getElementById("searchInput").value||"").toLowerCase();
+  if(q) cards=cards.filter(c=>
+    (c.company_name||"").toLowerCase().includes(q)||
+    (c.contact_name||"").toLowerCase().includes(q)||
+    (c.email||"").toLowerCase().includes(q)||
+    (c.city||"").toLowerCase().includes(q)||
+    (c.country||"").toLowerCase().includes(q)||
+    (c._match?.partner?.company_name||"").toLowerCase().includes(q)
+  );
+  if(currentFilter!=="all") cards=cards.filter(c=>c._match?.type===currentFilter);
+  if(currentCountryFilter) cards=cards.filter(c=>(c.country_code||"").toUpperCase()===currentCountryFilter);
+  if(notesFilterActive) cards=cards.filter(c=>getUserNotes(c.notes));
+  cards=sortCards(cards);
+  return cards;
+}
+
+// ==================== VIEW / SELECTION STATE ====================
+let currentView="list";
+let selectedIds=new Set();
+let currentCountryFilter="";
+let notesFilterActive=false;
+
+function toggleNotesFilter(){
+  notesFilterActive=!notesFilterActive;
+  document.getElementById("filterNotes").classList.toggle("active",notesFilterActive);
+  renderPage();
+}
+
+function setView(v){
+  currentView=v;
+  document.getElementById("viewGrid").classList.toggle("active",v==="grid");
+  document.getElementById("viewList").classList.toggle("active",v==="list");
+  const lines=document.getElementById("cardLines");
+  lines.classList.toggle("list-view",v==="list");
+  renderPage();
+}
+function toggleCardInfo(btn){
+  const fields=btn.closest(".bc-card").querySelector(".card-fields");
+  if(!fields) return;
+  const open=fields.classList.toggle("visible");
+  btn.classList.toggle("open",open);
+  btn.querySelector(".arrow").textContent=open?"▾":"▸";
+}
+function toggleSelect(id){
+  if(selectedIds.has(id)) selectedIds.delete(id); else selectedIds.add(id);
+  updateSelectionBar();
+  const el=document.querySelector(`.bc-card[data-id="${id}"]`);
+  if(el) el.classList.toggle("selected",selectedIds.has(id));
+}
+function selectAllVisible(){
+  const cards=getFilteredCards();
+  for(const c of cards) if(c.id) selectedIds.add(c.id);
+  renderPage();
+}
+function deselectAll(){
+  selectedIds.clear();
+  renderPage();
+}
+function updateSelectionBar(){
+  const bar=document.getElementById("selectionBar");
+  if(selectedIds.size>0){
+    bar.classList.add("visible");
+    document.getElementById("selCount").textContent=selectedIds.size+" selezionati";
+  } else { bar.classList.remove("visible"); }
+}
+async function deleteSelected(){
+  if(!selectedIds.size) return;
+  if(!confirm("Cancellare "+selectedIds.size+" contatti selezionati?")) return;
+  const ids=[...selectedIds];
+  let deleted=0, errors=0;
+  for(const id of ids){
+    try{
+      const r=await fetch(`${SUPABASE_URL}/rest/v1/wca_business_cards?id=eq.${id}`,{
+        method:"DELETE",headers:{...SB_HEADERS,"Prefer":"return=minimal"}
+      });
+      if(r.ok) deleted++; else { console.error("Delete fail",id,await r.text()); errors++; }
+    }catch(e){ console.error("Delete error:",e); errors++; }
+  }
+  // Remove from local array (compare as strings for safety)
+  const idSet=new Set(ids.map(String));
+  allCards=allCards.filter(c=>!idSet.has(String(c.id)));
+  selectedIds.clear();
+  renderAll();
+  if(errors) alert("Cancellati "+deleted+", errori: "+errors);
+}
+function filterByCountry(cc){
+  currentCountryFilter=currentCountryFilter===cc?"":cc;
+  renderFlagRow();
+  renderPage();
+}
+
+// ==================== FLAG CAROUSEL ====================
+let flagCountries=[]; // [{cc,name,count}] sorted by count desc
+function buildFlagCountries(){
+  const map={};
+  for(const c of allCards){
+    const cc=(c.country_code||"").toUpperCase();
+    if(!cc||cc.length!==2) continue;
+    if(!map[cc]) map[cc]={cc,name:c.country||cc,count:0};
+    map[cc].count++;
+  }
+  flagCountries=Object.values(map).sort((a,b)=>b.count-a.count);
+}
+function renderFlagRow(){
+  const wrap=document.getElementById("flagCarousel");
+  if(!allCards.length){ wrap.style.display="none"; return; }
+  wrap.style.display="block";
+  buildFlagCountries();
+  renderFlagTrack();
+}
+function renderFlagTrack(){
+  const track=document.getElementById("flagTrack");
+  let html="";
+  for(const f of flagCountries){
+    const sel=currentCountryFilter===f.cc?"selected":"";
+    html+=`<div class="flag-chip ${sel}" onclick="filterByCountry('${f.cc}')" title="${esc(f.name)}">
+      <span class="flag-emoji">${ccFlag(f.cc)}</span>
+      <span class="flag-label">${esc(f.name)}</span>
+      <span class="flag-count">${f.count}</span>
+    </div>`;
+  }
+  track.innerHTML=html;
+  // Scroll selected to center
+  scrollFlagToCenter();
+}
+function scrollFlagToCenter(){
+  if(!currentCountryFilter) return;
+  const outer=document.querySelector(".flag-track-outer");
+  const track=document.getElementById("flagTrack");
+  if(!outer||!track) return;
+  const idx=flagCountries.findIndex(f=>f.cc===currentCountryFilter);
+  if(idx<0) return;
+  const chip=track.children[idx];
+  if(!chip) return;
+  // Scroll so the selected chip is centered
+  const scrollTarget=chip.offsetLeft-outer.offsetWidth/2+chip.offsetWidth/2;
+  outer.scrollTo({left:Math.max(0,scrollTarget),behavior:"smooth"});
+}
+function filterByCountry(cc){
+  currentCountryFilter=currentCountryFilter===cc?"":cc;
+  // Update search input
+  const inp=document.getElementById("flagSearchInput");
+  if(currentCountryFilter){
+    const f=flagCountries.find(f=>f.cc===cc);
+    inp.value=f?f.name:"";
+  } else { inp.value=""; }
+  closeFlagDropdown();
+  renderFlagTrack();
+  renderSidebar();
+  renderPage();
+}
+// ==================== FLAG SEARCH DROPDOWN ====================
+function onFlagSearch(){
+  const q=(document.getElementById("flagSearchInput").value||"").toLowerCase().trim();
+  const dd=document.getElementById("flagDropdown");
+  if(!q){ dd.classList.remove("open"); return; }
+  const matches=flagCountries.filter(f=>
+    f.name.toLowerCase().startsWith(q)||f.cc.toLowerCase().startsWith(q)
+  ).slice(0,10);
+  if(!matches.length){ dd.classList.remove("open"); return; }
+  dd.classList.add("open");
+  dd.innerHTML=matches.map(f=>`<div class="flag-dd-item" onmousedown="filterByCountry('${f.cc}')">
+    <span class="dd-flag">${ccFlag(f.cc)}</span>
+    <span class="dd-name">${esc(f.name)}</span>
+    <span class="dd-count">${f.count}</span>
+  </div>`).join("");
+}
+function closeFlagDropdown(){
+  document.getElementById("flagDropdown").classList.remove("open");
+}
+// Close dropdown on click outside
+document.addEventListener("click",e=>{
+  if(!e.target.closest(".flag-search-wrap")) closeFlagDropdown();
+});
+
+function renderPage(){
+  const cards=getFilteredCards();
+  const lines=document.getElementById("cardLines");
+  const dropzone=document.getElementById("dropzone");
+  const statsBar=document.getElementById("statsBar");
+  const btnClear=document.getElementById("btnClear");
+  const sortBar=document.getElementById("sortBar");
+  if(allCards.length===0){
+    dropzone.style.display="block"; lines.innerHTML=""; statsBar.style.display="none"; btnClear.style.display="none"; sortBar.style.display="none"; document.getElementById("flagCarousel").style.display="none"; return;
+  }
+  dropzone.style.display="none"; statsBar.style.display="flex"; btnClear.style.display="inline-flex"; sortBar.style.display="flex";
+  document.getElementById("btnAiMatch").style.display=OPENAI_KEY?"inline-flex":"none";
+  lines.classList.toggle("list-view",currentView==="list");
+
+  const total=allCards.length, matched=allCards.filter(c=>c._match?.type==="found").length,
+    partial=allCards.filter(c=>c._match?.type==="partial").length;
+  document.getElementById("chipTotal").textContent=total+" contatti";
+  document.getElementById("chipMatched").textContent=matched+" in WCA";
+  document.getElementById("chipPartial").textContent=partial+" parziali";
+  document.getElementById("chipUnmatched").textContent=(total-matched-partial)+" non trovati";
+  const withNotes=allCards.filter(c=>getUserNotes(c.notes)).length;
+  const chipN=document.getElementById("chipNotes");
+  chipN.textContent="📝 "+withNotes+" con note";
+  chipN.style.outline=notesFilterActive?"2px solid rgba(165,180,252,0.5)":"none";
+  const countrySet=new Set(allCards.map(c=>(c.country_code||"").toUpperCase()).filter(c=>c&&c.length===2));
+  document.getElementById("chipCountries").textContent="🌍 "+countrySet.size+" paesi";
+  document.getElementById("pageSubtitle").textContent=cards.length+" contatti"+(cards.length!==total?" (filtrati)":"");
+
+  if(!cards.length){
+    lines.innerHTML='<div class="empty-page"><div style="font-size:3rem;opacity:.5">🔍</div><div>Nessun risultato</div></div>'; return;
+  }
+
+  let html="";
+  for(let i=0;i<cards.length;i++){
+    const c=cards[i], m=c._match||{};
+    const cc=c.country_code||m.partner?.country_code||"";
+    const flag=ccFlag(cc);
+    const countryName=c.country||(cc?cc.toUpperCase():"")||"";
+    const isSel=selectedIds.has(c.id);
+
+    const isAI=(m.reason||"").startsWith("🤖");
+    let matchHtml="";
+    if(m.type==="found"){
+      matchHtml=`<span class="match-badge found" onclick="event.stopPropagation();setMatchFilter('found')" title="Filtra: trovati in WCA">${isAI?"🤖":"✦"} WCA</span>
+        <div class="match-sub" title="${esc(m.reason)}">${esc(m.partner?.company_name||"")}</div>`;
+    } else if(m.type==="partial"){
+      matchHtml=`<span class="match-badge partial" onclick="event.stopPropagation();setMatchFilter('partial')" title="Filtra: match parziali">${isAI?"🤖":"~"} PARZIALE</span>
+        <div class="match-sub" title="${esc(m.reason)}">${esc(m.partner?.company_name||"")}</div>`;
+    } else {
+      matchHtml=`<span class="match-badge not-found" onclick="event.stopPropagation();setMatchFilter('not-found')" title="Filtra: non trovati">✗</span>`;
+    }
+
+    const isInferred=s=>(s||"").includes("[presunto]");
+    const cleanInf=s=>(s||"").replace(" [presunto]","");
+    const infCls=s=>isInferred(s)?' class="inferred"':"";
+
+    const fields=[];
+    if(c.email) fields.push(`<div class="card-field"><span class="f-icon">✉</span><a href="mailto:${esc(c.email)}" class="f-val">${esc(c.email)}</a></div>`);
+    if(c.phone) fields.push(`<div class="card-field"><span class="f-icon">☏</span><a href="tel:${esc(c.phone)}" class="f-val">${esc(c.phone)}</a></div>`);
+    if(c.website){const w=c.website;fields.push(`<div class="card-field"><span class="f-icon">◎</span><a href="${esc(w.startsWith('http')?w:'https://'+w)}" target="_blank" class="f-val">${esc(w.replace(/^https?:\/\/(www\.)?/,""))}</a></div>`);}
+    if(c.address) fields.push(`<div class="card-field"><span class="f-icon">⌂</span><span class="f-val">${esc(c.address)}</span></div>`);
+
+    const cityDisplay=c.city?esc(cleanInf(c.city)):"";
+    const cityInf=isInferred(c.city);
+    // Filtra note reali: rimuovi [AI Match] e metadati di sistema
+    const rawNotes=(c.notes||"");
+    const userNotes=rawNotes.replace(/\[AI Match\][^|]*/g,"").replace(/Evento:\s*[^|]*/g,"").replace(/\|/g,"").trim();
+    const hasUserNotes=!!userNotes;
+    const notesBtnCls=hasUserNotes?"notes-btn has-notes":"notes-btn";
+    const hasFields=fields.length>0;
+    const cardId=c.id||"";
+
+    html+=`<div class="bc-card${isSel?" selected":""}${hasUserNotes?" has-notes-card":""}" data-id="${cardId}" data-letter="${(c.company_name||"#")[0].toUpperCase()}">
+      <div class="card-top">
+        <div class="card-flag-wrap" onclick="toggleSelect('${cardId}')" title="Seleziona">
+          <span class="card-flag">${flag}</span>
+        </div>
+        <div class="card-body">
+          <div class="card-company-name">${esc(c.company_name||"—")}</div>
+          <div class="card-contact-name">${esc(c.contact_name||"—")}</div>
+          ${c.position?`<div class="card-contact-role">${esc(c.position)}</div>`:''}
+          <div class="card-geo">
+            <span class="card-country-name"${infCls(c.country)}>${esc(cleanInf(countryName)||"—")}</span>
+            ${cityDisplay?`<span class="card-city"${cityInf?' class="inferred"':''}>  ${cityDisplay}</span>`:''}
+          </div>
+        </div>
+        <div class="card-match">${matchHtml}</div>
+      </div>
+      ${hasFields?`<div class="card-details-row">
+        <button class="info-toggle" onclick="toggleCardInfo(this)"><span class="arrow">▸</span> Dettagli</button>
+      </div>
+      <div class="card-fields">${fields.join("")}</div>`:''}
+      <div class="card-bottom">
+        <span class="card-date">${fmtDate(c.created_at)}</span>
+        <button class="${notesBtnCls}" onclick="openNotes('${cardId}')" title="${hasUserNotes?"Modifica note":"Aggiungi note"}">✎</button>
+      </div>${hasUserNotes?`<div class="notes-preview" onclick="openNotes('${cardId}')">${esc(userNotes.substring(0,120))}${userNotes.length>120?"…":""}</div>`:""}
+    </div>`;
+  }
+  lines.innerHTML=html; lines.scrollTop=0; buildLetterIndex(); updateSelectionBar();
+}
+
+function updateStats(){
+  const total=allCards.length, matched=allCards.filter(c=>c._match?.type==="found").length,
+    partial=allCards.filter(c=>c._match?.type==="partial").length;
+  document.getElementById("statTotal").textContent=total;
+  document.getElementById("statMatched").textContent=matched;
+  document.getElementById("statPartial").textContent=partial;
+}
+
+function buildLetterIndex(){
+  const cards=getFilteredCards();
+  const idx=document.getElementById("letterIndex");
+  const used=new Set();
+  for(const c of cards){ const f=(c.company_name||"")[0]?.toUpperCase()||"#"; used.add(/[A-Z]/.test(f)?f:"#"); }
+  idx.innerHTML="ABCDEFGHIJKLMNOPQRSTUVWXYZ#".split("").map(l=>{
+    const cls=used.has(l)?"has-entries":"";
+    return `<a href="#" class="${cls}" onclick="event.preventDefault();scrollToLetter('${l}')">${l}</a>`;
+  }).join("");
+}
+function scrollToLetter(letter){
+  const cards=getFilteredCards();
+  const idx=cards.findIndex(c=>{const f=(c.company_name||"")[0]?.toUpperCase()||"#";return(/[A-Z]/.test(f)?f:"#")===letter;});
+  if(idx<0) return;
+  const els=document.querySelectorAll(".bc-card");
+  if(els[idx]) els[idx].scrollIntoView({behavior:"smooth",block:"center"});
+}
+
+// ==================== FILTERS ====================
+function onSearch(){ renderPage(); }
+function toggleMobileSidebar(){
+  document.getElementById("filterSidebar").classList.toggle("mobile-open");
+}
+function onFilterChange(){ currentFilter=document.getElementById("filterMatch").value; renderPage(); highlightActiveChip(); }
+function setMatchFilter(type){
+  // Toggle: se clicchi lo stesso filtro attivo, torna a "all"
+  if(currentFilter===type) currentFilter="all";
+  else currentFilter=type;
+  // Sincronizza anche il select se presente
+  const sel=document.getElementById("filterMatch");
+  if(sel) sel.value=currentFilter;
+  renderPage();
+  highlightActiveChip();
+}
+function highlightActiveChip(){
+  const chips={all:"chipTotal",found:"chipMatched",partial:"chipPartial","not-found":"chipUnmatched"};
+  Object.entries(chips).forEach(([type,id])=>{
+    const el=document.getElementById(id);
+    if(!el) return;
+    const active=currentFilter===type||(currentFilter==="all"&&type==="all");
+    el.style.outline=active&&currentFilter!=="all"?"2px solid rgba(255,255,255,0.4)":"none";
+    el.style.transform=active&&currentFilter!=="all"?"scale(1.05)":"none";
+  });
+}
+
+// ==================== FILE IMPORT ====================
+function handleDrop(e){
+  e.preventDefault(); e.currentTarget.classList.remove("dragover");
+  const file=e.dataTransfer.files[0];
+  if(file) onFileSelected(file);
+}
+
+async function onFileSelected(file){
+  console.log("onFileSelected called:",file?.name);
+  if(!file){ console.log("No file"); return; }
+  const ext=file.name.split(".").pop().toLowerCase();
+  console.log("Extension:",ext);
+  try{
+    let rows=[];
+    if(ext==="csv"||ext==="tsv"){
+      const text=await file.text();
+      console.log("File text length:",text.length,"lines:",text.split("\n").length);
+      document.getElementById("importForm").style.display="flex";
+      if(OPENAI_KEY&&OPENAI_KEY.startsWith("sk-")){
+        // AI parsing
+        document.getElementById("importFileName").textContent="🤖 AI sta analizzando "+file.name+"...";
+        try{
+          rows=await parseWithAI(text, file.name);
+          console.log("parseWithAI returned",rows.length,"rows");
+        }catch(aiErr){
+          console.error("parseWithAI error, falling back:",aiErr);
+          rows=parseCSVFallback(text);
+          console.log("Fallback parser returned",rows.length,"rows");
+        }
+      } else {
+        // Fallback: basic CSV parser (no AI needed)
+        document.getElementById("importFileName").textContent="📄 Parsing "+file.name+"...";
+        rows=parseCSVFallback(text);
+        console.log("Fallback parser returned",rows.length,"rows");
+      }
+    }
+    else if(ext==="xlsx"||ext==="xls"){ rows=await parseExcel(file); }
+    else { alert("Formato non supportato: ."+ext); return; }
+    if(!rows.length){ alert("Nessun dato trovato nel file."); return; }
+
+    console.log("Rows parsed:",rows.length,"Sample:",JSON.stringify(rows[0]).substring(0,200));
+    pendingFile=file; pendingRows=rows;
+    // Show import form
+    document.getElementById("importForm").style.display="flex";
+    document.getElementById("importFileName").textContent=file.name+" ("+rows.length+" righe — AI parsed ✅)";
+    document.getElementById("txtContactDate").value=new Date().toISOString().split("T")[0];
+    // Populate event dropdown
+    const sel=document.getElementById("selEvent");
+    sel.innerHTML='<option value="">-- Nuovo evento --</option>';
+    const evNames=new Set();
+    for(const e of allEvents) if(e.event_name) evNames.add(e.event_name);
+    // Extract event names from notes field (format: "Evento: xxx | ...")
+    for(const c of allCards){ const m=(c.notes||"").match(/Evento:\s*([^|]+)/); if(m) evNames.add(m[1].trim()); }
+    for(const name of [...evNames].sort()) sel.innerHTML+=`<option value="${esc(name)}">${esc(name)}</option>`;
+    document.getElementById("txtEventName").value="";
+    document.getElementById("txtEventName").style.display="block";
+  }catch(e){ console.error("onFileSelected error:",e); alert("Errore: "+e.message); }
+}
+
+function onEventSelect(){
+  const sel=document.getElementById("selEvent");
+  const txt=document.getElementById("txtEventName");
+  if(sel.value){ txt.value=sel.value; txt.style.display="none"; }
+  else { txt.value=""; txt.style.display="block"; txt.focus(); }
+}
+
+function cancelImport(){
+  document.getElementById("importForm").style.display="none";
+  pendingFile=null; pendingRows=[];
+  document.getElementById("fileInput").value="";
+}
+
+async function confirmImport(){
+  if(!pendingRows.length) return;
+  const eventName=(document.getElementById("selEvent").value||document.getElementById("txtEventName").value).trim();
+  const contactDate=document.getElementById("txtContactDate").value||null;
+  const uploadDate=new Date().toISOString();
+
+  let cards=mapRows(pendingRows, pendingFile?.name||"import");
+  // Deduplicate by company+name+email key
+  const seen=new Set();
+  cards=cards.filter(c=>{
+    const key=(c.company_name||"").toLowerCase().trim()+"||"+(c.contact_name||"").toLowerCase().trim()+"||"+(c.email||"").toLowerCase().trim();
+    if(seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  // Also skip if already in DB
+  const dbKeys=new Set(allCards.map(c=>(c.company_name||"").toLowerCase().trim()+"||"+(c.contact_name||"").toLowerCase().trim()+"||"+(c.email||"").toLowerCase().trim()));
+  cards=cards.filter(c=>{
+    const key=(c.company_name||"").toLowerCase().trim()+"||"+(c.contact_name||"").toLowerCase().trim()+"||"+(c.email||"").toLowerCase().trim();
+    return !dbKeys.has(key);
+  });
+  if(!cards.length){ alert("Tutti i contatti sono già presenti nel database."); cancelImport(); return; }
+  // Store event info in notes (event_name/contact_date/upload_date don't exist in DB schema)
+  for(const c of cards){
+    const meta=[];
+    if(eventName) meta.push("Evento: "+eventName);
+    if(contactDate) meta.push("Data: "+contactDate);
+    if(c.notes) meta.push(c.notes);
+    c.notes=meta.join(" | ");
+  }
+
+  try{
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/wca_business_cards`,{
+      method:"POST", headers:{...SB_HEADERS,"Prefer":"return=representation"},
+      body:JSON.stringify(cards)
+    });
+    if(r.ok){
+      const saved=await r.json();
+      for(const card of saved){ card._match=matchCard(card,allPartners); allCards.unshift(card); }
+      cancelImport();
+      renderAll();
+    } else {
+      const err=await r.text(); alert("Errore: "+err);
+    }
+  }catch(e){ alert("Errore: "+e.message); }
+}
+
+// ==================== FALLBACK CSV PARSER (no AI) ====================
+function parseCSVFallback(text){
+  text=text.replace(/\uFEFF/g,"");
+  const lines=text.split(/\r?\n/).filter(l=>l.trim());
+  if(lines.length<2) return [];
+  const headers=lines[0].split(";").map(h=>h.trim().replace(/^"|"$/g,""));
+  const results=[];
+  for(let i=1;i<lines.length;i++){
+    const line=lines[i];
+    // Smart split: respect quoted fields containing semicolons
+    const fields=[];
+    let current="", inQuote=false;
+    for(let j=0;j<line.length;j++){
+      const ch=line[j];
+      if(ch==='"'){ inQuote=!inQuote; continue; }
+      if(ch===";"&&!inQuote){ fields.push(current.trim()); current=""; continue; }
+      current+=ch;
+    }
+    fields.push(current.trim());
+    // Build row object from headers
+    const row={};
+    for(let h=0;h<headers.length;h++) row[headers[h]]=fields[h]||"";
+    // Skip garbage OCR rows
+    const allVals=Object.values(row).join("");
+    const special=(allVals.match(/[=|{}\\<>_~^#\[\]]/g)||[]).length;
+    if(special/Math.max(allVals.length,1)>0.12) continue;
+    // Skip empty rows
+    if(!row["Nome"]&&!row["Azienda"]&&!row["Email"]) continue;
+    results.push(row);
+  }
+  return results;
+}
+
+// ==================== AI-POWERED CSV PARSER ====================
+async function parseWithAI(text, fileName){
+  text=text.replace(/\uFEFF/g,"");
+  const lines=text.split(/\r?\n/).filter(l=>l.trim());
+  if(lines.length<2) return [];
+  const header=lines[0];
+  const dataLines=lines.slice(1);
+
+  // Process in batches of 5 rows to stay within token limits
+  const BATCH=5;
+  const allResults=[];
+  const statusEl=document.getElementById("importFileName");
+
+  for(let i=0;i<dataLines.length;i+=BATCH){
+    const batch=dataLines.slice(i,i+BATCH);
+    if(statusEl) statusEl.textContent=`AI parsing... ${i}/${dataLines.length} righe`;
+
+    const prompt=`Sei un parser CSV esperto per biglietti da visita del settore logistica/freight forwarding.
+Il separatore è il punto e virgola (;).
+
+REGOLE PARSING:
+- Il campo "Note" può contenere ; interni tra virgolette — NON splittare su quei ;
+- Righe con spazzatura OCR (=, |, {}, \\, >, <, simboli casuali): SCARTA completamente
+- Telefoni che iniziano con - (es: -18917527447): aggiungi prefisso + internazionale
+
+INFERENZA PAESE E CITTÀ (MOLTO IMPORTANTE):
+Se il campo Paese è vuoto, DEDUCILO da queste fonti (in ordine di priorità):
+1. Prefisso telefonico: +65=Singapore, +91=India, +971=UAE, +966=Saudi Arabia, +86=China, +852=Hong Kong, +81=Japan, +82=Korea, +60=Malaysia, +62=Indonesia, +66=Thailand, +84=Vietnam, +63=Philippines, +880=Bangladesh, +92=Pakistan, +94=Sri Lanka, +95=Myanmar, +977=Nepal, +1=USA/Canada, +44=UK, +49=Germany, +33=France, +39=Italy, +34=Spain, +31=Netherlands, +32=Belgium, +41=Switzerland, +43=Austria, +46=Sweden, +47=Norway, +45=Denmark, +358=Finland, +48=Poland, +420=Czech Republic, +90=Turkey, +7=Russia, +55=Brazil, +52=Mexico, +54=Argentina, +56=Chile, +57=Colombia, +20=Egypt, +27=South Africa, +234=Nigeria, +254=Kenya
+2. Dominio email: .sg=Singapore, .in=India, .ae=UAE, .sa=Saudi Arabia, .cn=China, .hk=Hong Kong, .jp=Japan, .kr=Korea, .my=Malaysia, .id=Indonesia, .th=Thailand, .vn=Vietnam, .ph=Philippines, .de=Germany, .fr=France, .it=Italy, .es=Spain, .uk/.co.uk=UK, .nl=Netherlands, .ch=Switzerland, .au=Australia, .nz=New Zealand, .br=Brazil, .mx=Mexico, .za=South Africa
+3. Indirizzo, nome azienda, note, contesto (es. "Pte Ltd"=Singapore, "GmbH"=Germany, "Sdn Bhd"=Malaysia, "Pvt Ltd"=India, "LLC"=USA)
+
+Se il campo Città è vuoto, DEDUCILA da indirizzo, note o contesto se possibile.
+
+MARCATURA VALORI PRESUNTI:
+- Se il Paese è stato DEDOTTO (non presente nel CSV originale), aggiungi " [presunto]" dopo il nome. Es: "Singapore [presunto]"
+- Se la Città è stata DEDOTTA, aggiungi " [presunto]" dopo il nome. Es: "Mumbai [presunto]"
+- Se il valore era già presente nel CSV, NON aggiungere [presunto]
+
+HEADER:
+${header}
+
+RIGHE:
+${batch.join("\n")}
+
+OUTPUT: JSON array di oggetti con ESATTAMENTE questi campi:
+{"Nome":"","Azienda":"","Ruolo":"","Email":"","Cellulare":"","Tel_Fisso":"","Fax":"","Web":"","LinkedIn":"","Indirizzo":"","Citta":"","Paese":"","Note":"","Data":""}
+
+- NON includere Logo, P.IVA, C.F.
+- Note: SOLO testo utile (info azienda, indirizzi, WCA ID). Rimuovi spazzatura OCR.
+- Righe spazzatura: NON includerle.
+Rispondi SOLO con il JSON, nient'altro.`;
+
+    try{
+      const r=await fetch("https://api.openai.com/v1/chat/completions",{
+        method:"POST",
+        headers:{"Content-Type":"application/json","Authorization":"Bearer "+OPENAI_KEY},
+        body:JSON.stringify({
+          model:"gpt-4o-mini",
+          temperature:0,
+          messages:[{role:"user",content:prompt}],
+          response_format:{type:"json_object"}
+        })
+      });
+      if(!r.ok){ console.error("OpenAI error:",await r.text()); continue; }
+      const data=await r.json();
+      const content=data.choices?.[0]?.message?.content||"";
+      try{
+        let parsed=JSON.parse(content);
+        // Handle both {rows:[...]} and [...] formats
+        if(parsed&&!Array.isArray(parsed)){
+          const key=Object.keys(parsed).find(k=>Array.isArray(parsed[k]));
+          if(key) parsed=parsed[key]; else parsed=[];
+        }
+        allResults.push(...parsed);
+      }catch(e){ console.error("JSON parse error:",content); }
+    }catch(e){ console.error("Fetch error:",e); }
+  }
+
+  if(statusEl) statusEl.textContent=fileName+" — "+allResults.length+" contatti parsed by AI";
+
+  // Map AI output to our standard format
+  return allResults.map(r=>({
+    Nome:r.Nome||"",
+    Azienda:r.Azienda||"",
+    Ruolo:r.Ruolo||"",
+    Email:(r.Email||"").split(",")[0].trim(),
+    Cellulare:r.Cellulare||"",
+    "Tel. Fisso":r.Tel_Fisso||r["Tel. Fisso"]||"",
+    Fax:r.Fax||"",
+    Web:r.Web||"",
+    LinkedIn:r.LinkedIn||"",
+    Indirizzo:r.Indirizzo||"",
+    "Città":r.Citta||r["Città"]||"",
+    Paese:r.Paese||"",
+    Note:r.Note||"",
+    Data:r.Data||""
+  }));
+}
+async function parseExcel(file){
+  if(!window.XLSX){
+    await new Promise((resolve,reject)=>{
+      const s=document.createElement("script");
+      s.src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+      s.onload=resolve;s.onerror=reject;document.head.appendChild(s);
+    });
+  }
+  const wb=XLSX.read(await file.arrayBuffer(),{type:"array"});
+  return XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:""});
+}
+// ==================== COUNTRY/CITY INFERENCE ====================
+const PHONE_PREFIX_COUNTRY={
+  "65":"Singapore","91":"India","971":"UAE","966":"Saudi Arabia","86":"China","852":"Hong Kong",
+  "81":"Japan","82":"South Korea","60":"Malaysia","62":"Indonesia","66":"Thailand","84":"Vietnam",
+  "63":"Philippines","880":"Bangladesh","92":"Pakistan","94":"Sri Lanka","95":"Myanmar","977":"Nepal",
+  "1":"USA","44":"UK","49":"Germany","33":"France","39":"Italy","34":"Spain","31":"Netherlands",
+  "32":"Belgium","41":"Switzerland","43":"Austria","46":"Sweden","47":"Norway","45":"Denmark",
+  "358":"Finland","48":"Poland","420":"Czech Republic","90":"Turkey","7":"Russia",
+  "55":"Brazil","52":"Mexico","54":"Argentina","56":"Chile","57":"Colombia",
+  "20":"Egypt","27":"South Africa","234":"Nigeria","254":"Kenya","61":"Australia","64":"New Zealand",
+  "353":"Ireland","351":"Portugal","30":"Greece","36":"Hungary","40":"Romania","380":"Ukraine",
+  "212":"Morocco","216":"Tunisia","974":"Qatar","973":"Bahrain","968":"Oman","965":"Kuwait","962":"Jordan","961":"Lebanon"
+};
+const EMAIL_DOMAIN_COUNTRY={
+  "sg":"Singapore","in":"India","ae":"UAE","sa":"Saudi Arabia","cn":"China","hk":"Hong Kong",
+  "jp":"Japan","kr":"South Korea","my":"Malaysia","id":"Indonesia","th":"Thailand","vn":"Vietnam",
+  "ph":"Philippines","de":"Germany","fr":"France","it":"Italy","es":"Spain","nl":"Netherlands",
+  "ch":"Switzerland","at":"Austria","se":"Sweden","no":"Norway","dk":"Denmark","fi":"Finland",
+  "pl":"Poland","cz":"Czech Republic","tr":"Turkey","ru":"Russia","br":"Brazil","mx":"Mexico",
+  "ar":"Argentina","cl":"Chile","co":"Colombia","za":"South Africa","au":"Australia","nz":"New Zealand",
+  "ie":"Ireland","pt":"Portugal","gr":"Greece","hu":"Hungary","ro":"Romania","ua":"Ukraine",
+  "qa":"Qatar","bh":"Bahrain","om":"Oman","kw":"Kuwait","jo":"Jordan","lb":"Lebanon","eg":"Egypt",
+  "ng":"Nigeria","ke":"Kenya","bd":"Bangladesh","pk":"Pakistan","lk":"Sri Lanka","mm":"Myanmar","np":"Nepal"
+};
+const COMPANY_SUFFIX_COUNTRY={
+  "pte ltd":"Singapore","pte. ltd":"Singapore","sdn bhd":"Malaysia","pvt ltd":"India","pvt. ltd":"India",
+  "gmbh":"Germany","ag":"Switzerland","bv":"Netherlands","nv":"Belgium","sarl":"France","srl":"Italy",
+  "s.r.l":"Italy","s.p.a":"Italy","spa":"Italy","sa":"Spain","pty ltd":"Australia","pty. ltd":"Australia",
+  "llc":"USA","inc":"USA","corp":"USA","co ltd":"Japan","plc":"UK","ltda":"Brazil"
+};
+function inferCountry(email, phone, company, website, notes, address){
+  // 1. Phone prefix
+  if(phone){
+    const clean=phone.replace(/[\s\-().]/g,"").replace(/^00/,"+").replace(/^\+/,"");
+    for(const [prefix,country] of Object.entries(PHONE_PREFIX_COUNTRY).sort((a,b)=>b[0].length-a[0].length)){
+      if(clean.startsWith(prefix)) return country;
+    }
+  }
+  // 2. Email domain TLD
+  if(email){
+    const parts=email.split("@");
+    if(parts[1]){
+      const tld=parts[1].split(".").pop().toLowerCase();
+      if(EMAIL_DOMAIN_COUNTRY[tld]) return EMAIL_DOMAIN_COUNTRY[tld];
+      // Check second-level (.co.uk etc)
+      const tlds=parts[1].split(".");
+      if(tlds.length>=3){
+        const tld2=tlds.slice(-2).join(".");
+        if(tld2==="co.uk"||tld2==="org.uk") return "UK";
+        if(tld2==="co.jp") return "Japan";
+        if(tld2==="co.kr") return "South Korea";
+        if(tld2==="co.in") return "India";
+        if(tld2==="co.za") return "South Africa";
+        if(tld2==="com.au") return "Australia";
+        if(tld2==="com.br") return "Brazil";
+        if(tld2==="com.mx") return "Mexico";
+        if(tld2==="com.sg") return "Singapore";
+        if(tld2==="com.my") return "Malaysia";
+        if(tld2==="com.hk") return "Hong Kong";
+        if(tld2==="co.th") return "Thailand";
+      }
+    }
+  }
+  // 3. Company suffix
+  if(company){
+    const lc=company.toLowerCase();
+    for(const [suffix,country] of Object.entries(COMPANY_SUFFIX_COUNTRY)){
+      if(lc.includes(suffix)) return country;
+    }
+  }
+  // 4. Website TLD
+  if(website){
+    const tld=website.split(".").pop().toLowerCase().replace(/\//g,"");
+    if(EMAIL_DOMAIN_COUNTRY[tld]) return EMAIL_DOMAIN_COUNTRY[tld];
+  }
+  return "";
+}
+function inferCity(address, notes, country){
+  // Try to extract city from address (usually after first comma or last part)
+  if(address){
+    const parts=address.split(",").map(s=>s.trim()).filter(Boolean);
+    if(parts.length>=2){
+      // City is usually the second-to-last or last meaningful part
+      const candidate=parts[parts.length>=3?parts.length-2:parts.length-1];
+      if(candidate&&candidate.length>2&&!/^\d+$/.test(candidate)) return candidate;
+    }
+  }
+  return "";
+}
+
+function mapRows(rows, fileName){
+  const keys=Object.keys(rows[0]||{});
+  const find=(patterns)=>keys.find(k=>patterns.some(p=>k.toLowerCase().includes(p)))||"";
+  const colCompany=find(["azienda","company","società","societa","organization","organisation","firm","ditta","agency"]);
+  const colName=find(["nome","name","contact","contatto","person","persona","full name","fullname"]);
+  const colFirstName=find(["first name","given"]);
+  const colLastName=find(["last name","cognome","family","surname"]);
+  const colEmail=find(["email","e-mail","mail"]);
+  const colPhone=find(["cellulare","phone","telefono","tel","mobile","cell"]);
+  const colPhone2=find(["tel. fisso","fisso","landline","office phone"]);
+  const colFax=find(["fax"]);
+  const colCountry=find(["paese","country","nazione"]);
+  const colCity=find(["città","city","citta","town"]);
+  const colPosition=find(["ruolo","position","posizione","title","titolo","role","job"]);
+  const colWebsite=find(["web","website","sito","url","site"]);
+  const colNotes=find(["note","notes","appunti","comment"]);
+  const colAddress=find(["indirizzo","address","via"]);
+  const colProvince=find(["provincia","province","state","stato"]);
+  const colZip=find(["cap","zip","postal","postcode"]);
+  const colLinkedIn=find(["linkedin"]);
+  const colLogo=find(["logo"]);
+  const colDate=find(["data","date"]);
+
+  // Helper: detect garbage OCR text (too many special chars, no real words)
+  function isGarbage(s){
+    if(!s||s.length<3) return false;
+    const special=(s.match(/[=|{}\\<>_~^#\[\]]/g)||[]).length;
+    return special/s.length>0.15;
+  }
+  return rows.map(r=>{
+    let cn=colName?r[colName]:"";
+    if(!cn&&colFirstName) cn=((r[colFirstName]||"")+" "+(r[colLastName]||"")).trim();
+    const company=colCompany?r[colCompany]:"";
+    const email=colEmail?r[colEmail]:"";
+    // Skip rows where name or company is OCR garbage
+    if(isGarbage(cn)&&isGarbage(company)) return null;
+    // Clean phone: take first number only if field has OCR junk
+    let phone=colPhone?r[colPhone]:"";
+    if(phone&&isGarbage(phone)){ const m=phone.match(/[\d\s()+-]+/); phone=m?m[0].trim():""; }
+    let phone2=colPhone2?r[colPhone2]:"";
+    if(phone2&&isGarbage(phone2)){ const m=phone2.match(/[\d\s()+-]+/); phone2=m?m[0].trim():""; }
+    // Use first email if multiple separated by comma
+    const cleanEmail=(email.split(",")[0]||"").trim();
+    // Clean website
+    let web=colWebsite?r[colWebsite]:"";
+    if(web&&isGarbage(web)) web="";
+    // Build notes without OCR garbage; include address/province/zip in notes
+    let notes=colNotes?r[colNotes]:"";
+    if(isGarbage(notes)) notes="";
+    const addr=colAddress?r[colAddress]:"";
+    const prov=colProvince?r[colProvince]:"";
+    const zipVal=colZip?r[colZip]:"";
+    const addrParts=[addr,prov,zipVal].filter(Boolean).join(", ");
+    if(addrParts&&!isGarbage(addrParts)) notes=(notes?notes+"\n":"")+addrParts;
+    let country=colCountry?r[colCountry]:"";
+    let city=colCity?r[colCity]:"";
+    let countryInferred=false, cityInferred=false;
+
+    // Infer country if missing
+    if(!country){
+      const inf=inferCountry(cleanEmail, phone||phone2, company, web, notes, addr);
+      if(inf){ country=inf; countryInferred=true; }
+    }
+    // Infer city if missing
+    if(!city){
+      const inf=inferCity(addr, notes, country);
+      if(inf){ city=inf; cityInferred=true; }
+    }
+    // Mark inferred values
+    if(countryInferred) country=country+" [presunto]";
+    if(cityInferred) city=city+" [presunto]";
+
+    return {
+      company_name:company, contact_name:cn,
+      email:cleanEmail, phone:phone||(phone2||""),
+      country:country, country_code:resolveCountryCode(country.replace(" [presunto]","")),
+      city:city, position:colPosition?r[colPosition]:"",
+      website:web, notes:notes,
+      source_file:fileName,
+    };
+  }).filter(c=>c&&(c.company_name||c.contact_name||c.email));
+}
+
+// ==================== CLEAR ====================
+async function clearAll(){
+  if(!confirm("Cancellare tutti i "+allCards.length+" biglietti da visita?")) return;
+  try{
+    // Delete all rows using created_at not null (always set, avoids UUID issues)
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/wca_business_cards?created_at=not.is.null`,{
+      method:"DELETE",headers:{...SB_HEADERS,"Prefer":"return=minimal"}
+    });
+    if(!r.ok){
+      // Fallback: delete by each id
+      for(const c of allCards){
+        if(c.id) await fetch(`${SUPABASE_URL}/rest/v1/wca_business_cards?id=eq.${c.id}`,{
+          method:"DELETE",headers:{...SB_HEADERS,"Prefer":"return=minimal"}
+        }).catch(()=>{});
+      }
+    }
+  }catch(e){ console.error("clearAll error:",e); }
+  allCards=[]; selectedIds.clear(); renderAll();
+}
+
+// ==================== AUTO-CLEANUP CORRUPTED DATA ====================
+function cleanCorruptedCards(){
+  // Detect and fix cards where entire CSV row was stored in company_name
+  let fixed=0;
+  for(const card of allCards){
+    const cn=card.company_name||"";
+    // If company_name contains semicolons, it's a corrupted raw CSV row
+    if(cn.includes(";") && cn.split(";").length>=3){
+      const parts=cn.split(";");
+      // Try to re-parse: Nome;Azienda;Ruolo;Email;Tel;...
+      // Detect which part looks like an email
+      let emailIdx=parts.findIndex(p=>/\S+@\S+\.\S+/.test(p.trim()));
+      if(emailIdx>=2){
+        // Pattern: name;company;role;email;phone;...
+        card.contact_name=parts[0]?.trim()||card.contact_name;
+        card.company_name=parts[1]?.trim()||"";
+        card.position=parts[2]?.trim()||card.position;
+        card.email=(parts[emailIdx]?.trim().split(",")[0])||card.email;
+        if(parts[emailIdx+1]) card.phone=parts[emailIdx+1]?.trim()||card.phone;
+      } else if(parts.length>=2){
+        // At minimum: name;company
+        card.contact_name=parts[0]?.trim()||card.contact_name;
+        card.company_name=parts[1]?.trim()||"";
+        if(parts[2]) card.position=parts[2]?.trim()||"";
+      }
+      // Clean garbage from all fields
+      cleanCardField(card,"contact_name");
+      cleanCardField(card,"company_name");
+      cleanCardField(card,"position");
+      cleanCardField(card,"phone");
+      cleanCardField(card,"email");
+      cleanCardField(card,"city");
+      cleanCardField(card,"notes");
+      // Resolve country code if country present
+      if(card.country && !card.country_code) card.country_code=resolveCountryCode(card.country);
+      fixed++;
+    }
+    // Also clean phone numbers that start with -
+    if(card.phone && card.phone.startsWith("-")){
+      card.phone=card.phone.replace(/^-+/,"");
+    }
+  }
+  if(fixed) console.log("Auto-cleaned "+fixed+" corrupted cards");
+  // Remove completely garbage cards (name AND company are unreadable)
+  allCards=allCards.filter(c=>{
+    const cn=c.company_name||"";
+    const nm=c.contact_name||"";
+    return !isGarbageText(cn)||!isGarbageText(nm);
+  });
+}
+function isGarbageText(s){
+  if(!s||s.length<3) return false;
+  const special=(s.match(/[=|{}\\<>_~^#\[\]]/g)||[]).length;
+  return special/s.length>0.12;
+}
+function cleanCardField(card,field){
+  let v=card[field]||"";
+  if(isGarbageText(v)){ card[field]=""; return; }
+  // Remove leading/trailing quotes and junk
+  v=v.replace(/^["']+|["']+$/g,"").trim();
+  card[field]=v;
+}
+
+// ==================== NOTES POPUP ====================
+let editingNoteId=null;
+function openNotes(cardId){
+  const card=allCards.find(c=>c.id===cardId);
+  if(!card) return;
+  editingNoteId=cardId;
+  document.getElementById("notesTitle").textContent="Note — "+(card.company_name||card.contact_name||"Contatto");
+  document.getElementById("notesTextarea").value=card.notes||"";
+  document.getElementById("notesOverlay").classList.add("open");
+  setTimeout(()=>document.getElementById("notesTextarea").focus(),100);
+}
+function closeNotes(){
+  document.getElementById("notesOverlay").classList.remove("open");
+  editingNoteId=null;
+}
+async function saveNotes(){
+  if(!editingNoteId) return;
+  const newNotes=document.getElementById("notesTextarea").value.trim();
+  const card=allCards.find(c=>c.id===editingNoteId);
+  if(!card) return;
+  // Update in Supabase
+  try{
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/wca_business_cards?id=eq.${editingNoteId}`,{
+      method:"PATCH",
+      headers:{...SB_HEADERS,"Prefer":"return=minimal"},
+      body:JSON.stringify({notes:newNotes})
+    });
+    if(r.ok){
+      card.notes=newNotes;
+      closeNotes();
+      renderPage();
+    } else {
+      const err=await r.text();
+      alert("Errore salvataggio: "+err);
+    }
+  }catch(e){ alert("Errore: "+e.message); }
+}
+
+init().then(()=>{
+  console.log("✅ Page ready");
+}).catch(e=>{
+  console.error("❌ Init failed:",e);
+  document.getElementById("pageSubtitle").textContent="⚠️ Errore caricamento: "+e.message;
+});
+</script>
+</body>
+</html>

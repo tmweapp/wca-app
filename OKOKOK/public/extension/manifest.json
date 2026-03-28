@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "WCA Partner Scraper",
+  "version": "1.0.0",
+  "description": "Scraper per WCA Partner Directory — estensione Chrome",
+  "permissions": ["storage", "activeTab"],
+  "host_permissions": ["https://www.wcaworld.com/*", "https://sso.api.wcaworld.com/*", "https://dlldkrzoxvjxpgkkttxu.supabase.co/*"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": "icon.png"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "icons": {
+    "48": "icon.png",
+    "128": "icon.png"
+  }
+}
