@@ -1,21 +1,21 @@
 /**
  * api/scrape.js — Endpoint scraping profilo singolo
  *
- * STRATEGIA: Procedura dedicata per ogni network.
- * 1. Se il partner ha un networkDomain → login SSO su QUEL dominio → fetch da quel dominio
- * 2. Se il fetch dal network fallisce → fallback wcaworld.com
- * 3. Se nessun network specificato → procedura generale wcaworld.com
- *
- * Le procedure vengono eseguite in sequenza: prima il network specifico, poi il generale.
+ * STRATEGIA v26:
+ * 1. Login su wcaworld.com (credenziali) → ottieni cookie wcaworld + cookie SSO
+ * 2. Per network specifici: usa cookie SSO per cross-domain SSO (NO credenziali)
+ *    Il server SSO riconosce la sessione e fa il redirect automatico
+ * 3. Fetch profilo dal dominio autenticato
+ * 4. Fallback: se cross-domain fallisce, prova wcaworld.com direttamente
  */
 const fetch = require("node-fetch");
 const cheerio = require("cheerio");
-const { BASE, UA, getCachedCookies, saveCookiesToCache, testCookies, ssoLogin } = require("./utils/auth");
+const { BASE, UA, getCachedCookies, saveCookiesToCache, testCookies, ssoLogin, crossDomainSSO } = require("./utils/auth");
 const { extractProfile, NETWORK_DOMAINS, getNetworkBase, networkNameToDomains } = require("./utils/extract");
 
-// ═══ CACHE AUTH IN-MEMORY (evita login multipli nello stesso batch) ═══
+// ═══ CACHE AUTH IN-MEMORY ═══
 const authCache = {};
-const AUTH_CACHE_TTL = 25 * 60 * 1000; // 25 min
+const AUTH_CACHE_TTL = 25 * 60 * 1000;
 
 // ═══ FETCH URL con gestione redirect manuale ═══
 async function tryFetchUrl(url, cookies, refererBase, ssoCookies) {
@@ -76,42 +76,79 @@ async function tryFetchUrl(url, cookies, refererBase, ssoCookies) {
   return { $, html, resp, h1 };
 }
 
-// ═══ AUTH: ottieni cookies validi per un dominio (con in-memory cache) ═══
-async function getAuthCookies(domain) {
-  const key = domain || "wcaworld.com";
-
-  // Check in-memory cache first
+// ═══ Ottieni auth wcaworld.com (base per tutto) ═══
+async function getWcaAuth() {
+  const key = "wcaworld.com";
   if (authCache[key] && (Date.now() - authCache[key].ts) < AUTH_CACHE_TTL) {
-    const cached = authCache[key];
-    console.log(`[scrape] Auth in-memory cache HIT per ${key} (age=${Math.round((Date.now()-cached.ts)/1000)}s)`);
-    return { cookies: cached.cookies, ssoCookies: cached.ssoCookies };
+    console.log(`[scrape] WCA auth cache HIT`);
+    return authCache[key];
   }
-
-  const networkBase = getNetworkBase(domain);
-  let cookies = null;
-  let ssoCookies = "";
 
   // Check Supabase cache
-  const cached = await getCachedCookies(domain);
+  const cached = await getCachedCookies("wcaworld.com");
   if (cached) {
-    cookies = cached.cookies;
-    ssoCookies = cached.ssoCookies || "";
-    const valid = await testCookies(cookies, networkBase);
-    if (!valid) { cookies = null; ssoCookies = ""; }
+    const valid = await testCookies(cached.cookies, BASE);
+    if (valid) {
+      console.log(`[scrape] WCA auth from Supabase cache OK`);
+      authCache[key] = { cookies: cached.cookies, ssoCookies: cached.ssoCookies || "", ts: Date.now() };
+      return authCache[key];
+    }
   }
 
-  if (!cookies) {
-    console.log(`[scrape] SSO login su ${networkBase} (domain=${key})...`);
-    const loginResult = await ssoLogin(null, null, networkBase);
-    if (!loginResult.success) return { error: loginResult.error };
-    cookies = loginResult.cookies;
-    ssoCookies = loginResult.ssoCookies || "";
-    await saveCookiesToCache(cookies, domain, ssoCookies);
+  // Fresh login
+  console.log(`[scrape] WCA fresh SSO login...`);
+  const loginResult = await ssoLogin(null, null, BASE);
+  if (!loginResult.success) return { error: loginResult.error };
+
+  const auth = { cookies: loginResult.cookies, ssoCookies: loginResult.ssoCookies || "", ts: Date.now() };
+  authCache[key] = auth;
+  await saveCookiesToCache(loginResult.cookies, "wcaworld.com", loginResult.ssoCookies);
+  console.log(`[scrape] WCA login OK: hasASPXAUTH=${loginResult.cookies.includes(".ASPXAUTH")} ssoCookieLen=${auth.ssoCookies.length}`);
+  return auth;
+}
+
+// ═══ Ottieni auth per un network specifico (cross-domain SSO) ═══
+async function getNetworkAuth(networkDomain, wcaSsoCookies) {
+  const key = networkDomain;
+  if (authCache[key] && (Date.now() - authCache[key].ts) < AUTH_CACHE_TTL) {
+    console.log(`[scrape] Network auth cache HIT: ${key}`);
+    return authCache[key];
   }
 
-  // Save to in-memory cache
-  authCache[key] = { cookies, ssoCookies, ts: Date.now() };
-  return { cookies, ssoCookies };
+  // Check Supabase cache
+  const cached = await getCachedCookies(networkDomain);
+  if (cached) {
+    const networkBase = getNetworkBase(networkDomain);
+    const valid = await testCookies(cached.cookies, networkBase);
+    if (valid) {
+      console.log(`[scrape] Network auth from Supabase cache: ${key}`);
+      authCache[key] = { cookies: cached.cookies, ssoCookies: cached.ssoCookies || wcaSsoCookies, ts: Date.now() };
+      return authCache[key];
+    }
+  }
+
+  // Cross-domain SSO usando i cookie SSO di wcaworld.com
+  const networkBase = getNetworkBase(networkDomain);
+  console.log(`[scrape] CrossDomain SSO → ${networkDomain} usando cookie SSO wcaworld.com`);
+  const result = await crossDomainSSO(networkBase, wcaSsoCookies);
+
+  if (!result.success) {
+    console.log(`[scrape] CrossDomain SSO FAILED per ${networkDomain}: ${result.error}`);
+    // Fallback: prova login diretto con credenziali
+    console.log(`[scrape] Fallback: login diretto su ${networkDomain}...`);
+    const directLogin = await ssoLogin(null, null, networkBase);
+    if (!directLogin.success) return { error: `CrossDomain e login diretto falliti: ${result.error}` };
+    const auth = { cookies: directLogin.cookies, ssoCookies: directLogin.ssoCookies || wcaSsoCookies, ts: Date.now() };
+    authCache[key] = auth;
+    await saveCookiesToCache(directLogin.cookies, networkDomain, directLogin.ssoCookies);
+    return auth;
+  }
+
+  const auth = { cookies: result.cookies, ssoCookies: result.ssoCookies || wcaSsoCookies, ts: Date.now() };
+  authCache[key] = auth;
+  await saveCookiesToCache(result.cookies, networkDomain, result.ssoCookies);
+  console.log(`[scrape] Network auth OK: ${networkDomain} hasASPXAUTH=${result.cookies.includes(".ASPXAUTH")}`);
+  return auth;
 }
 
 // ═══ FETCH + PARSE profilo da UN dominio specifico ═══
@@ -120,7 +157,7 @@ async function fetchProfileFromDomain(wcaId, domain, cookies, ssoCookies) {
   const url = `${networkBase}/directory/members/${wcaId}`;
 
   try {
-    console.log(`[scrape] ${wcaId} → fetch da ${domain}: ${url}`);
+    console.log(`[scrape] ${wcaId} → fetch da ${domain}: ${url.substring(0, 70)}`);
     const result = await tryFetchUrl(url, cookies, networkBase, ssoCookies);
     if (!result) return null;
     if (result.loginRedirect) {
@@ -131,7 +168,7 @@ async function fetchProfileFromDomain(wcaId, domain, cookies, ssoCookies) {
     const profile = extractProfile($, wcaId, networkBase);
     profile.source_network = domain;
     profile.source_url = url;
-    console.log(`[scrape] ${wcaId} → ${domain}: state=${profile.state} contacts=${profile.contacts?.length||0} email=${!!profile.email} hasLogout=${profile.hasLogout} membersOnly=${profile.members_only_count}`);
+    console.log(`[scrape] ${wcaId} → ${domain}: state=${profile.state} contacts=${profile.contacts?.length||0} email=${!!profile.email} phone=${!!profile.phone} hasLogout=${profile.hasLogout} membersOnly=${profile.members_only_count}`);
     return profile;
   } catch (err) {
     console.log(`[scrape] ${wcaId} → ${domain}: ERROR ${err.message}`);
@@ -139,79 +176,17 @@ async function fetchProfileFromDomain(wcaId, domain, cookies, ssoCookies) {
   }
 }
 
-// ═══ VERIFICA se un profilo ha dati validi (autenticato) ═══
+// ═══ VERIFICA se un profilo ha dati validi ═══
 function isProfileValid(profile) {
   if (!profile || profile.state !== "ok") return false;
   if (!profile.hasLogout) return false;
-  // Ha almeno UN dato utile: email azienda, o contatto con email, o telefono
   const hasContactEmail = profile.contacts?.some(c => c.email);
   if (profile.email || hasContactEmail || profile.phone) return true;
-  // Se ha contatti con solo nome/titolo ma nessun members_only → potrebbe essere ok (azienda senza email pubblica)
   if (profile.contacts?.length > 0 && profile.members_only_count === 0) return true;
   return false;
 }
 
-// ═══ PROCEDURA NETWORK-SPECIFICA ═══
-// Login SSO sul dominio del network → fetch profilo da quel dominio
-async function scrapeFromNetwork(wcaId, networkDomain) {
-  console.log(`[scrape] ── PROCEDURA ${networkDomain} per ${wcaId} ──`);
-  const auth = await getAuthCookies(networkDomain);
-  if (auth.error) {
-    console.log(`[scrape] ${wcaId} → ${networkDomain}: auth FAILED: ${auth.error}`);
-    return null;
-  }
-
-  let profile = await fetchProfileFromDomain(wcaId, networkDomain, auth.cookies, auth.ssoCookies);
-
-  // Se auth fallita (no logout), prova refresh SSO
-  if (profile && profile.state === "ok" && !profile.hasLogout) {
-    console.log(`[scrape] ${wcaId} → ${networkDomain}: no logout, SSO refresh...`);
-    const networkBase = getNetworkBase(networkDomain);
-    const refreshResult = await ssoLogin(null, null, networkBase);
-    if (refreshResult.success) {
-      const newCookies = refreshResult.cookies;
-      const newSsoCookies = refreshResult.ssoCookies || "";
-      await saveCookiesToCache(newCookies, networkDomain, newSsoCookies);
-      authCache[networkDomain] = { cookies: newCookies, ssoCookies: newSsoCookies, ts: Date.now() };
-      profile = await fetchProfileFromDomain(wcaId, networkDomain, newCookies, newSsoCookies);
-    }
-  }
-
-  return profile;
-}
-
-// ═══ PROCEDURA GENERALE (wcaworld.com) ═══
-async function scrapeFromWcaWorld(wcaId) {
-  console.log(`[scrape] ── PROCEDURA GENERALE wcaworld.com per ${wcaId} ──`);
-  const auth = await getAuthCookies("wcaworld.com");
-  if (auth.error) {
-    console.log(`[scrape] ${wcaId} → wcaworld.com: auth FAILED: ${auth.error}`);
-    return { wca_id: wcaId, state: "auth_failed", error: auth.error };
-  }
-
-  let profile = await fetchProfileFromDomain(wcaId, "wcaworld.com", auth.cookies, auth.ssoCookies);
-
-  // Se auth fallita, refresh
-  if (profile && profile.state === "ok" && !profile.hasLogout) {
-    console.log(`[scrape] ${wcaId} → wcaworld.com: no logout, SSO refresh...`);
-    const refreshResult = await ssoLogin(null, null, BASE);
-    if (refreshResult.success) {
-      const newCookies = refreshResult.cookies;
-      const newSsoCookies = refreshResult.ssoCookies || "";
-      await saveCookiesToCache(newCookies, "wcaworld.com", newSsoCookies);
-      authCache["wcaworld.com"] = { cookies: newCookies, ssoCookies: newSsoCookies, ts: Date.now() };
-      profile = await fetchProfileFromDomain(wcaId, "wcaworld.com", newCookies, newSsoCookies);
-    }
-  }
-
-  return profile || { wca_id: wcaId, state: "not_found" };
-}
-
 // ═══ HANDLER PRINCIPALE ═══
-// Per ogni partner:
-// 1. Se ha networkDomain → procedura dedicata per quel network
-// 2. Se la procedura network fallisce O nessun network → procedura generale wcaworld.com
-// 3. Usa il profilo migliore (quello con più dati)
 module.exports = async (req, res) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
@@ -223,47 +198,67 @@ module.exports = async (req, res) => {
     const { wcaIds, members, networkDomain } = req.body || {};
     if (!wcaIds || !Array.isArray(wcaIds) || wcaIds.length === 0) return res.status(400).json({ error: "wcaIds richiesto" });
 
-    console.log(`[scrape] === START ${wcaIds[0]} (networkDomain: ${networkDomain || "nessuno"})`);
+    const wcaId = wcaIds[0];
+    console.log(`[scrape] === START ${wcaId} (networkDomain: ${networkDomain || "nessuno"})`);
 
-    const batch = wcaIds.slice(0, 1);
-    const results = [];
+    // ── STEP 0: Login wcaworld.com (base per tutto) ──
+    const wcaAuth = await getWcaAuth();
+    if (wcaAuth.error) {
+      console.log(`[scrape] WCA auth FAILED: ${wcaAuth.error}`);
+      return res.status(500).json({ success: false, error: wcaAuth.error });
+    }
 
-    for (const wcaId of batch) {
-      let bestProfile = null;
+    let bestProfile = null;
 
-      // ── STEP 1: Procedura network-specifica (se fornito) ──
-      if (networkDomain && networkDomain !== "wcaworld.com") {
-        const networkProfile = await scrapeFromNetwork(wcaId, networkDomain);
-        if (isProfileValid(networkProfile)) {
-          bestProfile = networkProfile;
+    // ── STEP 1: Se network specifico → cross-domain SSO + fetch ──
+    if (networkDomain && networkDomain !== "wcaworld.com") {
+      const netAuth = await getNetworkAuth(networkDomain, wcaAuth.ssoCookies);
+      if (!netAuth.error) {
+        const profile = await fetchProfileFromDomain(wcaId, networkDomain, netAuth.cookies, netAuth.ssoCookies);
+        if (isProfileValid(profile)) {
+          bestProfile = profile;
           bestProfile.procedure = `network:${networkDomain}`;
           console.log(`[scrape] ${wcaId} ✓ Profilo valido da ${networkDomain}`);
         } else {
           console.log(`[scrape] ${wcaId} ✗ ${networkDomain} non valido → fallback wcaworld.com`);
         }
+      } else {
+        console.log(`[scrape] ${wcaId} ✗ Auth ${networkDomain} fallita: ${netAuth.error}`);
       }
-
-      // ── STEP 2: Procedura generale wcaworld.com (fallback o default) ──
-      if (!bestProfile) {
-        const wcaProfile = await scrapeFromWcaWorld(wcaId);
-        if (wcaProfile && wcaProfile.state === "ok") {
-          bestProfile = wcaProfile;
-          bestProfile.procedure = "general:wcaworld.com";
-          console.log(`[scrape] ${wcaId} ${isProfileValid(wcaProfile) ? "✓" : "~"} Profilo da wcaworld.com`);
-        }
-      }
-
-      // ── Risultato finale ──
-      if (!bestProfile) {
-        bestProfile = { wca_id: wcaId, state: "not_found", contacts: [] };
-      }
-      if (networkDomain) bestProfile.source_network = networkDomain;
-
-      console.log(`[scrape] === RESULT ${wcaId}: procedure=${bestProfile.procedure || "none"} state=${bestProfile.state} contacts=${bestProfile.contacts?.length||0} email=${!!bestProfile.email} phone=${!!bestProfile.phone} hasLogout=${bestProfile.hasLogout}`);
-      results.push(bestProfile);
     }
 
-    return res.json({ success: true, results });
+    // ── STEP 2: Fallback wcaworld.com ──
+    if (!bestProfile) {
+      const profile = await fetchProfileFromDomain(wcaId, "wcaworld.com", wcaAuth.cookies, wcaAuth.ssoCookies);
+      if (profile && profile.state === "ok") {
+        bestProfile = profile;
+        bestProfile.procedure = "general:wcaworld.com";
+
+        // Se hasLogout=false → refresh SSO e riprova
+        if (!profile.hasLogout) {
+          console.log(`[scrape] ${wcaId} wcaworld.com hasLogout=false → SSO refresh`);
+          const freshLogin = await ssoLogin(null, null, BASE);
+          if (freshLogin.success) {
+            authCache["wcaworld.com"] = { cookies: freshLogin.cookies, ssoCookies: freshLogin.ssoCookies || "", ts: Date.now() };
+            await saveCookiesToCache(freshLogin.cookies, "wcaworld.com", freshLogin.ssoCookies);
+            const retryProfile = await fetchProfileFromDomain(wcaId, "wcaworld.com", freshLogin.cookies, freshLogin.ssoCookies);
+            if (retryProfile && retryProfile.state === "ok") {
+              bestProfile = retryProfile;
+              bestProfile.procedure = "general:wcaworld.com(refreshed)";
+              console.log(`[scrape] ${wcaId} RETRY wcaworld.com: hasLogout=${retryProfile.hasLogout} contacts=${retryProfile.contacts?.length||0}`);
+            }
+          }
+        }
+      }
+    }
+
+    if (!bestProfile) {
+      bestProfile = { wca_id: wcaId, state: "not_found", contacts: [] };
+    }
+    if (networkDomain) bestProfile.source_network = networkDomain;
+
+    console.log(`[scrape] === RESULT ${wcaId}: procedure=${bestProfile.procedure || "none"} state=${bestProfile.state} contacts=${bestProfile.contacts?.length||0} email=${!!bestProfile.email} phone=${!!bestProfile.phone} hasLogout=${bestProfile.hasLogout}`);
+    return res.json({ success: true, results: [bestProfile] });
   } catch (err) {
     console.log(`[scrape] ERROR: ${err.message}`);
     return res.status(500).json({ success: false, error: err.message });

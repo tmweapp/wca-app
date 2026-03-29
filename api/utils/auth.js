@@ -312,11 +312,158 @@ async function ssoLogin(username, password, targetBase) {
   }
 }
 
+// ═══ CROSS-DOMAIN SSO ═══
+// Usa i cookie SSO esistenti (da login wcaworld.com) per autenticarsi su un altro network.
+// NON serve username/password — il server SSO riconosce la sessione dai cookie.
+// Flusso: visit network/Account/Login → redirect a sso.api.wcaworld.com/CheckLoggedIn
+//   → SSO riconosce sessione → WS-Fed postback al network → network emette .ASPXAUTH
+async function crossDomainSSO(targetBase, existingSsoCookies) {
+  const TARGET_DOMAIN = targetBase.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "");
+  const SSO_DOMAIN = "sso.api.wcaworld.com";
+  const jar = cookieJar();
+
+  // Pre-carica i cookie SSO esistenti nel jar
+  if (existingSsoCookies) {
+    for (const c of existingSsoCookies.split("; ")) {
+      const eq = c.indexOf("=");
+      if (eq > 0) {
+        if (!jar.keys(SSO_DOMAIN).length) jar.add(SSO_DOMAIN, []);
+        // Aggiungi manualmente
+        const name = c.substring(0, eq);
+        const full = c;
+        if (!jar.keys(SSO_DOMAIN)) jar.add(SSO_DOMAIN, [c + "; path=/"]);
+        else jar.add(SSO_DOMAIN, [c + "; path=/"]);
+      }
+    }
+  }
+
+  console.log(`[auth] CrossDomain SSO → ${TARGET_DOMAIN} (ssoCookieLen=${existingSsoCookies?.length || 0})`);
+
+  try {
+    // Step 1: Visit network login page → triggers redirect to SSO CheckLoggedIn
+    let resp = await fetch(`${targetBase}/Account/Login`, {
+      headers: { "User-Agent": UA },
+      redirect: "manual",
+      timeout: 10000,
+    });
+    jar.add(TARGET_DOMAIN, resp.headers.raw()["set-cookie"] || []);
+
+    // Follow redirects — quando arriviamo a sso.api.wcaworld.com, mandiamo i cookie SSO
+    let currentUrl = `${targetBase}/Account/Login`;
+    let rc = 0;
+    let ssoCheckHit = false;
+    while (resp.status >= 300 && resp.status < 400 && rc < 8) {
+      const loc = resp.headers.get("location") || "";
+      if (!loc) break;
+      currentUrl = loc.startsWith("http") ? loc : new URL(loc, currentUrl).href;
+
+      const isSSO = currentUrl.includes("sso.api.wcaworld.com");
+      if (isSSO) ssoCheckHit = true;
+      const cookiesToSend = isSSO ? existingSsoCookies : jar.get(TARGET_DOMAIN);
+
+      console.log(`[auth] CrossDomain redirect ${rc+1}: ${currentUrl.substring(0, 80)} isSSO=${isSSO}`);
+      resp = await fetch(currentUrl, {
+        headers: { "User-Agent": UA, "Cookie": cookiesToSend || "" },
+        redirect: "manual",
+        timeout: 10000,
+      });
+      const setCookieDomain = isSSO ? SSO_DOMAIN : TARGET_DOMAIN;
+      jar.add(setCookieDomain, resp.headers.raw()["set-cookie"] || []);
+      rc++;
+    }
+
+    // Step 2: Se SSO ritorna 200 con form WS-Fed postback → submit al network
+    if (resp.status === 200) {
+      const html = await resp.text();
+      const cheerio = require("cheerio");
+      const $ = cheerio.load(html);
+      const formAction = $("form").attr("action") || "";
+
+      // Check se è la login page (credenziali richieste) — in tal caso SSO non ci ha riconosciuto
+      if (html.includes('type="password"') && !formAction.includes(TARGET_DOMAIN)) {
+        console.log(`[auth] CrossDomain: SSO non ci ha riconosciuto — serve login con credenziali`);
+        return { success: false, error: "SSO session not recognized" };
+      }
+
+      // WS-Fed postback — il form punta al network domain
+      if (formAction && (formAction.includes(TARGET_DOMAIN) || formAction.includes("wcaworld.com"))) {
+        console.log(`[auth] CrossDomain: WS-Fed postback → ${formAction.substring(0, 80)}`);
+        const pbParams = new URLSearchParams();
+        $("input[type='hidden']").each((_, el) => {
+          const n = $(el).attr("name");
+          const v = $(el).attr("value") || "";
+          if (n) pbParams.set(n, v);
+        });
+
+        const pbResp = await fetch(formAction, {
+          method: "POST",
+          headers: {
+            "User-Agent": UA,
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Cookie": jar.get(TARGET_DOMAIN),
+          },
+          body: pbParams.toString(),
+          redirect: "manual",
+          timeout: 10000,
+        });
+        jar.add(TARGET_DOMAIN, pbResp.headers.raw()["set-cookie"] || []);
+        console.log(`[auth] CrossDomain postback: status=${pbResp.status} hasAuth=${jar.keys(TARGET_DOMAIN).includes(".ASPXAUTH")}`);
+
+        // Follow remaining redirects
+        let pbLoc = pbResp.headers.get("location") || "";
+        let pbCount = 0;
+        while (pbLoc && pbCount < 5) {
+          const pbNext = pbLoc.startsWith("http") ? pbLoc : new URL(pbLoc, formAction).href;
+          const pbDomain = pbNext.includes("sso.api.wcaworld.com") ? SSO_DOMAIN : TARGET_DOMAIN;
+          const pbFollowResp = await fetch(pbNext, {
+            headers: { "User-Agent": UA, "Cookie": jar.get(pbDomain) },
+            redirect: "manual", timeout: 10000,
+          });
+          jar.add(pbDomain, pbFollowResp.headers.raw()["set-cookie"] || []);
+          pbLoc = pbFollowResp.headers.get("location") || "";
+          pbCount++;
+          if (pbFollowResp.status === 200) break;
+        }
+      }
+    }
+
+    const targetCookies = jar.get(TARGET_DOMAIN);
+    const hasAuth = targetCookies.includes(".ASPXAUTH");
+    console.log(`[auth] CrossDomain result: ${TARGET_DOMAIN} hasAuth=${hasAuth} cookieLen=${targetCookies.length}`);
+
+    if (!hasAuth) {
+      return { success: false, error: `CrossDomain SSO failed on ${TARGET_DOMAIN} — no .ASPXAUTH` };
+    }
+
+    // Step 3: Warmup /Directory
+    try {
+      const wr = await fetch(`${targetBase}/Directory`, {
+        headers: { "User-Agent": UA, "Cookie": targetCookies },
+        redirect: "manual", timeout: 8000,
+      });
+      jar.add(TARGET_DOMAIN, wr.headers.raw()["set-cookie"] || []);
+      if (wr.status === 200) {
+        const wHtml = await wr.text();
+        const hasLogout = /logout|sign.?out/i.test(wHtml);
+        console.log(`[auth] CrossDomain warmup: hasLogout=${hasLogout}`);
+      }
+    } catch (e) { console.log(`[auth] CrossDomain warmup error: ${e.message}`); }
+
+    const finalCookies = jar.get(TARGET_DOMAIN);
+    const ssoCookies = jar.get(SSO_DOMAIN);
+    return { success: true, cookies: finalCookies, ssoCookies: ssoCookies || existingSsoCookies, domain: TARGET_DOMAIN };
+  } catch (e) {
+    console.log(`[auth] CrossDomain error: ${e.message}`);
+    return { success: false, error: e.message };
+  }
+}
+
 module.exports = {
   getCachedCookies,
   saveCookiesToCache,
   testCookies,
   ssoLogin,
+  crossDomainSSO,
   cookieJar,
   BASE,
   UA,
