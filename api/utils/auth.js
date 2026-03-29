@@ -50,29 +50,52 @@ function mergeSetCookies(map, setCookieHeaders) {
 }
 
 // ═══ FORM PARSER ═══
-// Trova il PRIMO form nella pagina e ritorna { action, fields }
-function parseForm(html, preferAction) {
+// Trova il form di login nella pagina — preferisce form con password field o action SSO
+function parseForm(html, preferAction, baseUrl) {
   const $ = cheerio.load(html);
   let bestForm = null;
+  let bestScore = -1;
 
   $("form").each((_, form) => {
-    const action = $(form).attr("action") || "";
+    let action = $(form).attr("action") || "";
+    action = action.replace(/&amp;/g, "&");
+
+    // Risolvi URL relativi
+    if (action && !action.startsWith("http") && baseUrl) {
+      try { action = new URL(action, baseUrl).href; } catch(e) {}
+    }
+
     const fields = {};
+    let hasPassword = false;
     $(form).find("input").each((_, inp) => {
       const name = $(inp).attr("name");
       const val = $(inp).attr("value") || "";
       const type = ($(inp).attr("type") || "").toLowerCase();
+      if (type === "password") hasPassword = true;
       if (name && type !== "submit") fields[name] = val;
     });
 
-    // Preferisci form che punta a SSO o al dominio target
-    if (!bestForm) bestForm = { action: action.replace(/&amp;/g, "&"), fields };
-    if (preferAction && action.includes(preferAction)) {
-      bestForm = { action: action.replace(/&amp;/g, "&"), fields };
+    // Punteggio: form con password field o action SSO vince
+    let score = 0;
+    if (hasPassword) score += 10;
+    if (preferAction && action.includes(preferAction)) score += 20;
+    if (action.includes("sso")) score += 5;
+    if (fields["UserName"] !== undefined || fields["Password"] !== undefined) score += 10;
+    // Penalizza form inutili (language selector, search, etc.)
+    if (action.includes("SetLanguage") || action.includes("Search")) score -= 50;
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestForm = { action, fields };
     }
   });
 
   return bestForm;
+}
+
+// Helper: estrai origin da URL (safe)
+function safeOrigin(url) {
+  try { return new URL(url).origin; } catch(e) { return ""; }
 }
 
 // ═══ HTTP REQUEST con cookie tracking ═══
@@ -127,7 +150,7 @@ async function followAll(startUrl, cookies, log) {
 
     // Se c'è un form auto-submit (WS-Fed postback), processalo
     if (html.includes("<form")) {
-      const form = parseForm(html);
+      const form = parseForm(html, null, url);
       if (form && form.action && Object.keys(form.fields).length > 0) {
         // Controlla che sia un WS-Fed form (ha wresult o wa o simili)
         const fieldNames = Object.keys(form.fields);
@@ -143,7 +166,7 @@ async function followAll(startUrl, cookies, log) {
             headers: {
               "Content-Type": "application/x-www-form-urlencoded",
               "Referer": url,
-              "Origin": new URL(form.action).origin,
+              "Origin": safeOrigin(form.action),
             },
             body: postBody.toString(),
           });
@@ -165,7 +188,7 @@ async function followAll(startUrl, cookies, log) {
 
           if (postHtml.includes("<form")) {
             // Ricorsione: un altro form? Seguiamolo
-            const form2 = parseForm(postHtml);
+            const form2 = parseForm(postHtml, null, url);
             if (form2 && form2.action && Object.keys(form2.fields).some(n => /wresult|wa|wctx/i.test(n))) {
               log.push(`  [${i}] ANOTHER WS-Fed form → POST ${form2.action.substring(0, 80)}`);
               const postBody2 = new URLSearchParams();
@@ -219,7 +242,7 @@ async function ssoLogin(username, password, targetBase) {
 
     // ═══ STEP 2: Trova il form di login ═══
     log.push("STEP 2: Parse login form");
-    const form = parseForm(loginPageResult.html, "sso.api.wcaworld.com");
+    const form = parseForm(loginPageResult.html, "sso.api.wcaworld.com", `${targetBase}/Account/Login`);
 
     if (!form || !form.action) {
       // Forse siamo già loggati? Controlla
@@ -256,7 +279,7 @@ async function ssoLogin(username, password, targetBase) {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
-        "Origin": new URL(form.action).origin,
+        "Origin": safeOrigin(form.action),
         "Referer": form.action,
       },
       body: postBody.toString(),
@@ -290,7 +313,7 @@ async function ssoLogin(username, password, targetBase) {
             headers: {
               "Content-Type": "application/x-www-form-urlencoded",
               "Referer": form.action,
-              "Origin": new URL(wsFedForm.action).origin,
+              "Origin": safeOrigin(wsFedForm.action),
             },
             body: wsFedBody.toString(),
           });
