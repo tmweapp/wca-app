@@ -158,15 +158,49 @@ async function ssoLogin(username, password, targetBase) {
       rc++;
     }
     const loginHtml = resp.status === 200 ? await resp.text() : "";
-    const ssoUrlMatch = loginHtml.match(/action\s*[:=]\s*['"]?(https:\/\/sso\.api\.wcaworld\.com[^'"&\s]+[^'"]*)/i);
-    if (!ssoUrlMatch) {
-      console.log(`[auth] SSO URL not found in login page of ${TARGET_DOMAIN}`);
-      return { success: false, error: `SSO URL not found on ${TARGET_DOMAIN}` };
-    }
-    const ssoUrl = ssoUrlMatch[1].replace(/&amp;/g, "&");
-    console.log(`[auth] SSO URL: ${ssoUrl.substring(0, 80)}...`);
+    const cheerioLogin = require("cheerio");
+    const $login = cheerioLogin.load(loginHtml);
 
-    // Step 2: POST credentials to SSO endpoint (cookies go to SSO domain only)
+    // Trova il form SSO — cerca action che punta a sso.api.wcaworld.com
+    let ssoUrl = "";
+    let hiddenFields = {};
+    $login("form").each((_, form) => {
+      const action = $login(form).attr("action") || "";
+      if (action.includes("sso.api.wcaworld.com")) {
+        ssoUrl = action.replace(/&amp;/g, "&");
+        // Estrai TUTTI i campi nascosti del form (CSRF token, etc.)
+        $login(form).find("input[type='hidden']").each((_, inp) => {
+          const n = $login(inp).attr("name");
+          const v = $login(inp).attr("value") || "";
+          if (n) hiddenFields[n] = v;
+        });
+      }
+    });
+
+    // Fallback: regex se cheerio non trova il form
+    if (!ssoUrl) {
+      const ssoUrlMatch = loginHtml.match(/action\s*[:=]\s*['"]?(https:\/\/sso\.api\.wcaworld\.com[^'"&\s]+[^'"]*)/i);
+      if (!ssoUrlMatch) {
+        console.log(`[auth] SSO URL not found in login page of ${TARGET_DOMAIN}`);
+        return { success: false, error: `SSO URL not found on ${TARGET_DOMAIN}` };
+      }
+      ssoUrl = ssoUrlMatch[1].replace(/&amp;/g, "&");
+    }
+    console.log(`[auth] SSO URL: ${ssoUrl.substring(0, 80)}... hiddenFields: ${Object.keys(hiddenFields).join(", ") || "none"}`);
+
+    // Step 2: POST credentials + ALL hidden form fields to SSO endpoint
+    const postBody = new URLSearchParams();
+    // Include all hidden fields from the form (CSRF tokens, wa, wtrealm, etc.)
+    for (const [k, v] of Object.entries(hiddenFields)) {
+      postBody.set(k, v);
+    }
+    // Add credentials (override if they were in hidden fields)
+    postBody.set("UserName", username);
+    postBody.set("Password", password);
+    postBody.set("pwd", password);
+
+    console.log(`[auth] SSO POST fields: ${[...postBody.keys()].join(", ")}`);
+
     const ssoResp = await fetch(ssoUrl, {
       method: "POST",
       headers: {
@@ -174,8 +208,9 @@ async function ssoLogin(username, password, targetBase) {
         "Content-Type": "application/x-www-form-urlencoded",
         "Origin": "https://sso.api.wcaworld.com",
         "Referer": ssoUrl,
+        "Cookie": jar.get(SSO_DOMAIN),
       },
-      body: `UserName=${encodeURIComponent(username)}&Password=${encodeURIComponent(password)}&pwd=${encodeURIComponent(password)}`,
+      body: postBody.toString(),
       redirect: "manual",
     });
     jar.add(SSO_DOMAIN, ssoResp.headers.raw()["set-cookie"] || []);
