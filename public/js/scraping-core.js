@@ -21,14 +21,22 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
     if(doneIds.size > 0) log(`📂 ${countryName}: ${doneIds.size} profili già completati in directory locale`,"ok");
   }
 
+  // === HELPER: estrai dominio reale da scrape_url ===
+  function getDomainFromScrapeUrl(scrapeUrl){
+    if(!scrapeUrl) return null;
+    try { const u = new URL(scrapeUrl); return u.hostname.replace(/^www\./, ""); } catch(e){ return null; }
+  }
+
   // === HELPER: scarica un profilo da un network specifico ===
   async function downloadProfile(member, networkDomain, networkLabel){
+    const profileHref = member.scrape_url || member.href;
+    const loginDomain = getDomainFromScrapeUrl(member.scrape_url) || networkDomain;
     let retries = 0;
     while(retries <= MAX_RETRIES && scraping){
       try {
         const resp = await fetch(API+"/api/scrape",{
           method:"POST",headers:{"Content-Type":"application/json"},
-          body:JSON.stringify({wcaIds:[member.id], members: member.href ? [{id:member.id, href:member.href}] : [], networkDomain})
+          body:JSON.stringify({wcaIds:[member.id], members: profileHref ? [{id:member.id, href:profileHref}] : [], networkDomain: loginDomain})
         });
         const data = await resp.json();
         if(!data.success){
@@ -130,10 +138,15 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
   } else {
     log(`📥 ${countryName}: ${toDownload.length} da scaricare (${totalMembers - toDownload.length} già fatti)`,"ok");
 
-    // Raggruppa per network preferito per download ordinato
+    // Raggruppa per DOMINIO REALE (da scrape_url) per login ottimizzato
     const byNetwork = {};
     for(const m of toDownload){
-      const bestNet = m.scrape_domain || m.networks?.[0] || "wcaworld.com";
+      let bestNet = "wcaworld.com";
+      if(m.scrape_url){
+        try { bestNet = new URL(m.scrape_url).hostname.replace(/^www\./, ""); } catch(e){}
+      } else {
+        bestNet = m.networks?.[0] || "wcaworld.com";
+      }
       if(!byNetwork[bestNet]) byNetwork[bestNet] = [];
       byNetwork[bestNet].push(m);
     }
