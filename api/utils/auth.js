@@ -182,51 +182,88 @@ async function ssoLogin(username, password, targetBase) {
     const hasAuth = jar.keys(SSO_DOMAIN).includes(".ASPXAUTH");
     console.log(`[auth] SSO POST status=${ssoResp.status} hasAuth=${hasAuth} ssoCookies=${jar.keys(SSO_DOMAIN).join(",")}`);
 
-    // Check for WS-Federation postback (SSO returns 200 with auto-submit form instead of 302)
-    // Il postback torna al TARGET domain (wcaworld.com O il network specifico)
-    if (ssoResp.status === 200) {
-      const cheerio = require("cheerio");
-      const postBackHtml = await ssoResp.text();
-      const $pb = cheerio.load(postBackHtml);
+    // ═══ PROCESS WS-Fed POSTBACK ═══
+    // SSO can return EITHER 200 (with WS-Fed form in body) OR 302 (redirect)
+    // In BOTH cases the body might contain a WS-Fed auto-submit form
+    // We MUST process it to get .ASPXAUTH on the TARGET domain
+    const cheerio = require("cheerio");
+    let postbackProcessed = false;
+
+    async function processWsFedPostback(html, sourceUrl) {
+      const $pb = cheerio.load(html);
       const postBackAction = $pb("form").attr("action") || "";
-      // Accetta postback verso qualsiasi dominio WCA (non solo wcaworld.com)
-      if (postBackAction && (postBackAction.includes("wcaworld.com") || postBackAction.includes(TARGET_DOMAIN))) {
-        console.log(`[auth] WS-Fed postback detected → ${postBackAction.substring(0, 80)} (target: ${TARGET_DOMAIN})`);
-        const pbParams = new URLSearchParams();
-        $pb("input[type='hidden']").each((_, el) => {
-          const n = $pb(el).attr("name");
-          const v = $pb(el).attr("value") || "";
-          if (n) pbParams.set(n, v);
-        });
-        console.log(`[auth] Postback fields: ${[...pbParams.keys()].join(", ")}`);
-        const pbResp = await fetch(postBackAction, {
-          method: "POST",
-          headers: {
-            "User-Agent": UA,
-            "Content-Type": "application/x-www-form-urlencoded",
-            "Cookie": jar.get(TARGET_DOMAIN),
-            "Referer": ssoUrl,
-          },
-          body: pbParams.toString(),
+      if (!postBackAction) return false;
+      // Must target the WCA ecosystem
+      const isWcaDomain = postBackAction.includes("wcaworld.com") || postBackAction.includes(TARGET_DOMAIN) ||
+        postBackAction.includes("wcaprojects.com") || postBackAction.includes("elitegln.com") ||
+        postBackAction.includes("lognetglobal.com") || postBackAction.includes("allworldshipments.com");
+      if (!isWcaDomain) return false;
+
+      const pbParams = new URLSearchParams();
+      $pb("input[type='hidden']").each((_, el) => {
+        const n = $pb(el).attr("name");
+        const v = $pb(el).attr("value") || "";
+        if (n) pbParams.set(n, v);
+      });
+      const fieldKeys = [...pbParams.keys()];
+      if (fieldKeys.length === 0) return false;
+
+      console.log(`[auth] WS-Fed postback → ${postBackAction.substring(0, 80)} fields: ${fieldKeys.join(", ")}`);
+      // Determine which domain the postback targets
+      const pbTargetDomain = postBackAction.includes("sso.api.wcaworld.com") ? SSO_DOMAIN : TARGET_DOMAIN;
+      const pbResp = await fetch(postBackAction, {
+        method: "POST",
+        headers: {
+          "User-Agent": UA,
+          "Content-Type": "application/x-www-form-urlencoded",
+          "Cookie": jar.get(pbTargetDomain),
+          "Referer": sourceUrl,
+        },
+        body: pbParams.toString(),
+        redirect: "manual",
+      });
+      jar.add(pbTargetDomain, pbResp.headers.raw()["set-cookie"] || []);
+      console.log(`[auth] WS-Fed postback status=${pbResp.status} targetHasAuth=${jar.keys(TARGET_DOMAIN).includes(".ASPXAUTH")} domain=${pbTargetDomain}`);
+
+      // Follow remaining redirects after postback
+      let pbLoc = pbResp.headers.get("location") || "";
+      let pbCount = 0;
+      while (pbLoc && pbCount < 5) {
+        const pbNext = pbLoc.startsWith("http") ? pbLoc : new URL(pbLoc, postBackAction).href;
+        const pbDomain = pbNext.includes("sso.api.wcaworld.com") ? SSO_DOMAIN : TARGET_DOMAIN;
+        const pbFollowResp = await fetch(pbNext, {
+          headers: { "User-Agent": UA, "Cookie": jar.get(pbDomain) },
           redirect: "manual",
         });
-        jar.add(TARGET_DOMAIN, pbResp.headers.raw()["set-cookie"] || []);
-        console.log(`[auth] WS-Fed postback status=${pbResp.status} targetHasAuth=${jar.keys(TARGET_DOMAIN).includes(".ASPXAUTH")} domain=${TARGET_DOMAIN}`);
-        // Follow remaining redirects
-        let pbLoc = pbResp.headers.get("location") || "";
-        let pbCount = 0;
-        while (pbLoc && pbCount < 5) {
-          const pbNext = pbLoc.startsWith("http") ? pbLoc : new URL(pbLoc, postBackAction).href;
-          const pbDomain = pbNext.includes("sso.api.wcaworld.com") ? SSO_DOMAIN : TARGET_DOMAIN;
-          const pbFollowResp = await fetch(pbNext, {
-            headers: { "User-Agent": UA, "Cookie": jar.get(pbDomain) },
-            redirect: "manual",
-          });
-          jar.add(pbDomain, pbFollowResp.headers.raw()["set-cookie"] || []);
-          pbLoc = pbFollowResp.headers.get("location") || "";
-          pbCount++;
-          if (pbFollowResp.status === 200) break;
+        jar.add(pbDomain, pbFollowResp.headers.raw()["set-cookie"] || []);
+        pbLoc = pbFollowResp.headers.get("location") || "";
+        pbCount++;
+
+        // Check if any response in the chain contains ANOTHER WS-Fed form (multi-hop SSO)
+        if (pbFollowResp.status === 200) {
+          const pbHtml = await pbFollowResp.text();
+          if (pbHtml.includes("wsignin") || pbHtml.includes("wresult")) {
+            console.log(`[auth] Multi-hop WS-Fed detected at callback ${pbCount}`);
+            await processWsFedPostback(pbHtml, pbNext);
+          }
+          break;
         }
+      }
+      return true;
+    }
+
+    // Try to extract WS-Fed form from SSO response body (works for both 200 and 302)
+    if (ssoResp.status === 200 || ssoResp.status === 302) {
+      try {
+        const ssoBody = await ssoResp.text();
+        if (ssoBody && ssoBody.length > 50) {
+          console.log(`[auth] SSO response body len=${ssoBody.length} has_form=${ssoBody.includes("<form")} has_wresult=${ssoBody.includes("wresult")}`);
+          postbackProcessed = await processWsFedPostback(ssoBody, ssoUrl);
+        } else {
+          console.log(`[auth] SSO response body empty/short len=${ssoBody.length}`);
+        }
+      } catch (bodyErr) {
+        console.log(`[auth] SSO body read error: ${bodyErr.message}`);
       }
     }
 
@@ -235,10 +272,11 @@ async function ssoLogin(username, password, targetBase) {
       return { success: false, error: `SSO login failed on ${TARGET_DOMAIN} - no auth cookie` };
     }
 
-    // Step 3: Follow redirect chain back to TARGET domain
-    // CRITICAL: send only target-domain cookies, NOT sso cookies
+    // Step 3: Follow redirect chain back to TARGET domain (for 302 responses)
     let callbackUrl = ssoResp.headers.get("location") || "";
-    console.log(`[auth] SSO redirect: ${callbackUrl.substring(0, 120)}`);
+    if (callbackUrl) {
+      console.log(`[auth] SSO redirect: ${callbackUrl.substring(0, 120)}`);
+    }
     let followCount = 0;
     while (callbackUrl && followCount < 8) {
       const cbUrl = callbackUrl.startsWith("http") ? callbackUrl : new URL(callbackUrl, ssoUrl).href;
@@ -251,6 +289,18 @@ async function ssoLogin(username, password, targetBase) {
       jar.add(cbDomain, newCookies);
       const gotAuth = newCookies.some(c => c.includes(".ASPXAUTH"));
       console.log(`[auth] Callback ${followCount + 1}: ${cbDomain} status=${cbResp.status} +${newCookies.length}cookies gotAuth=${gotAuth}`);
+
+      // If callback returns 200 with HTML, check for WS-Fed form (multi-hop)
+      if (cbResp.status === 200 && !postbackProcessed) {
+        try {
+          const cbHtml = await cbResp.text();
+          if (cbHtml.includes("<form") && (cbHtml.includes("wresult") || cbHtml.includes("wsignin"))) {
+            console.log(`[auth] WS-Fed form found in callback ${followCount + 1}`);
+            postbackProcessed = await processWsFedPostback(cbHtml, cbUrl);
+          }
+        } catch (e) { /* ignore body read errors */ }
+      }
+
       const nextLoc = cbResp.headers.get("location") || "";
       if (nextLoc) {
         callbackUrl = nextLoc.startsWith("http") ? nextLoc : new URL(nextLoc, cbUrl).href;
@@ -263,7 +313,7 @@ async function ssoLogin(username, password, targetBase) {
 
     // Check if TARGET domain got its own .ASPXAUTH
     const targetHasAuth = jar.keys(TARGET_DOMAIN).includes(".ASPXAUTH");
-    console.log(`[auth] After callbacks: ${TARGET_DOMAIN} hasAuth=${targetHasAuth} cookies=${jar.keys(TARGET_DOMAIN).join(",")}`);
+    console.log(`[auth] After callbacks: ${TARGET_DOMAIN} hasAuth=${targetHasAuth} postbackProcessed=${postbackProcessed} cookies=${jar.keys(TARGET_DOMAIN).join(",")}`);
 
     // Step 4: Warmup — visit /Directory on TARGET domain
     let targetCookies = jar.get(TARGET_DOMAIN);
@@ -276,11 +326,31 @@ async function ssoLogin(username, password, targetBase) {
       jar.add(TARGET_DOMAIN, wr.headers.raw()["set-cookie"] || []);
       let wLoc = wr.headers.get("location") || "";
       let wCount = 0;
-      while (wLoc && wCount < 3) {
+      while (wLoc && wCount < 5) {
         const wNext = wLoc.startsWith("http") ? wLoc : new URL(wLoc, `${targetBase}/Directory`).href;
-        wr = await fetch(wNext, { headers: { "User-Agent": UA, "Cookie": jar.get(TARGET_DOMAIN) }, redirect: "manual" });
-        jar.add(TARGET_DOMAIN, wr.headers.raw()["set-cookie"] || []);
+        // If redirect goes through SSO CheckLoggedIn, send SSO cookies
+        const wDomain = wNext.includes("sso.api.wcaworld.com") ? SSO_DOMAIN : TARGET_DOMAIN;
+        wr = await fetch(wNext, { headers: { "User-Agent": UA, "Cookie": jar.get(wDomain) }, redirect: "manual" });
+        jar.add(wDomain, wr.headers.raw()["set-cookie"] || []);
         wLoc = wr.headers.get("location") || ""; wCount++;
+
+        // Check for WS-Fed postback in warmup redirect chain
+        if (wr.status === 200 && !jar.keys(TARGET_DOMAIN).includes(".ASPXAUTH")) {
+          try {
+            const wHtml2 = await wr.text();
+            if (wHtml2.includes("<form") && (wHtml2.includes("wresult") || wHtml2.includes("wsignin"))) {
+              console.log(`[auth] WS-Fed form found in warmup redirect`);
+              await processWsFedPostback(wHtml2, wNext);
+              // Re-fetch directory after postback
+              wr = await fetch(`${targetBase}/Directory`, {
+                headers: { "User-Agent": UA, "Cookie": jar.get(TARGET_DOMAIN) },
+                redirect: "manual",
+              });
+              jar.add(TARGET_DOMAIN, wr.headers.raw()["set-cookie"] || []);
+              wLoc = wr.headers.get("location") || "";
+            }
+          } catch (e) { /* ignore */ }
+        }
       }
       targetCookies = jar.get(TARGET_DOMAIN);
       console.log(`[auth] Warmup ${TARGET_DOMAIN}/Directory status=${wr.status}`);
@@ -297,6 +367,11 @@ async function ssoLogin(username, password, targetBase) {
         const hasLogout = /logout|sign.?out/i.test(wHtml);
         const hasMembersOnly = /Members\s*Only/i.test(wHtml);
         console.log(`[auth] Warmup auth: hasLogout=${hasLogout} hasMembersOnly=${hasMembersOnly} hasToken=${!!wcaToken}`);
+
+        // ═══ CRITICAL: if warmup shows NOT authenticated, login failed ═══
+        if (!hasLogout) {
+          console.log(`[auth] ⚠ WARNING: Warmup shows NOT authenticated despite SSO completing. targetHasAuth=${jar.keys(TARGET_DOMAIN).includes(".ASPXAUTH")}`);
+        }
       }
     } catch (e) {
       console.log(`[auth] Warmup error: ${e.message}`);
