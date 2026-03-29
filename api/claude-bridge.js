@@ -26,23 +26,27 @@ const HEADERS = {
   "Prefer": "resolution=merge-duplicates,return=minimal",
 };
 
-// Slot IDs — usa il campo `id` (TEXT PK) della tabella wca_session
+// Slot IDs — usa il campo `id` (INTEGER PK) con valori negativi per evitare conflitti
 const SLOT_IDS = {
-  "__claude_cmd":    "__claude_cmd",
-  "__claude_result": "__claude_result",
-  "__claude_tabs":   "__claude_tabs",
+  "__claude_cmd":    -100,
+  "__claude_result": -200,
+  "__claude_tabs":   -300,
 };
 
 async function setSlot(slotName, data) {
-  const body = JSON.stringify({
-    id: SLOT_IDS[slotName],
-    cookies: JSON.stringify(data),
-    updated_at: new Date().toISOString(),
+  // DELETE first, then INSERT (avoid upsert/on_conflict issues)
+  await fetch(`${SUPABASE_URL}/rest/v1/wca_session?id=eq.${SLOT_IDS[slotName]}`, {
+    method: "DELETE",
+    headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` },
   });
-  const resp = await fetch(`${SUPABASE_URL}/rest/v1/wca_session?on_conflict=id`, {
+  const resp = await fetch(`${SUPABASE_URL}/rest/v1/wca_session`, {
     method: "POST",
-    headers: HEADERS,
-    body,
+    headers: { ...HEADERS, "Prefer": "return=minimal" },
+    body: JSON.stringify({
+      id: SLOT_IDS[slotName],
+      cookies: JSON.stringify(data),
+      updated_at: new Date().toISOString(),
+    }),
   });
   if (!resp.ok) {
     const err = await resp.text();
@@ -80,7 +84,7 @@ module.exports = async (req, res) => {
 
     // ── Ping ──
     if (action === "ping") {
-      return res.json({ ok: true, ts: Date.now(), version: "1.2" });
+      return res.json({ ok: true, ts: Date.now(), version: "1.4" });
     }
 
     // ── Claude invia comando JS ──
