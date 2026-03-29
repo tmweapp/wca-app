@@ -6,699 +6,360 @@
 <title>WCA Download Test</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
-:root {
-  --bg-page: #0e0e18;
-  --bg-card: #1a1a2e;
-  --bg-input: #12121e;
-  --bg-header: rgba(26,26,46,0.92);
-  --text-primary: #e2e8f0;
-  --text-secondary: #a0aec0;
-  --text-muted: #64748b;
-  --border-color: rgba(99,102,241,0.15);
-  --accent: #6366f1;
-  --accent-hover: #818cf8;
-  --accent-soft: rgba(99,102,241,0.15);
-  --success: #10b981;
-  --warning: #f59e0b;
-  --danger: #ef4444;
-  --gradient: linear-gradient(135deg, #6366f1, #818cf8, #a5b4fc);
-}
+:root{--bg-page:#0e0e18;--bg-card:#1a1a2e;--bg-input:#12121e;--bg-header:rgba(26,26,46,0.92);--text-primary:#e2e8f0;--text-secondary:#a0aec0;--text-muted:#64748b;--border-color:rgba(99,102,241,0.15);--accent:#6366f1;--accent-soft:rgba(99,102,241,0.15);--success:#10b981;--warning:#f59e0b;--danger:#ef4444;--gradient:linear-gradient(135deg,#6366f1,#818cf8,#a5b4fc)}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:"SF Pro Display","Geist",'Inter',system-ui,sans-serif;background:var(--bg-page);color:var(--text-primary);min-height:100vh}
-
 .header{background:var(--bg-header);backdrop-filter:blur(20px);padding:14px 24px;display:flex;align-items:center;gap:16px;border-bottom:1px solid rgba(255,255,255,0.07);position:sticky;top:0;z-index:100}
-.header h1{font-size:1.15rem;font-weight:700;background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.header h1{font-size:1.15rem;font-weight:700;background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
 .btn{padding:8px 18px;border:none;border-radius:8px;font-size:.82rem;font-weight:600;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:6px;color:var(--text-primary)}
 .btn-back{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);text-decoration:none;color:var(--text-secondary)}
-.btn-back:hover{background:rgba(255,255,255,0.08)}
-.btn-primary{background:var(--accent-soft);color:#a5b4fc;border:1px solid rgba(99,102,241,0.25)}.btn-primary:hover{background:rgba(99,102,241,0.25)}
-.btn-success{background:rgba(16,185,129,0.12);color:#6ee7b7;border:1px solid rgba(16,185,129,0.2)}.btn-success:hover{background:rgba(16,185,129,0.2)}
-.btn-warning{background:rgba(245,158,11,0.12);color:#fbbf24;border:1px solid rgba(245,158,11,0.2)}.btn-warning:hover{background:rgba(245,158,11,0.2)}
-.btn-danger{background:rgba(239,68,68,0.12);color:#fca5a5;border:1px solid rgba(239,68,68,0.2)}.btn-danger:hover{background:rgba(239,68,68,0.2)}
-.btn-sm{padding:6px 14px;font-size:.78rem}
-.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-go{background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;font-size:.9rem;padding:12px 28px}
+.btn-go:hover{filter:brightness(1.1)}
+.btn-go:disabled{opacity:.4;cursor:not-allowed}
+.btn-stop{background:rgba(239,68,68,0.15);color:#fca5a5;border:1px solid rgba(239,68,68,0.2)}
 
-.container{max-width:1100px;margin:0 auto;padding:20px}
+.container{max-width:900px;margin:0 auto;padding:20px}
 .card{background:var(--bg-card);border-radius:12px;border:1px solid rgba(255,255,255,0.06);padding:20px;margin-bottom:16px}
-.card h2{font-size:.9rem;color:var(--text-secondary);margin-bottom:16px;display:flex;align-items:center;gap:8px;font-weight:600}
-.card h2 svg{flex-shrink:0}
+.card h2{font-size:.85rem;color:var(--text-secondary);margin-bottom:14px;font-weight:600}
 
-.tabs{display:flex;gap:4px;margin-bottom:20px;background:rgba(255,255,255,0.02);border-radius:10px;padding:4px;border:1px solid rgba(255,255,255,0.06)}
-.tab{padding:10px 20px;border-radius:8px;font-size:.82rem;font-weight:600;cursor:pointer;color:var(--text-muted);transition:all .2s;border:none;background:none;flex:1;text-align:center}
-.tab.active{background:var(--accent-soft);color:#a5b4fc}
-.tab:hover:not(.active){color:var(--text-secondary);background:rgba(255,255,255,0.03)}
+.input-row{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin-bottom:16px}
+.field{display:flex;flex-direction:column;gap:4px}
+.field label{font-size:.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;font-weight:600}
+.field input{background:var(--bg-input);border:1px solid var(--border-color);color:var(--text-primary);padding:10px 14px;border-radius:8px;font-size:.9rem;outline:none;width:100%}
+.field input:focus{border-color:var(--accent)}
+.field-wide{flex:2;min-width:200px}
+.field-short{width:100px}
 
-.mode-panel{display:none}
-.mode-panel.active{display:block}
+.network-grid{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.net-chip{padding:6px 12px;border-radius:6px;font-size:.75rem;font-weight:600;cursor:pointer;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);color:var(--text-muted);transition:all .2s;user-select:none}
+.net-chip:hover{border-color:rgba(99,102,241,0.3);color:var(--text-secondary)}
+.net-chip.selected{background:var(--accent-soft);color:#a5b4fc;border-color:rgba(99,102,241,0.4)}
+.net-chip.all{background:rgba(16,185,129,0.1);color:#6ee7b7;border-color:rgba(16,185,129,0.2)}
+.net-chip.all.selected{background:rgba(16,185,129,0.2);border-color:rgba(16,185,129,0.4)}
 
-.row{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin-bottom:12px}
-.field{display:flex;flex-direction:column;gap:4px;flex:1;min-width:180px}
-.field label{font-size:.72rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;font-weight:600}
-.field input,.field select{background:var(--bg-input);border:1px solid var(--border-color);color:var(--text-primary);padding:9px 12px;border-radius:8px;font-size:.85rem;outline:none;transition:border-color .2s;font-family:inherit}
-.field input:focus,.field select:focus{border-color:var(--accent)}
-.field select option{background:var(--bg-input);color:var(--text-primary)}
-.field-hint{font-size:.7rem;color:var(--text-muted);margin-top:2px}
-
-.result-box{background:var(--bg-input);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:16px;margin-top:16px;min-height:120px;max-height:500px;overflow-y:auto;font-family:'JetBrains Mono',monospace;font-size:.78rem;line-height:1.6;white-space:pre-wrap;word-break:break-all}
-.result-box .info{color:#a5b4fc}
-.result-box .ok{color:#6ee7b7}
-.result-box .err{color:#fca5a5}
-.result-box .warn{color:#fbbf24}
-.result-box .dim{color:#64748b}
-
-.status-bar{display:flex;gap:12px;padding:12px 16px;border-radius:10px;margin-top:12px;font-size:.82rem;align-items:center;background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.15);color:#a5b4fc;display:none}
-.status-bar.active{display:flex}
-.status-bar.done{background:rgba(16,185,129,0.06);border-color:rgba(16,185,129,0.15);color:#6ee7b7}
-.status-bar.error{background:rgba(239,68,68,0.06);border-color:rgba(239,68,68,0.15);color:#fca5a5}
-
+.progress{margin:12px 0;padding:12px 16px;border-radius:8px;font-size:.82rem;display:none;align-items:center;gap:10px}
+.progress.active{display:flex;background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.15);color:#a5b4fc}
+.progress.done{display:flex;background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.15);color:#6ee7b7}
+.progress.error{display:flex;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.15);color:#fca5a5}
 .spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(99,102,241,0.2);border-top-color:#818cf8;border-radius:50%;animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 
-.profile-card{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:16px;margin-top:12px}
-.profile-card h3{font-size:.88rem;font-weight:600;color:var(--text-primary);margin-bottom:8px}
-.profile-card .meta{font-size:.75rem;color:var(--text-muted);margin-bottom:4px}
-.profile-card .contacts{margin-top:10px}
-.profile-card .contact{padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-size:.8rem}
-.profile-card .contact:last-child{border:none}
-.profile-card .contact .name{font-weight:600;color:var(--text-primary)}
-.profile-card .contact .email{color:#a5b4fc}
-.profile-card .badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:.68rem;font-weight:700}
-.profile-card .badge.ok{background:rgba(16,185,129,0.12);color:#6ee7b7}
-.profile-card .badge.fail{background:rgba(239,68,68,0.12);color:#fca5a5}
-.profile-card .badge.limited{background:rgba(245,158,11,0.12);color:#fbbf24}
+.log{background:var(--bg-input);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:14px;margin-top:12px;max-height:600px;overflow-y:auto;font-family:'JetBrains Mono',monospace;font-size:.76rem;line-height:1.7;white-space:pre-wrap}
+.log .i{color:#a5b4fc}.log .ok{color:#6ee7b7}.log .er{color:#fca5a5}.log .w{color:#fbbf24}.log .d{color:#64748b}
 
-.network-chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
-.network-chip{padding:2px 8px;border-radius:4px;font-size:.68rem;background:rgba(99,102,241,0.1);color:#a5b4fc;border:1px solid rgba(99,102,241,0.2)}
+.result{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:14px;margin-top:10px}
+.result h3{font-size:.85rem;font-weight:600;margin-bottom:6px}
+.result .meta{font-size:.73rem;color:var(--text-muted);margin-bottom:3px}
+.result .contact{padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-size:.78rem}
+.result .contact:last-child{border:none}
+.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:.66rem;font-weight:700}
+.badge.ok{background:rgba(16,185,129,0.12);color:#6ee7b7}
+.badge.fail{background:rgba(239,68,68,0.12);color:#fca5a5}
+.badge.warn{background:rgba(245,158,11,0.12);color:#fbbf24}
+.chips{display:flex;flex-wrap:wrap;gap:3px;margin-top:4px}
+.chip{padding:1px 6px;border-radius:3px;font-size:.65rem;background:rgba(99,102,241,0.1);color:#a5b4fc}
+.delay-bar{height:3px;background:rgba(99,102,241,0.1);border-radius:2px;margin:4px 0;overflow:hidden}
+.delay-fill{height:100%;background:var(--accent);border-radius:2px;transition:width .3s}
 </style>
 </head>
 <body>
 
 <div class="header">
-  <a href="/" class="btn btn-back">
-    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 12H5m7-7-7 7 7 7"/></svg>
-    Scraper
-  </a>
+  <a href="/" class="btn btn-back">← Scraper</a>
   <h1>Download Test</h1>
-  <div style="flex:1"></div>
-  <span id="authBadge" style="font-size:.75rem;color:var(--text-muted)">Auth: --</span>
 </div>
 
 <div class="container">
-
-  <!-- MODE TABS -->
-  <div class="tabs">
-    <div class="tab active" data-mode="byId" onclick="switchMode('byId')">Per ID</div>
-    <div class="tab" data-mode="byCountry" onclick="switchMode('byCountry')">Per Paese</div>
-    <div class="tab" data-mode="byNetwork" onclick="switchMode('byNetwork')">Per Network</div>
-    <div class="tab" data-mode="discover" onclick="switchMode('discover')">Discover</div>
-    <div class="tab" data-mode="raw" onclick="switchMode('raw')">Raw URL</div>
-  </div>
-
-  <!-- ═══ MODE 1: PER ID ═══ -->
-  <div class="mode-panel active" id="panel-byId">
-    <div class="card">
-      <h2>
-        <svg width="16" height="16" fill="none" stroke="#a5b4fc" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-        Scarica per WCA ID
-      </h2>
-      <p style="font-size:.78rem;color:var(--text-muted);margin-bottom:12px">Inserisci uno o più WCA ID (separati da virgola). Opzionalmente scegli un network specifico.</p>
-      <div class="row">
-        <div class="field" style="flex:2">
-          <label>WCA ID(s)</label>
-          <input type="text" id="idInput" placeholder="es. 24995, 65706, 112955, 117521" value="24995, 65706, 112955, 117521">
-        </div>
-        <div class="field">
-          <label>Network (opzionale)</label>
-          <select id="idNetwork">
-            <option value="">wcaworld.com (globale)</option>
-          </select>
-        </div>
-        <button class="btn btn-success" onclick="runById()">
-          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4m4-5 5 5 5-5m-5 5V3"/></svg>
-          Scarica
-        </button>
+  <div class="card">
+    <h2>COSA VUOI SCARICARE?</h2>
+    <div class="input-row">
+      <div class="field field-wide">
+        <label>WCA ID oppure Nome Paese</label>
+        <input type="text" id="inputQuery" placeholder="es. 24995, 65706  oppure  Angola, Italy, Singapore">
       </div>
-      <div class="field-hint">Prova Angola: 24995, 65706, 112955, 117521</div>
+      <button class="btn btn-go" id="btnGo" onclick="startTest()">▶ TESTA</button>
+      <button class="btn btn-stop" id="btnStop" onclick="stopTest()" style="display:none">■ STOP</button>
     </div>
+
+    <h2>NETWORK (opzionale — se vuoto testa il globale)</h2>
+    <div class="network-grid" id="netGrid"></div>
   </div>
 
-  <!-- ═══ MODE 2: PER PAESE ═══ -->
-  <div class="mode-panel" id="panel-byCountry">
-    <div class="card">
-      <h2>
-        <svg width="16" height="16" fill="none" stroke="#a5b4fc" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-        Scarica per Paese
-      </h2>
-      <p style="font-size:.78rem;color:var(--text-muted);margin-bottom:12px">Scopri e scarica tutti i partner WCA in un paese. Usa prima Discover poi Scrape.</p>
-      <div class="row">
-        <div class="field">
-          <label>Codice Paese (ISO2)</label>
-          <input type="text" id="countryInput" placeholder="es. AO, IT, SG" value="AO" style="text-transform:uppercase" maxlength="2">
-        </div>
-        <div class="field">
-          <label>Network (opzionale)</label>
-          <select id="countryNetwork">
-            <option value="">Tutti (globale)</option>
-          </select>
-        </div>
-        <div class="field">
-          <label>Max profili</label>
-          <input type="number" id="countryMax" value="10" min="1" max="200">
-        </div>
-        <button class="btn btn-primary" onclick="runByCountry('discover')">Discover</button>
-        <button class="btn btn-success" onclick="runByCountry('scrape')">Discover + Scarica</button>
-      </div>
-    </div>
-  </div>
+  <div class="progress" id="progress"><div class="spinner"></div><span id="progressText"></span></div>
+  <div class="delay-bar" id="delayBar" style="display:none"><div class="delay-fill" id="delayFill"></div></div>
 
-  <!-- ═══ MODE 3: PER NETWORK ═══ -->
-  <div class="mode-panel" id="panel-byNetwork">
-    <div class="card">
-      <h2>
-        <svg width="16" height="16" fill="none" stroke="#a5b4fc" stroke-width="2" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-        Scarica per Network
-      </h2>
-      <p style="font-size:.78rem;color:var(--text-muted);margin-bottom:12px">Scopri i membri di un network specifico in un paese e scarica i profili.</p>
-      <div class="row">
-        <div class="field">
-          <label>Network</label>
-          <select id="networkSelect" style="min-width:250px"></select>
-        </div>
-        <div class="field">
-          <label>Paese (ISO2)</label>
-          <input type="text" id="networkCountry" placeholder="AO" value="AO" style="text-transform:uppercase" maxlength="2">
-        </div>
-        <div class="field">
-          <label>Max profili</label>
-          <input type="number" id="networkMax" value="10" min="1" max="200">
-        </div>
-        <button class="btn btn-primary" onclick="runByNetwork('discover')">Discover</button>
-        <button class="btn btn-success" onclick="runByNetwork('scrape')">Discover + Scarica</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ═══ MODE 4: DISCOVER ═══ -->
-  <div class="mode-panel" id="panel-discover">
-    <div class="card">
-      <h2>
-        <svg width="16" height="16" fill="none" stroke="#a5b4fc" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-        Discovery Globale / Network
-      </h2>
-      <p style="font-size:.78rem;color:var(--text-muted);margin-bottom:12px">Testa la discovery: cerca membri WCA per paese usando l'endpoint globale o per network.</p>
-      <div class="row">
-        <div class="field">
-          <label>Tipo</label>
-          <select id="discoverType">
-            <option value="global">Globale (tutti i network)</option>
-            <option value="network">Per Network specifico</option>
-          </select>
-        </div>
-        <div class="field">
-          <label>Paese (ISO2)</label>
-          <input type="text" id="discoverCountry" placeholder="AO" value="AO" style="text-transform:uppercase" maxlength="2">
-        </div>
-        <div class="field" id="discoverNetworkField" style="display:none">
-          <label>Network</label>
-          <select id="discoverNetwork"></select>
-        </div>
-        <div class="field">
-          <label>Pagina</label>
-          <input type="number" id="discoverPage" value="1" min="1">
-        </div>
-        <button class="btn btn-primary" onclick="runDiscover()">Cerca</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ═══ MODE 5: RAW URL ═══ -->
-  <div class="mode-panel" id="panel-raw">
-    <div class="card">
-      <h2>
-        <svg width="16" height="16" fill="none" stroke="#a5b4fc" stroke-width="2" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-        Test URL Diretto
-      </h2>
-      <p style="font-size:.78rem;color:var(--text-muted);margin-bottom:12px">Testa una URL diretta di profilo WCA. Utile per debug.</p>
-      <div class="row">
-        <div class="field" style="flex:3">
-          <label>URL Profilo</label>
-          <input type="text" id="rawUrl" placeholder="https://www.wcaworld.com/directory/members/24995">
-        </div>
-        <div class="field">
-          <label>WCA ID</label>
-          <input type="text" id="rawId" placeholder="24995">
-        </div>
-        <button class="btn btn-success" onclick="runRawUrl()">Fetch</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- STATUS BAR -->
-  <div class="status-bar" id="statusBar">
-    <div class="spinner"></div>
-    <span id="statusText">Caricamento...</span>
-  </div>
-
-  <!-- RESULTS -->
-  <div id="profileCards"></div>
-  <div class="result-box" id="log"></div>
-
+  <div id="results"></div>
+  <div class="log" id="log"></div>
 </div>
 
 <script>
 const API = window.location.origin;
+let running = false;
+let aborted = false;
 
-// ═══ NETWORK DEFINITIONS ═══
-const NETWORK_DOMAINS = {
-  "wcaworld.com": { name: "WCA World", siteId: 24 },
-  "wcaprojects.com": { name: "WCA Projects", siteId: 5 },
-  "wcadangerousgoods.com": { name: "WCA Dangerous Goods", siteId: 13 },
-  "wcaperishables.com": { name: "WCA Perishables", siteId: 15 },
-  "wcatimecritical.com": { name: "WCA Time Critical", siteId: 16 },
-  "wcapharma.com": { name: "WCA Pharma", siteId: 18 },
-  "wcarelocations.com": { name: "WCA Relocations", siteId: 22 },
-  "wcaecommercesolutions.com": { name: "WCA eCommerce", siteId: 38 },
-  "wcaexpo.com": { name: "WCA Expo", siteId: 107 },
-  "lognetglobal.com": { name: "Lognet Global", siteId: 61 },
-  "globalaffinityalliance.com": { name: "Global Affinity Alliance", siteId: 98 },
-  "elitegln.com": { name: "Elite GLN", siteId: 108 },
-  "ifc8.network": { name: "IFC8", siteId: 118 },
-  "wca-first.com": { name: "WCA First", siteId: 1 },
-  "wca-ap.com": { name: "WCA Advanced Professionals", siteId: 2 },
-  "wca-chinaglobal.com": { name: "WCA China Global", siteId: 3 },
-  "wca-interglobal.com": { name: "WCA Inter Global", siteId: 4 }
-};
+// ═══ DELAY PATTERN (identico a config.js) ═══
+const DELAY_PATTERN = [3,3,2,3,8,3,5,3,12,3,4,3,6,3,9,3,3,3,10];
+let delayIndex = 0;
 
-// ═══ INIT ═══
-function init() {
-  // Popola dropdown network
-  const selects = [document.getElementById("idNetwork"), document.getElementById("countryNetwork"), document.getElementById("networkSelect"), document.getElementById("discoverNetwork")];
-  for (const [domain, info] of Object.entries(NETWORK_DOMAINS)) {
-    for (const sel of selects) {
-      if (!sel) continue;
-      const opt = document.createElement("option");
-      opt.value = domain;
-      opt.textContent = `${info.name} (${domain})`;
-      sel.appendChild(opt);
-    }
-  }
-  // Discover type toggle
-  document.getElementById("discoverType").addEventListener("change", e => {
-    document.getElementById("discoverNetworkField").style.display = e.target.value === "network" ? "" : "none";
-  });
-  checkAuth();
+function getDelay() {
+  const d = DELAY_PATTERN[delayIndex % DELAY_PATTERN.length];
+  delayIndex++;
+  if (delayIndex % DELAY_PATTERN.length === 0) return 15000; // pausa lunga ogni ciclo
+  return d * 1000;
 }
 
-// ═══ AUTH CHECK ═══
-async function checkAuth() {
-  try {
-    const r = await fetch(API + "/api/scrape", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ wcaIds: [1], _authCheck: true }) });
-    const d = await r.json();
-    const badge = document.getElementById("authBadge");
-    if (d.success) {
-      badge.textContent = "Auth: OK";
-      badge.style.color = "#6ee7b7";
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+async function delayWithBar(ms) {
+  const bar = document.getElementById("delayBar");
+  const fill = document.getElementById("delayFill");
+  bar.style.display = "block";
+  fill.style.width = "0%";
+  const start = Date.now();
+  const tick = () => {
+    const elapsed = Date.now() - start;
+    const pct = Math.min(100, (elapsed / ms) * 100);
+    fill.style.width = pct + "%";
+    if (elapsed < ms && !aborted) requestAnimationFrame(tick);
+    else bar.style.display = "none";
+  };
+  requestAnimationFrame(tick);
+  await sleep(ms);
+}
+
+// ═══ COUNTRY NAME → ISO2 ═══
+const COUNTRIES = {"afghanistan":"AF","albania":"AL","algeria":"DZ","angola":"AO","argentina":"AR","australia":"AU","austria":"AT","bahrain":"BH","bangladesh":"BD","belgium":"BE","benin":"BJ","bolivia":"BO","brazil":"BR","brunei":"BN","bulgaria":"BG","burkina faso":"BF","cambodia":"KH","cameroon":"CM","canada":"CA","chile":"CL","china":"CN","colombia":"CO","congo":"CG","costa rica":"CR","croatia":"HR","cuba":"CU","cyprus":"CY","czech republic":"CZ","denmark":"DK","dominican republic":"DO","ecuador":"EC","egypt":"EG","el salvador":"SV","estonia":"EE","ethiopia":"ET","fiji":"FJ","finland":"FI","france":"FR","gabon":"GA","germany":"DE","ghana":"GH","greece":"GR","guatemala":"GT","guinea":"GN","haiti":"HT","honduras":"HN","hong kong":"HK","hungary":"HU","iceland":"IS","india":"IN","indonesia":"ID","iran":"IR","iraq":"IQ","ireland":"IE","israel":"IL","italy":"IT","ivory coast":"CI","jamaica":"JM","japan":"JP","jordan":"JO","kazakhstan":"KZ","kenya":"KE","korea":"KR","south korea":"KR","kuwait":"KW","laos":"LA","latvia":"LV","lebanon":"LB","libya":"LY","lithuania":"LT","luxembourg":"LU","macau":"MO","madagascar":"MG","malaysia":"MY","maldives":"MV","mali":"ML","malta":"MT","mauritius":"MU","mexico":"MX","mongolia":"MN","morocco":"MA","mozambique":"MZ","myanmar":"MM","namibia":"NA","nepal":"NP","netherlands":"NL","new zealand":"NZ","nicaragua":"NI","niger":"NE","nigeria":"NG","norway":"NO","oman":"OM","pakistan":"PK","panama":"PA","paraguay":"PY","peru":"PE","philippines":"PH","poland":"PL","portugal":"PT","qatar":"QA","romania":"RO","russia":"RU","rwanda":"RW","saudi arabia":"SA","senegal":"SN","serbia":"RS","singapore":"SG","slovakia":"SK","slovenia":"SI","south africa":"ZA","spain":"ES","sri lanka":"LK","sudan":"SD","sweden":"SE","switzerland":"CH","syria":"SY","taiwan":"TW","tanzania":"TZ","thailand":"TH","togo":"TG","trinidad":"TT","tunisia":"TN","turkey":"TR","uae":"AE","uganda":"UG","ukraine":"UA","united arab emirates":"AE","united kingdom":"GB","uk":"GB","united states":"US","usa":"US","uruguay":"UY","uzbekistan":"UZ","venezuela":"VE","vietnam":"VN","zambia":"ZM","zimbabwe":"ZW"};
+
+// ═══ NETWORKS ═══
+const NETWORKS = [
+  {domain:"wcaworld.com", name:"WCA World (globale)", siteId:24},
+  {domain:"wcaprojects.com", name:"WCA Projects", siteId:5},
+  {domain:"lognetglobal.com", name:"Lognet Global", siteId:61},
+  {domain:"globalaffinityalliance.com", name:"Global Affinity", siteId:98},
+  {domain:"elitegln.com", name:"Elite GLN", siteId:108},
+  {domain:"ifc8.network", name:"IFC8", siteId:118},
+  {domain:"wcadangerousgoods.com", name:"WCA Dangerous Goods", siteId:13},
+  {domain:"wcaperishables.com", name:"WCA Perishables", siteId:15},
+  {domain:"wcatimecritical.com", name:"WCA Time Critical", siteId:16},
+  {domain:"wcapharma.com", name:"WCA Pharma", siteId:18},
+  {domain:"wcarelocations.com", name:"WCA Relocations", siteId:22},
+  {domain:"wcaecommercesolutions.com", name:"WCA eCommerce", siteId:38},
+  {domain:"wcaexpo.com", name:"WCA Expo", siteId:107},
+];
+
+let selectedNets = new Set();
+
+function initNetworks() {
+  const grid = document.getElementById("netGrid");
+  // "Tutti" chip
+  const allChip = document.createElement("div");
+  allChip.className = "net-chip all";
+  allChip.textContent = "TUTTI";
+  allChip.onclick = () => {
+    if (selectedNets.size === NETWORKS.length) { selectedNets.clear(); }
+    else { NETWORKS.forEach(n => selectedNets.add(n.domain)); }
+    renderNetChips();
+  };
+  grid.appendChild(allChip);
+
+  for (const n of NETWORKS) {
+    const chip = document.createElement("div");
+    chip.className = "net-chip";
+    chip.textContent = n.name;
+    chip.dataset.domain = n.domain;
+    chip.onclick = () => {
+      if (selectedNets.has(n.domain)) selectedNets.delete(n.domain);
+      else selectedNets.add(n.domain);
+      renderNetChips();
+    };
+    grid.appendChild(chip);
+  }
+}
+
+function renderNetChips() {
+  document.querySelectorAll(".net-chip").forEach(c => {
+    if (c.classList.contains("all")) {
+      c.classList.toggle("selected", selectedNets.size === NETWORKS.length);
     } else {
-      badge.textContent = "Auth: " + (d.error || "errore");
-      badge.style.color = "#fca5a5";
+      c.classList.toggle("selected", selectedNets.has(c.dataset.domain));
     }
-  } catch(e) {
-    document.getElementById("authBadge").textContent = "Auth: offline";
-  }
-}
-
-// ═══ TAB SWITCH ═══
-function switchMode(mode) {
-  document.querySelectorAll(".tab").forEach(t => t.classList.toggle("active", t.dataset.mode === mode));
-  document.querySelectorAll(".mode-panel").forEach(p => p.classList.toggle("active", p.id === "panel-" + mode));
-  clearResults();
+  });
 }
 
 // ═══ LOGGING ═══
-function clearResults() {
-  document.getElementById("log").innerHTML = "";
-  document.getElementById("profileCards").innerHTML = "";
-  hideStatus();
-}
-
-function log(msg, cls = "") {
+function lg(msg, cls="") {
   const el = document.getElementById("log");
-  const line = document.createElement("div");
-  line.className = cls;
-  line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
-  el.appendChild(line);
+  const d = document.createElement("div");
+  d.className = cls;
+  d.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+  el.appendChild(d);
   el.scrollTop = el.scrollHeight;
 }
 
-function showStatus(msg) {
-  const bar = document.getElementById("statusBar");
-  bar.className = "status-bar active";
-  document.getElementById("statusText").textContent = msg;
-  bar.querySelector(".spinner").style.display = "";
+function setProgress(msg, state="active") {
+  const p = document.getElementById("progress");
+  p.className = "progress " + state;
+  p.querySelector(".spinner").style.display = state === "active" ? "" : "none";
+  document.getElementById("progressText").textContent = msg;
 }
 
-function statusDone(msg) {
-  const bar = document.getElementById("statusBar");
-  bar.className = "status-bar active done";
-  document.getElementById("statusText").textContent = msg;
-  bar.querySelector(".spinner").style.display = "none";
-}
-
-function statusError(msg) {
-  const bar = document.getElementById("statusBar");
-  bar.className = "status-bar active error";
-  document.getElementById("statusText").textContent = msg;
-  bar.querySelector(".spinner").style.display = "none";
-}
-
-function hideStatus() {
-  document.getElementById("statusBar").className = "status-bar";
-}
-
-// ═══ RENDER PROFILE CARD ═══
-function renderProfile(p) {
-  const container = document.getElementById("profileCards");
+// ═══ RENDER RESULT ═══
+function renderResult(p, networkLabel) {
   const div = document.createElement("div");
-  div.className = "profile-card";
-
-  const stateClass = p.state === "ok" ? "ok" : p.state === "login_redirect" ? "fail" : p.access_limited ? "limited" : "fail";
-  const stateLabel = p.state === "ok" ? "OK" : p.state === "login_redirect" ? "LOGIN REDIRECT" : p.state === "not_found" ? "NON TROVATO" : p.state === "not_in_network" ? "NON IN NETWORK" : p.state;
-
-  let html = `<h3>${p.company_name || "ID " + p.wca_id} <span class="badge ${stateClass}">${stateLabel}</span></h3>`;
-  html += `<div class="meta">WCA ID: ${p.wca_id} | Network: ${p.source_network || "--"} | URL: ${p.source_url || "--"}</div>`;
-
-  if (p.email) html += `<div class="meta">Email aziendale: ${p.email}</div>`;
-  if (p.phone) html += `<div class="meta">Tel: ${p.phone}</div>`;
-  if (p.address) html += `<div class="meta">Indirizzo: ${p.address}</div>`;
-  if (p.access_limited) html += `<div class="meta" style="color:#fbbf24">⚠ Accesso limitato (members_only: ${p.members_only_count || 0})</div>`;
-  if (p.auto_retried) html += `<div class="meta" style="color:#a5b4fc">↻ Auto-retry su ${p.source_network}</div>`;
-  if (p.sso_refreshed) html += `<div class="meta" style="color:#a5b4fc">↻ SSO refreshed</div>`;
-
-  if (p.networks && p.networks.length) {
-    html += `<div class="network-chips">`;
-    for (const n of p.networks) html += `<span class="network-chip">${n}</span>`;
-    html += `</div>`;
-  }
-
-  if (p.contacts && p.contacts.length) {
-    html += `<div class="contacts">`;
-    for (const c of p.contacts) {
-      html += `<div class="contact">`;
-      html += `<span class="name">${c.name || "--"}</span>`;
-      if (c.title) html += ` — ${c.title}`;
-      if (c.email) html += ` <span class="email">${c.email}</span>`;
-      if (c.phone || c.direct_line || c.mobile) html += ` | Tel: ${c.direct_line || c.phone || c.mobile || "--"}`;
-      html += `</div>`;
-    }
-    html += `</div>`;
-  } else if (p.state === "ok") {
-    html += `<div class="meta" style="color:#fbbf24">Nessun contatto trovato</div>`;
-  }
-
-  div.innerHTML = html;
-  container.appendChild(div);
-}
-
-// ═══ MODE 1: PER ID ═══
-async function runById() {
-  clearResults();
-  const ids = document.getElementById("idInput").value.split(",").map(s => parseInt(s.trim())).filter(n => n > 0);
-  const network = document.getElementById("idNetwork").value;
-  if (!ids.length) { log("Inserisci almeno un WCA ID", "err"); return; }
-
-  showStatus(`Scaricando ${ids.length} profili...`);
-  log(`Inizio download ${ids.length} profili su ${network || "wcaworld.com (globale)"}`, "info");
-
-  let ok = 0, fail = 0;
-  for (let i = 0; i < ids.length; i++) {
-    const wcaId = ids[i];
-    showStatus(`Profilo ${i+1}/${ids.length}: ID ${wcaId}...`);
-    log(`→ Scaricando ID ${wcaId}...`, "dim");
-
-    try {
-      const body = { wcaIds: [wcaId] };
-      if (network) body.networkDomain = network;
-      const r = await fetch(API + "/api/scrape", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body)
-      });
-      const d = await r.json();
-
-      if (d.success && d.results && d.results.length) {
-        const p = d.results[0];
-        renderProfile(p);
-        if (p.state === "ok") {
-          ok++;
-          log(`✓ ${p.company_name || wcaId} — ${p.contacts?.length || 0} contatti, email: ${p.email || "no"}, network: ${p.source_network}`, "ok");
-        } else {
-          fail++;
-          log(`✗ ID ${wcaId} — stato: ${p.state}, network: ${p.source_network}`, "err");
-        }
-      } else {
-        fail++;
-        log(`✗ ID ${wcaId} — errore: ${d.error || "no results"}`, "err");
-      }
-    } catch(e) {
-      fail++;
-      log(`✗ ID ${wcaId} — eccezione: ${e.message}`, "err");
-    }
-
-    // Delay tra profili (evita rate limit)
-    if (i < ids.length - 1) {
-      log("⏳ Attesa 3s...", "dim");
-      await new Promise(r => setTimeout(r, 3000));
-    }
-  }
-
-  statusDone(`Completato: ${ok} OK, ${fail} falliti su ${ids.length}`);
-  log(`\nRISULTATO FINALE: ${ok} OK, ${fail} falliti`, ok === ids.length ? "ok" : "warn");
-}
-
-// ═══ MODE 2: PER PAESE ═══
-async function runByCountry(action) {
-  clearResults();
-  const country = document.getElementById("countryInput").value.trim().toUpperCase();
-  const network = document.getElementById("countryNetwork").value;
-  const max = parseInt(document.getElementById("countryMax").value) || 10;
-  if (!country || country.length !== 2) { log("Inserisci un codice paese valido (2 lettere)", "err"); return; }
-
-  showStatus(`Discovering ${country}...`);
-  log(`Discovery: paese=${country}, network=${network || "globale"}, max=${max}`, "info");
-
-  try {
-    // Step 1: Discover
-    const discoverUrl = network ? "/api/discover-network" : "/api/discover-global";
-    const discoverBody = { country };
-    if (network) discoverBody.networkDomain = network;
-
-    const r = await fetch(API + discoverUrl, {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(discoverBody)
+  div.className = "result";
+  const st = p.state === "ok" ? "ok" : p.state === "login_redirect" ? "fail" : "warn";
+  const stLabel = p.state === "ok" ? "OK" : p.state === "login_redirect" ? "LOGIN REDIRECT" : p.state === "not_found" ? "NON TROVATO" : p.state;
+  let h = `<h3>${p.company_name || "ID "+p.wca_id} <span class="badge ${st}">${stLabel}</span> <span style="font-size:.7rem;color:var(--text-muted)">${networkLabel}</span></h3>`;
+  if (p.email) h += `<div class="meta">Email: ${p.email}</div>`;
+  if (p.phone) h += `<div class="meta">Tel: ${p.phone}</div>`;
+  if (p.address) h += `<div class="meta">Addr: ${p.address}</div>`;
+  if (p.access_limited) h += `<div class="meta" style="color:#fbbf24">⚠ Accesso limitato (members_only: ${p.members_only_count||0})</div>`;
+  if (p.auto_retried) h += `<div class="meta" style="color:#a5b4fc">↻ Auto-retry via ${p.source_network}</div>`;
+  if (p.networks?.length) { h += `<div class="chips">`; p.networks.forEach(n => h += `<span class="chip">${n}</span>`); h += `</div>`; }
+  if (p.contacts?.length) {
+    p.contacts.forEach(c => {
+      h += `<div class="contact"><b>${c.name||"?"}</b>`;
+      if (c.title) h += ` — ${c.title}`;
+      if (c.email) h += ` | <span style="color:#a5b4fc">${c.email}</span>`;
+      if (c.phone||c.direct_line||c.mobile) h += ` | ${c.direct_line||c.phone||c.mobile}`;
+      h += `</div>`;
     });
-    const d = await r.json();
-    const members = d.members || d.data || [];
-    log(`Discovery OK: ${members.length} membri trovati`, members.length ? "ok" : "warn");
+  } else if (p.state==="ok") h += `<div class="meta" style="color:#fbbf24">⚠ Nessun contatto</div>`;
+  div.innerHTML = h;
+  document.getElementById("results").appendChild(div);
+}
 
-    if (!members.length) { statusDone("Nessun membro trovato"); return; }
+// ═══ PARSE INPUT ═══
+function parseInput(raw) {
+  raw = raw.trim();
+  if (!raw) return null;
 
-    // Mostra lista
-    for (const m of members.slice(0, max)) {
-      log(`  • ID ${m.id || m.wca_id} — ${m.company || m.company_name || "?"} ${m.href ? "(" + m.href + ")" : ""}`, "dim");
-    }
+  // Check se sono numeri (WCA IDs)
+  const nums = raw.split(/[,;\s]+/).map(s => parseInt(s.trim())).filter(n => n > 0);
+  if (nums.length > 0 && nums.every(n => !isNaN(n))) {
+    return { type: "ids", ids: nums };
+  }
 
-    if (action === "discover") {
-      statusDone(`Discovery completata: ${members.length} membri`);
-      return;
-    }
+  // Check se è un codice ISO2
+  if (raw.length === 2) return { type: "country", code: raw.toUpperCase() };
 
-    // Step 2: Scrape
-    const toScrape = members.slice(0, max);
-    let ok = 0, fail = 0;
-    for (let i = 0; i < toScrape.length; i++) {
-      const m = toScrape[i];
-      const wcaId = m.id || m.wca_id;
-      showStatus(`Scraping ${i+1}/${toScrape.length}: ID ${wcaId}...`);
-      log(`→ Scaricando ${wcaId}...`, "dim");
+  // Check se è un nome paese
+  const code = COUNTRIES[raw.toLowerCase()];
+  if (code) return { type: "country", code };
+
+  return null;
+}
+
+// ═══ MAIN TEST ═══
+async function startTest() {
+  const input = parseInput(document.getElementById("inputQuery").value);
+  if (!input) { lg("Input non valido. Usa WCA ID (numeri) o nome paese.", "er"); return; }
+
+  running = true; aborted = false; delayIndex = 0;
+  document.getElementById("btnGo").style.display = "none";
+  document.getElementById("btnStop").style.display = "";
+  document.getElementById("results").innerHTML = "";
+  document.getElementById("log").innerHTML = "";
+
+  const nets = [...selectedNets];
+
+  if (input.type === "ids") {
+    await testByIds(input.ids, nets);
+  } else {
+    await testByCountry(input.code, nets);
+  }
+
+  running = false;
+  document.getElementById("btnGo").style.display = "";
+  document.getElementById("btnStop").style.display = "none";
+}
+
+function stopTest() {
+  aborted = true; running = false;
+  setProgress("Fermato", "error");
+  document.getElementById("btnGo").style.display = "";
+  document.getElementById("btnStop").style.display = "none";
+}
+
+// ═══ TEST PER ID ═══
+async function testByIds(ids, nets) {
+  // Se nessun network selezionato → testa solo globale (wcaworld.com)
+  const domains = nets.length > 0 ? nets : [""];
+  const total = ids.length * domains.length;
+  let done = 0, ok = 0, fail = 0;
+
+  lg(`Test ${ids.length} ID × ${domains.length || 1} network = ${total} richieste`, "i");
+  lg(`Delay pattern: [${DELAY_PATTERN.join(",")}]s + 15s ogni ${DELAY_PATTERN.length} profili`, "d");
+
+  for (const domain of domains) {
+    const netLabel = domain ? (NETWORKS.find(n=>n.domain===domain)?.name||domain) : "wcaworld.com (globale)";
+    lg(`\n═══ Network: ${netLabel} ═══`, "i");
+
+    for (let i = 0; i < ids.length; i++) {
+      if (aborted) return;
+      const wcaId = ids[i];
+      done++;
+      setProgress(`${done}/${total} — ID ${wcaId} su ${netLabel}...`);
+      lg(`→ Scaricando ID ${wcaId}...`, "d");
 
       try {
-        const body = { wcaIds: [wcaId], members: [m] };
-        if (network) body.networkDomain = network;
-        const sr = await fetch(API + "/api/scrape", {
-          method: "POST", headers: { "Content-Type": "application/json" },
+        const body = { wcaIds: [wcaId] };
+        if (domain) body.networkDomain = domain;
+        const r = await fetch(API + "/api/scrape", {
+          method: "POST", headers: {"Content-Type":"application/json"},
           body: JSON.stringify(body)
         });
-        const sd = await sr.json();
-        if (sd.success && sd.results?.length) {
-          const p = sd.results[0];
-          renderProfile(p);
-          if (p.state === "ok") { ok++; log(`✓ ${p.company_name || wcaId} — ${p.contacts?.length || 0} contatti`, "ok"); }
-          else { fail++; log(`✗ ${wcaId} — ${p.state}`, "err"); }
-        } else { fail++; log(`✗ ${wcaId} — ${sd.error || "no data"}`, "err"); }
-      } catch(e) { fail++; log(`✗ ${wcaId} — ${e.message}`, "err"); }
+        const d = await r.json();
+        if (d.success && d.results?.length) {
+          const p = d.results[0];
+          renderResult(p, netLabel);
+          if (p.state === "ok") { ok++; lg(`✓ ${p.company_name||wcaId} — ${p.contacts?.length||0} contatti`, "ok"); }
+          else { fail++; lg(`✗ ${wcaId} — ${p.state}`, "er"); }
+        } else { fail++; lg(`✗ ${wcaId} — ${d.error||"errore"}`, "er"); }
+      } catch(e) { fail++; lg(`✗ ${wcaId} — ${e.message}`, "er"); }
 
-      if (i < toScrape.length - 1) await new Promise(r => setTimeout(r, 3000));
+      // Pausa WCA standard
+      if (done < total && !aborted) {
+        const delay = getDelay();
+        lg(`⏳ Pausa ${(delay/1000).toFixed(0)}s...`, "d");
+        await delayWithBar(delay);
+      }
     }
-    statusDone(`Completato: ${ok} OK, ${fail} falliti su ${toScrape.length}`);
-
-  } catch(e) {
-    statusError("Errore: " + e.message);
-    log("Errore: " + e.message, "err");
   }
+
+  setProgress(`Completato: ${ok} OK, ${fail} falliti su ${total}`, ok > 0 ? "done" : "error");
+  lg(`\n═══ RISULTATO: ${ok} OK, ${fail} falliti su ${total} ═══`, ok > 0 ? "ok" : "er");
 }
 
-// ═══ MODE 3: PER NETWORK ═══
-async function runByNetwork(action) {
-  clearResults();
-  const network = document.getElementById("networkSelect").value;
-  const country = document.getElementById("networkCountry").value.trim().toUpperCase();
-  const max = parseInt(document.getElementById("networkMax").value) || 10;
-  if (!network) { log("Seleziona un network", "err"); return; }
-  if (!country || country.length !== 2) { log("Inserisci un codice paese valido", "err"); return; }
+// ═══ TEST PER PAESE ═══
+async function testByCountry(countryCode, nets) {
+  lg(`Discovery paese: ${countryCode}`, "i");
 
-  showStatus(`Discovering ${country} su ${network}...`);
-  log(`Discovery network: ${network}, paese=${country}, max=${max}`, "info");
-
+  // Step 1: Discover (globale)
+  setProgress(`Discovering ${countryCode}...`);
+  let members = [];
   try {
-    const r = await fetch(API + "/api/discover-network", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ country, networkDomain: network })
+    const r = await fetch(API + "/api/discover-global", {
+      method: "POST", headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({ country: countryCode })
     });
     const d = await r.json();
-    const members = d.members || d.data || [];
-    log(`Discovery OK: ${members.length} membri in ${NETWORK_DOMAINS[network]?.name || network}`, members.length ? "ok" : "warn");
+    members = d.members || d.data || [];
+    lg(`Discovery: ${members.length} membri trovati`, members.length ? "ok" : "w");
+    members.forEach(m => lg(`  • ID ${m.id||m.wca_id} — ${m.company||m.company_name||"?"}`, "d"));
+  } catch(e) { lg(`Discovery fallita: ${e.message}`, "er"); setProgress("Discovery fallita", "error"); return; }
 
-    if (!members.length) { statusDone("Nessun membro trovato in questo network"); return; }
+  if (!members.length) { setProgress("Nessun membro trovato", "error"); return; }
 
-    for (const m of members.slice(0, max)) {
-      log(`  • ID ${m.id || m.wca_id} — ${m.company || m.company_name || "?"}`, "dim");
-    }
-
-    if (action === "discover") {
-      statusDone(`Discovery: ${members.length} membri in ${NETWORK_DOMAINS[network]?.name || network}`);
-      return;
-    }
-
-    // Scrape con network specifico
-    const toScrape = members.slice(0, max);
-    let ok = 0, fail = 0;
-    for (let i = 0; i < toScrape.length; i++) {
-      const m = toScrape[i];
-      const wcaId = m.id || m.wca_id;
-      showStatus(`Scraping ${i+1}/${toScrape.length}: ID ${wcaId} su ${network}...`);
-
-      try {
-        const sr = await fetch(API + "/api/scrape", {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ wcaIds: [wcaId], networkDomain: network, members: [m] })
-        });
-        const sd = await sr.json();
-        if (sd.success && sd.results?.length) {
-          const p = sd.results[0];
-          renderProfile(p);
-          if (p.state === "ok") { ok++; log(`✓ ${p.company_name || wcaId} — ${p.contacts?.length || 0} contatti`, "ok"); }
-          else { fail++; log(`✗ ${wcaId} — ${p.state}`, "err"); }
-        } else { fail++; }
-      } catch(e) { fail++; log(`✗ ${wcaId} — ${e.message}`, "err"); }
-
-      if (i < toScrape.length - 1) await new Promise(r => setTimeout(r, 3000));
-    }
-    statusDone(`Completato: ${ok} OK, ${fail} falliti`);
-
-  } catch(e) {
-    statusError("Errore: " + e.message);
-  }
+  // Step 2: Scrape ciascun membro
+  const domains = nets.length > 0 ? nets : [""];
+  const ids = members.map(m => m.id || m.wca_id);
+  await testByIds(ids, domains);
 }
 
-// ═══ MODE 4: DISCOVER ═══
-async function runDiscover() {
-  clearResults();
-  const type = document.getElementById("discoverType").value;
-  const country = document.getElementById("discoverCountry").value.trim().toUpperCase();
-  const page = parseInt(document.getElementById("discoverPage").value) || 1;
-  if (!country || country.length !== 2) { log("Inserisci un codice paese valido", "err"); return; }
-
-  const isNetwork = type === "network";
-  const network = isNetwork ? document.getElementById("discoverNetwork").value : "";
-
-  showStatus(`Discovery ${type} ${country}${network ? " su " + network : ""}...`);
-  log(`Discovery ${type}: paese=${country}, pagina=${page}${network ? ", network=" + network : ""}`, "info");
-
-  try {
-    const endpoint = isNetwork ? "/api/discover-network" : "/api/discover-global";
-    const body = { country, page };
-    if (isNetwork && network) body.networkDomain = network;
-
-    const r = await fetch(API + endpoint, {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body)
-    });
-    const d = await r.json();
-
-    log(`Risposta completa:`, "info");
-    log(JSON.stringify(d, null, 2), "dim");
-
-    const members = d.members || d.data || [];
-    statusDone(`Trovati ${members.length} membri (pagina ${page})`);
-
-    for (const m of members) {
-      log(`  ID ${m.id || m.wca_id} | ${m.company || m.company_name || "?"} | ${m.country || ""} | href=${m.href || "--"}`, "ok");
-    }
-
-  } catch(e) {
-    statusError("Errore: " + e.message);
-    log("Errore: " + e.message, "err");
-  }
-}
-
-// ═══ MODE 5: RAW URL ═══
-async function runRawUrl() {
-  clearResults();
-  const url = document.getElementById("rawUrl").value.trim();
-  const wcaId = parseInt(document.getElementById("rawId").value) || 0;
-  if (!url && !wcaId) { log("Inserisci una URL o un WCA ID", "err"); return; }
-
-  showStatus("Fetching...");
-  log(`Raw fetch: url=${url || "auto"}, id=${wcaId || "auto"}`, "info");
-
-  try {
-    // Determina il network dalla URL
-    let networkDomain = "";
-    if (url) {
-      try {
-        const hostname = new URL(url).hostname.replace("www.", "");
-        if (NETWORK_DOMAINS[hostname]) networkDomain = hostname;
-      } catch(e) {}
-    }
-
-    const id = wcaId || parseInt(url.match(/\/members\/(\d+)/)?.[1]) || 0;
-    if (!id) { log("Non riesco a estrarre un WCA ID dalla URL", "err"); statusError("WCA ID mancante"); return; }
-
-    const body = { wcaIds: [id] };
-    if (networkDomain) body.networkDomain = networkDomain;
-
-    const r = await fetch(API + "/api/scrape", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body)
-    });
-    const d = await r.json();
-
-    log(`Risposta API:`, "info");
-    log(JSON.stringify(d, null, 2), "dim");
-
-    if (d.success && d.results?.length) {
-      renderProfile(d.results[0]);
-      statusDone(`Profilo ${d.results[0].state === "ok" ? "scaricato" : d.results[0].state}`);
-    } else {
-      statusError(d.error || "Nessun risultato");
-    }
-  } catch(e) {
-    statusError("Errore: " + e.message);
-    log("Errore: " + e.message, "err");
-  }
-}
-
-// ═══ START ═══
-init();
+// ═══ INIT ═══
+initNetworks();
+document.getElementById("inputQuery").addEventListener("keydown", e => { if (e.key === "Enter") startTest(); });
 </script>
 </body>
 </html>
