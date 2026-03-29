@@ -80,7 +80,8 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
     const fromDb = await loadDirectoryFromSupabase(country);
     if(fromDb){ cached = fromDb; cacheAge = 0; }
   }
-  const fullDir = (cached && cacheAge < 24) ? cached : await discoverFullDirectory(country, countryName);
+  const cacheHasNetworks = cached && cached.members && cached.members.some(m => m.networks && m.networks.length > 0);
+  const fullDir = (cached && cacheAge < 24 && cacheHasNetworks) ? cached : await discoverFullDirectory(country, countryName);
   if(!fullDir || fullDir.members.length === 0){
     log(`⚠ ${countryName}: nessun membro trovato nella directory`,"warn");
     return { ok:false, error:"no_members" };
@@ -131,7 +132,7 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
     // Raggruppa per network preferito per download ordinato
     const byNetwork = {};
     for(const m of toDownload){
-      const bestNet = m.networks?.[0] || "wcaworld.com";
+      const bestNet = m.scrape_domain || m.networks?.[0] || "wcaworld.com";
       if(!byNetwork[bestNet]) byNetwork[bestNet] = [];
       byNetwork[bestNet].push(m);
     }

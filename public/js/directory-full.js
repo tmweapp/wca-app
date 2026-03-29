@@ -57,6 +57,20 @@ async function discoverFullDirectory(countryCode, countryName, forceRefresh = fa
   }
 
   const members = Object.values(memberMap);
+
+  // === CALCOLA scrape_url PER OGNI MEMBRO ===
+  for(const m of members){
+    const bestDomain = (m.networks && m.networks.length > 0) ? m.networks[0] : "wcaworld.com";
+    let base = "https://www.wcaworld.com";
+    if(bestDomain && bestDomain !== "wcaworld.com"){
+      if(bestDomain === "ifc8.network") base = "https://ifc8.network";
+      else if(bestDomain.startsWith("wca-")) base = "https://www.wcaworld.com";
+      else base = "https://www." + bestDomain;
+    }
+    m.scrape_url = base + "/directory/members/" + m.id;
+    m.scrape_domain = bestDomain;
+  }
+
   const result = { members, networks: networkCounts, ts: Date.now() };
   saveFullDirectory(countryCode, result);
   log(`📂 Directory ${countryName}: ${members.length} membri unici su ${Object.keys(networkCounts).length} network`,"ok");

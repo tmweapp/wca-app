@@ -41,6 +41,7 @@ module.exports = async (req, res) => {
         country_code: countryCode,
         country_name: countryName,
         networks: m.networks || [],
+        scrape_url: m.scrape_url || "",
         directory_synced_at: new Date().toISOString(),
       }));
 

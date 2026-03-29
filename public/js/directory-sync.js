@@ -305,3 +305,36 @@ function toggleDirSync(){
     }, 500);
   }
 }
+
+
+// === AGGIORNA NETWORK per paesi selezionati ===
+async function updateNetworksForCountries(){
+  const countries = selectedCountries.length > 0 ? [...selectedCountries] : [];
+  if(countries.length === 0){ alert("Seleziona almeno un paese!"); return; }
+  if(!confirm("AGGIORNA NETWORK\n\n" + countries.map(c=>c.name).join(", ") + "\n\nScansiona TUTTI i network WCA per trovare dove ogni partner e presente e calcola la URL di scraping.\n\nProcedere?")) return;
+
+  dirSyncing = true; scraping = true;
+  const dlRow = document.getElementById("activeDownloadRow");
+  if(dlRow) dlRow.style.display = "flex";
+  log("=== AGGIORNAMENTO NETWORK: " + countries.length + " paesi ===","ok");
+
+  for(let ci = 0; ci < countries.length && scraping; ci++){
+    const c = countries[ci];
+    setActiveCountry(c.code, c.name);
+    setStatus("Aggiornamento network " + (ci+1) + "/" + countries.length + ": " + c.name, true);
+    setProgress(ci+1, countries.length);
+    log("" + c.name + ": discovery per-network...","ok");
+    const result = await discoverFullDirectory(c.code, c.name, true);
+    if(result && result.members){
+      const withNets = result.members.filter(m => m.networks && m.networks.length > 0).length;
+      log(c.name + ": " + result.members.length + " partner, " + withNets + " con network, " + result.members.filter(m=>m.scrape_url).length + " con scrape_url","ok");
+    }
+    if(ci + 1 < countries.length && scraping) await sleepWithActivity("", "Pausa 3s", 3000);
+  }
+
+  dirSyncing = false; scraping = false;
+  hideActiveCountry(); hideDownloadRow();
+  setStatus("Network aggiornati per " + countries.length + " paesi!", true);
+  log("=== AGGIORNAMENTO NETWORK COMPLETATO ===","ok");
+  updateDirHeaderCounts();
+}
