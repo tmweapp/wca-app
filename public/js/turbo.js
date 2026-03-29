@@ -7,6 +7,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 
 async function scrapeCountryTurbo(country, countryName, updateAddress = false){
+  console.warn("[DEPRECATO] scrapeCountryTurbo()"); log("⚠ TURBO DEPRECATO — usa START","err"); return;
   currentScrapingCountry = country;
   resetCompletedNetworks();
   hideCountryCompletion();
@@ -196,6 +197,7 @@ async function scrapeCountryTurbo(country, countryName, updateAddress = false){
 
 // ═══ START TURBO — avviato dal bottone ⚡ in home ═══
 async function startTurbo(){
+  console.warn("[DEPRECATO] startTurbo()"); log("⚠ TURBO DEPRECATO — usa START","err"); return;
   if(!sessionCookies){
     log("Devi prima fare il login","err");
     if(typeof setStatus==='function') setStatus("⚠ TURBO: devi prima fare il LOGIN", true);
