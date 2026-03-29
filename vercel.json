@@ -5,7 +5,9 @@
     "api/scrape.js": { "maxDuration": 30 },
     "api/verify.js": { "maxDuration": 30 },
     "api/enrich.js": { "maxDuration": 30 },
-    "api/worker.js": { "maxDuration": 30 }
+    "api/worker.js": { "maxDuration": 30 },
+    "api/fetch-contacts.js": { "maxDuration": 60 },
+    "api/test-auth.js": { "maxDuration": 30 }
   },
   "crons": [
     {
