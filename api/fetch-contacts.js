@@ -138,31 +138,96 @@ async function loginSSO(targetBase) {
     }
   }
 
-  // 1f. Se SSO ha dato 302, segui i redirect
+  // 1f. Se SSO ha dato 302, PRIMA leggi il body (potrebbe avere WS-Fed form)
   if (ssoResp.status >= 300 && ssoResp.status < 400) {
+    // Il body della 302 può contenere un WS-Fed form (auto-submit)
+    try {
+      const ssoBody = await ssoResp.text();
+      if (ssoBody && ssoBody.includes("<form")) {
+        const $sf = cheerio.load(ssoBody);
+        const sfAction = $sf("form").attr("action") || "";
+        if (sfAction) {
+          const sfParams = new URLSearchParams();
+          $sf("input[type='hidden']").each((_, el) => { const n = $sf(el).attr("name"); if (n) sfParams.set(n, $sf(el).attr("value") || ""); });
+          log.push(`SSO 302 body has WS-Fed form → ${sfAction.substring(0, 80)} fields=${[...sfParams.keys()].join(",")}`);
+          const sfDomain = sfAction.includes("sso.api.wcaworld.com") ? SSO_DOMAIN : TARGET_DOMAIN;
+          const sfResp = await fetch(sfAction, {
+            method: "POST",
+            headers: { "User-Agent": UA, "Content-Type": "application/x-www-form-urlencoded", "Cookie": getCookies(sfDomain), "Referer": ssoUrl },
+            body: sfParams.toString(), redirect: "manual",
+          });
+          addCookies(sfDomain, sfResp.headers.raw()["set-cookie"] || []);
+          log.push(`SSO 302 form POST: status=${sfResp.status} targetAuth=${!!jars[TARGET_DOMAIN]?.[".ASPXAUTH"]}`);
+          // Segui redirect dopo postback
+          let sfLoc = sfResp.headers.get("location") || "";
+          for (let j = 0; j < 5 && sfLoc; j++) {
+            const sfNext = sfLoc.startsWith("http") ? sfLoc : new URL(sfLoc, sfAction).href;
+            const sfD = sfNext.includes("sso.api.wcaworld.com") ? SSO_DOMAIN : TARGET_DOMAIN;
+            const sfR = await fetch(sfNext, { headers: { "User-Agent": UA, "Cookie": getCookies(sfD) }, redirect: "manual" });
+            addCookies(sfD, sfR.headers.raw()["set-cookie"] || []);
+            sfLoc = sfR.headers.get("location") || "";
+            if (sfR.status === 200) {
+              const sfHtml = await sfR.text();
+              // Check for another WS-Fed form
+              if (sfHtml.includes("<form") && sfHtml.includes("wresult")) {
+                const $sf2 = cheerio.load(sfHtml);
+                const sf2Action = $sf2("form").attr("action") || "";
+                if (sf2Action) {
+                  const sf2Params = new URLSearchParams();
+                  $sf2("input[type='hidden']").each((_, el) => { const n = $sf2(el).attr("name"); if (n) sf2Params.set(n, $sf2(el).attr("value") || ""); });
+                  const sf2D = sf2Action.includes("sso.api.wcaworld.com") ? SSO_DOMAIN : TARGET_DOMAIN;
+                  const sf2Resp = await fetch(sf2Action, {
+                    method: "POST",
+                    headers: { "User-Agent": UA, "Content-Type": "application/x-www-form-urlencoded", "Cookie": getCookies(sf2D) },
+                    body: sf2Params.toString(), redirect: "manual",
+                  });
+                  addCookies(sf2D, sf2Resp.headers.raw()["set-cookie"] || []);
+                  log.push(`Nested WS-Fed POST: status=${sf2Resp.status}`);
+                }
+              }
+              break;
+            }
+          }
+        }
+      }
+    } catch(e) { /* body already consumed or empty */ }
+
+    // Poi segui la redirect chain normalmente
     let loc = ssoResp.headers.get("location") || "";
+    log.push(`SSO 302 redirect: ${loc.substring(0, 120)}`);
     for (let i = 0; i < 8 && loc; i++) {
       const url = loc.startsWith("http") ? loc : new URL(loc, ssoUrl).href;
       const domain = url.includes("sso.api.wcaworld.com") ? SSO_DOMAIN : TARGET_DOMAIN;
       const r = await fetch(url, { headers: { "User-Agent": UA, "Cookie": getCookies(domain) }, redirect: "manual" });
       addCookies(domain, r.headers.raw()["set-cookie"] || []);
-      log.push(`  callback: ${domain} status=${r.status}`);
+      log.push(`  callback[${i}]: ${domain} status=${r.status} url=${url.substring(0, 80)}`);
 
-      // Check per WS-Fed form nel body
+      // .ASPXAUTH appena settato? Logga il valore
+      if (r.headers.raw()["set-cookie"]?.some(c => c.includes(".ASPXAUTH"))) {
+        const aspx = r.headers.raw()["set-cookie"].find(c => c.includes(".ASPXAUTH"));
+        const val = aspx ? aspx.split(";")[0].split("=").slice(1).join("=") : "";
+        log.push(`  → .ASPXAUTH set! len=${val.length} empty=${val === ""}`);
+      }
+
+      // Check per WS-Fed form nel body di 200
       if (r.status === 200) {
         const html = await r.text();
+        log.push(`  200 body: len=${html.length} hasForm=${html.includes("<form")} hasWresult=${html.includes("wresult")}`);
         if (html.includes("<form") && (html.includes("wresult") || html.includes("wsignin"))) {
           const $f = cheerio.load(html);
           const fAction = $f("form").attr("action") || "";
           if (fAction) {
             const fParams = new URLSearchParams();
             $f("input[type='hidden']").each((_, el) => { const n = $f(el).attr("name"); if (n) fParams.set(n, $f(el).attr("value") || ""); });
+            log.push(`  WS-Fed form → ${fAction.substring(0, 80)}`);
+            const fD = fAction.includes("sso.api.wcaworld.com") ? SSO_DOMAIN : TARGET_DOMAIN;
             const fResp = await fetch(fAction, {
               method: "POST",
-              headers: { "User-Agent": UA, "Content-Type": "application/x-www-form-urlencoded", "Cookie": getCookies(TARGET_DOMAIN) },
+              headers: { "User-Agent": UA, "Content-Type": "application/x-www-form-urlencoded", "Cookie": getCookies(fD) },
               body: fParams.toString(), redirect: "manual",
             });
-            addCookies(TARGET_DOMAIN, fResp.headers.raw()["set-cookie"] || []);
+            addCookies(fD, fResp.headers.raw()["set-cookie"] || []);
+            log.push(`  WS-Fed POST: status=${fResp.status}`);
             let fLoc = fResp.headers.get("location") || "";
             for (let j = 0; j < 3 && fLoc; j++) {
               const fn = fLoc.startsWith("http") ? fLoc : new URL(fLoc, fAction).href;
@@ -374,15 +439,15 @@ module.exports = async (req, res) => {
   try {
     // Login
     const login = await loginSSO(baseUrl);
-    if (!login.ok) {
-      return res.json({ success: false, error: login.error, log: login.log });
-    }
 
-    // Fetch profilo
-    const profile = await fetchAndExtract(parseInt(wcaId), login.cookies, baseUrl, login.ssoCookies);
+    // Fetch profilo ANCHE se login non è perfetto (i dati parziali possono bastare)
+    const cookies = login.cookies || "";
+    const ssoCookies = login.ssoCookies || "";
+    const profile = await fetchAndExtract(parseInt(wcaId), cookies, baseUrl, ssoCookies);
 
     return res.json({
-      success: true,
+      success: login.ok,
+      authenticated: login.ok,
       domain,
       profile,
       ssoLog: login.log,
