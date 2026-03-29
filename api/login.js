@@ -11,17 +11,19 @@ module.exports = async (req, res) => {
     const { username, password } = req.body || {};
     const result = await ssoLogin(username, password);
 
+    // ═══ CRITICO: salva i cookies del login utente nella cache Supabase ═══
+    // Così il /api/scrape li riusa invece delle credenziali hardcoded
     if (result.success && result.cookies) {
       const isValid = await testCookies(result.cookies, BASE);
-      console.log(`[login] testCookies=${isValid}`);
+      console.log(`[login] User login success, testCookies=${isValid}, saving to cache for scrape reuse`);
       if (isValid) {
-        await saveCookiesToCache(result.cookies, "wcaworld.com");
+        await saveCookiesToCache(result.cookies, "wcaworld.com", result.ssoCookies || "");
+        console.log(`[login] ✓ Cookies utente salvati in cache — il scrape li userà`);
       }
     }
 
-    // Non ritornare il log enorme al frontend
-    return res.json({ success: result.success, error: result.error || null });
+    return res.json(result);
   } catch (err) {
-    return res.status(500).json({ success: false, error: err.message });
+    return res.status(500).json({ success: false, error: err.message, stack: err.stack });
   }
 };
