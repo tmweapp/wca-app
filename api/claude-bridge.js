@@ -34,20 +34,21 @@ const SLOT_IDS = {
 };
 
 async function setSlot(slotName, data) {
+  const body = JSON.stringify({
+    id: SLOT_IDS[slotName],
+    cookies: JSON.stringify(data),
+    updated_at: new Date().toISOString(),
+  });
   const resp = await fetch(`${SUPABASE_URL}/rest/v1/wca_session?on_conflict=id`, {
     method: "POST",
     headers: HEADERS,
-    body: JSON.stringify({
-      id: SLOT_IDS[slotName],
-      cookies: JSON.stringify(data),
-      updated_at: new Date().toISOString(),
-    }),
+    body,
   });
   if (!resp.ok) {
     const err = await resp.text();
-    console.error(`[claude-bridge] setSlot(${slotName}) error ${resp.status}: ${err.substring(0, 200)}`);
+    return { ok: false, status: resp.status, error: err.substring(0, 300) };
   }
-  return resp.ok;
+  return { ok: true };
 }
 
 async function getSlot(slotName) {
@@ -79,31 +80,31 @@ module.exports = async (req, res) => {
 
     // ── Ping ──
     if (action === "ping") {
-      return res.json({ ok: true, ts: Date.now(), version: "1.1" });
+      return res.json({ ok: true, ts: Date.now(), version: "1.2" });
     }
 
     // ── Claude invia comando JS ──
     if (action === "cmd") {
       if (!js) return res.json({ error: "js parameter required" });
-      const ok = await setSlot("__claude_cmd", {
+      const r = await setSlot("__claude_cmd", {
         type: "js",
         code: js,
         tabId: tabId ? parseInt(tabId) : null,
         ts: Date.now(),
       });
-      return res.json({ ok, action: "cmd_queued" });
+      return res.json({ ...r, action: "cmd_queued" });
     }
 
     // ── Claude invia navigazione ──
     if (action === "nav") {
       if (!url) return res.json({ error: "url parameter required" });
-      const ok = await setSlot("__claude_cmd", {
+      const r = await setSlot("__claude_cmd", {
         type: "nav",
         url,
         tabId: tabId ? parseInt(tabId) : null,
         ts: Date.now(),
       });
-      return res.json({ ok, action: "nav_queued" });
+      return res.json({ ...r, action: "nav_queued" });
     }
 
     // ── Extension prende il comando pendente ──
@@ -119,8 +120,8 @@ module.exports = async (req, res) => {
       if (!result) return res.json({ error: "result parameter required" });
       let parsed;
       try { parsed = JSON.parse(result); } catch { parsed = result; }
-      const ok = await setSlot("__claude_result", { data: parsed, ts: Date.now() });
-      return res.json({ ok, action: "result_saved" });
+      const r = await setSlot("__claude_result", { data: parsed, ts: Date.now() });
+      return res.json({ ...r, action: "result_saved" });
     }
 
     // ── Claude legge l'ultimo risultato ──
@@ -136,8 +137,8 @@ module.exports = async (req, res) => {
       if (!result) return res.json({ error: "result parameter required" });
       let parsed;
       try { parsed = JSON.parse(result); } catch { parsed = result; }
-      const ok = await setSlot("__claude_tabs", { tabs: parsed, ts: Date.now() });
-      return res.json({ ok, action: "tabs_saved" });
+      const r = await setSlot("__claude_tabs", { tabs: parsed, ts: Date.now() });
+      return res.json({ ...r, action: "tabs_saved" });
     }
 
     // ── Claude legge lista tab ──
