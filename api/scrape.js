@@ -150,6 +150,9 @@ async function forceSSORrefresh(domain) {
 }
 
 // ═══ HANDLER PRINCIPALE ═══
+// STRATEGIA: SEMPRE wcaworld.com — come fa la Chrome extension originale.
+// I network domain (elitegln.com, lognetglobal.com, ecc.) NON servono per il fetch.
+// wcaworld.com mostra TUTTI i profili di TUTTI i network se sei loggato.
 module.exports = async (req, res) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
@@ -161,33 +164,19 @@ module.exports = async (req, res) => {
     const { wcaIds, members, networkDomain } = req.body || {};
     if (!wcaIds || !Array.isArray(wcaIds) || wcaIds.length === 0) return res.status(400).json({ error: "wcaIds richiesto" });
 
-    const isNetworkMode = networkDomain && networkDomain !== "wcaworld.com";
-    const targetDomain = isNetworkMode ? networkDomain : "wcaworld.com";
-    console.log(`[scrape] === START ${wcaIds[0]} mode=${isNetworkMode ? "NETWORK " + networkDomain : "wcaworld.com"}`);
+    console.log(`[scrape] === START ${wcaIds[0]} (requested domain: ${networkDomain || "wcaworld.com"})`);
 
-    // Auth sul dominio target
-    const auth = await getAuthCookies(targetDomain);
+    // ═══ SEMPRE login su wcaworld.com — unico dominio che funziona ═══
+    let auth = await getAuthCookies("wcaworld.com");
     if (auth.error) {
-      console.log(`[scrape] Auth FAILED on ${targetDomain}: ${auth.error}`);
+      console.log(`[scrape] Auth FAILED wcaworld.com: ${auth.error}`);
       return res.status(500).json({ success: false, error: auth.error });
     }
     let cookies = auth.cookies;
     let ssoCookies = auth.ssoCookies || "";
-    console.log(`[scrape] Auth OK ${targetDomain}: cookieLen=${cookies.length} hasASPXAUTH=${cookies.includes(".ASPXAUTH")} ssoCookieLen=${ssoCookies.length}`);
+    console.log(`[scrape] Auth OK wcaworld.com: hasASPXAUTH=${cookies.includes(".ASPXAUTH")} hasLogout=${cookies.length > 100}`);
 
-    // ═══ SEMPRE avere anche cookies wcaworld.com come fallback ═══
-    let wcaCookies = cookies;
-    let wcaSsoCookies = ssoCookies;
-    if (isNetworkMode) {
-      const wcaAuth = await getAuthCookies("wcaworld.com");
-      if (!wcaAuth.error) {
-        wcaCookies = wcaAuth.cookies;
-        wcaSsoCookies = wcaAuth.ssoCookies || "";
-        console.log(`[scrape] WCA fallback auth OK: cookieLen=${wcaCookies.length} hasASPXAUTH=${wcaCookies.includes(".ASPXAUTH")}`);
-      }
-    }
-
-    const batch = wcaIds.slice(0, 1); // 1 solo profilo per request
+    const batch = wcaIds.slice(0, 1);
     const memberMap = {};
     if (members && Array.isArray(members)) {
       for (const m of members) { if (m.id && m.href) memberMap[m.id] = m.href; }
@@ -195,113 +184,38 @@ module.exports = async (req, res) => {
 
     const results = [];
     for (const wcaId of batch) {
-      // ═══ STRATEGIA MULTI-DOMINIO ═══
-      // 1. Prima prova sul network specifico (se richiesto)
-      // 2. Se fallisce o no contatti → prova su wcaworld.com con cookies WCA
-      // 3. Se ancora no contatti → auto-retry su altri network
+      // ═══ FETCH SEMPRE DA wcaworld.com ═══
+      let profile = await fetchProfile(wcaId, cookies, null, null, ssoCookies);
+      console.log(`[scrape] ${wcaId}: state=${profile.state} contacts=${profile.contacts?.length||0} email=${!!profile.email} phone=${!!profile.phone} limited=${profile.access_limited} membersOnly=${profile.members_only_count} hasLogout=${profile.hasLogout}`);
 
-      let profile = null;
-      let bestProfile = null;
+      // ═══ SSO REFRESH se auth fallita ═══
+      const authFailed = profile.state === "login_redirect" ||
+        profile.access_limited ||
+        (!profile.hasLogout && profile.state === "ok") ||
+        (profile.members_only_count > 2 && !profile.contacts?.some(c => c.email));
 
-      // Step 1: Network specifico
-      if (isNetworkMode) {
-        profile = await fetchProfile(wcaId, cookies, memberMap[wcaId], networkDomain, ssoCookies);
-        console.log(`[scrape] ${wcaId} NETWORK ${networkDomain}: state=${profile.state} contacts=${profile.contacts?.length||0} email=${!!profile.email} phone=${!!profile.phone} limited=${profile.access_limited} membersOnly=${profile.members_only_count}`);
-
-        if (profile.state === "ok" && profile.contacts?.length > 0 && profile.contacts.some(c => c.email)) {
-          // Profilo OK con contatti — perfetto!
-          console.log(`[scrape] ${wcaId} ✓ NETWORK ${networkDomain} ha contatti completi`);
-          results.push(profile);
-          continue;
-        }
-        // Salva come candidato parziale
-        if (profile.state === "ok") bestProfile = profile;
-      }
-
-      // Step 2: wcaworld.com con cookies WCA propri
-      const wcaProfile = await fetchProfile(wcaId, wcaCookies, memberMap[wcaId], null, wcaSsoCookies);
-      console.log(`[scrape] ${wcaId} WCA: state=${wcaProfile.state} contacts=${wcaProfile.contacts?.length||0} email=${!!wcaProfile.email} phone=${!!wcaProfile.phone} limited=${wcaProfile.access_limited} membersOnly=${wcaProfile.members_only_count}`);
-
-      if (wcaProfile.state === "ok" && wcaProfile.contacts?.length > 0 && wcaProfile.contacts.some(c => c.email)) {
-        console.log(`[scrape] ${wcaId} ✓ WCA ha contatti completi`);
-        // Merge network info dal profilo precedente
-        if (bestProfile) {
-          if (!wcaProfile.networks?.length && bestProfile.networks?.length) wcaProfile.networks = bestProfile.networks;
-          if (!wcaProfile.logo_url && bestProfile.logo_url) wcaProfile.logo_url = bestProfile.logo_url;
-        }
-        wcaProfile.source_network = "wcaworld.com";
-        results.push(wcaProfile);
-        continue;
-      }
-
-      // Aggiorna bestProfile
-      if (wcaProfile.state === "ok" && (!bestProfile || wcaProfile.contacts?.length > (bestProfile.contacts?.length || 0))) {
-        bestProfile = wcaProfile;
-      }
-
-      // ═══ SSO REFRESH se entrambi hanno access_limited ═══
-      const bothLimited = (profile?.access_limited || profile?.state === "login_redirect") &&
-                          (wcaProfile.access_limited || wcaProfile.state === "login_redirect");
-      if (bothLimited) {
-        console.log(`[scrape] ${wcaId} ⚠ BOTH limited → SSO refresh wcaworld.com`);
+      if (authFailed && profile.state !== "not_found") {
+        console.log(`[scrape] ${wcaId} ⚠ Auth fallita → SSO refresh wcaworld.com`);
         const refreshAuth = await forceSSORrefresh("wcaworld.com");
         if (!refreshAuth.error) {
-          wcaCookies = refreshAuth.cookies;
-          wcaSsoCookies = refreshAuth.ssoCookies || "";
-          const retryWca = await fetchProfile(wcaId, wcaCookies, memberMap[wcaId], null, wcaSsoCookies);
-          console.log(`[scrape] ${wcaId} SSO refresh WCA: state=${retryWca.state} contacts=${retryWca.contacts?.length||0} email=${!!retryWca.email}`);
-          if (retryWca.state === "ok" && retryWca.contacts?.length > 0) {
-            retryWca.sso_refreshed = true;
-            results.push(retryWca);
-            continue;
+          cookies = refreshAuth.cookies;
+          ssoCookies = refreshAuth.ssoCookies || "";
+          const retryProfile = await fetchProfile(wcaId, cookies, null, null, ssoCookies);
+          console.log(`[scrape] ${wcaId} RETRY: state=${retryProfile.state} contacts=${retryProfile.contacts?.length||0} email=${!!retryProfile.email} hasLogout=${retryProfile.hasLogout}`);
+          if (retryProfile.state === "ok") {
+            profile = retryProfile;
+            profile.sso_refreshed = true;
           }
-          if (retryWca.state === "ok") bestProfile = retryWca;
         }
       }
 
-      // ═══ AUTO-RETRY su ALTRI network ═══
-      const networkSource = bestProfile || wcaProfile;
-      const noContactEmails = !networkSource.contacts?.some(c => c.email);
-      const needsRetry = networkSource.access_limited || ((!networkSource.contacts?.length) && networkSource.state === "ok") || (noContactEmails && networkSource.state === "ok");
-      const networksToTry = networkSource.networks || profile?.networks || [];
+      // Aggiungi info network dal parametro
+      if (networkDomain) profile.source_network = networkDomain;
 
-      if (needsRetry && networksToTry.length > 0) {
-        const domainsToTry = networkNameToDomains(networksToTry);
-        // Escludi il dominio già provato
-        const filteredDomains = domainsToTry.filter(d => d !== networkDomain && d !== "wcaworld.com");
-        console.log(`[scrape] ${wcaId} Auto-retry: ${filteredDomains.length} domini: ${filteredDomains.join(", ")}`);
-
-        for (const retryDomain of filteredDomains) {
-          try {
-            const retryAuth = await getAuthCookies(retryDomain);
-            if (retryAuth.error) { console.log(`[scrape] Auto-retry SSO failed ${retryDomain}`); continue; }
-
-            const retryProfile = await fetchProfile(wcaId, retryAuth.cookies, null, retryDomain, retryAuth.ssoCookies);
-            console.log(`[scrape] ${wcaId} Auto-retry ${retryDomain}: contacts=${retryProfile.contacts?.length || 0} email=${!!retryProfile.email}`);
-
-            if (retryProfile.contacts?.length > 0 && retryProfile.contacts.some(c => c.email)) {
-              retryProfile.source_network = retryDomain;
-              retryProfile.auto_retried = true;
-              // Merge dati dal bestProfile
-              if (bestProfile) {
-                if (!retryProfile.logo_url && bestProfile.logo_url) retryProfile.logo_url = bestProfile.logo_url;
-                if (!retryProfile.enrolled_offices?.length && bestProfile.enrolled_offices?.length) retryProfile.enrolled_offices = bestProfile.enrolled_offices;
-                if (!retryProfile.networks?.length && bestProfile.networks?.length) retryProfile.networks = bestProfile.networks;
-                if (!retryProfile.address && bestProfile.address) retryProfile.address = bestProfile.address;
-              }
-              bestProfile = retryProfile;
-              console.log(`[scrape] ${wcaId} ✓ Auto-retry OK via ${retryDomain}: ${bestProfile.contacts?.length || 0} contacts`);
-              break;
-            }
-          } catch (e) { console.log(`[scrape] Auto-retry error ${retryDomain}: ${e.message}`); }
-        }
-      }
-
-      // Push il miglior profilo trovato
-      results.push(bestProfile || wcaProfile || profile || { wca_id: wcaId, state: "not_found" });
+      results.push(profile);
     }
 
-    console.log(`[scrape] === END ${wcaIds[0]} result: state=${results[0]?.state} contacts=${results[0]?.contacts?.length||0} email=${!!results[0]?.email} phone=${!!results[0]?.phone}`);
+    console.log(`[scrape] === END ${wcaIds[0]}: state=${results[0]?.state} contacts=${results[0]?.contacts?.length||0} email=${!!results[0]?.email} phone=${!!results[0]?.phone}`);
     return res.json({ success: true, results });
   } catch (err) {
     console.log(`[scrape] ERROR: ${err.message}`);
