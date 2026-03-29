@@ -183,9 +183,7 @@ module.exports = async (req, res) => {
 
       // ═══ SSO REFRESH: se il profilo mostra segni di auth fallita, forza re-login ═══
       // Segnali: login_redirect, access_limited, oppure members_only_count > 2 senza contatti
-      const authFailed = profile.state === "login_redirect" ||
-        profile.access_limited ||
-        (profile.members_only_count > 2 && (!profile.contacts || !profile.contacts.some(c => c.email)));
+      const authFailed = profile.state === "login_redirect";
 
       if (authFailed && profile.state !== "not_found") {
         console.log(`[scrape] ⚠ Auth fallita per ${wcaId}: state=${profile.state} limited=${profile.access_limited} membersOnly=${profile.members_only_count} → SSO refresh`);
@@ -208,7 +206,7 @@ module.exports = async (req, res) => {
       // Anche se c'è l'email/telefono aziendale — quelli li abbiamo già, servono i CONTATTI
       const noContacts = !profile.contacts || profile.contacts.length === 0;
       const noContactEmails = !profile.contacts?.some(c => c.email);
-      const needsRetry = profile.access_limited || (noContacts && profile.state === "ok") || (noContactEmails && profile.state === "ok");
+      const needsRetry = (noContacts && profile.state === "ok") || (noContactEmails && profile.state === "ok");
       const wasGeneric = !isNetworkMode;
 
       if (needsRetry && wasGeneric && profile.networks && profile.networks.length > 0) {

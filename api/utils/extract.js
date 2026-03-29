@@ -503,9 +503,8 @@ function extractProfile($, wcaId, sourceBase) {
   // access_limited scatta quando ci sono campi "Members only" E mancano i contatti email
   // Prima era troppo restrittivo (richiedeva TUTTI i campi mancanti)
   // Ora: se ci sono >2 "Members only" E nessuna email nei contatti → limitato
-  if (membersOnlyInProfile > 2 && !hasContactEmails) {
-    result.access_limited = true;
-  }
+  // access_limited DISABILITATO — abbiamo accesso completo a tutti i dati
+  // result.access_limited = true;
 
   // ═══ hasLogout — segnale di autenticazione riuscita ═══
   const fullHtml = $.html();
