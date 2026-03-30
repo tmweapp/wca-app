@@ -10,6 +10,7 @@
 :root{
   --bg:#08081a;--bg2:#0e0e24;--card:#12122a;--border:rgba(99,102,241,0.12);
   --text:#e2e8f0;--muted:#64748b;--accent:#6366f1;--cyan:#0ea5e9;--green:#10b981;--purple:#8b5cf6;
+  --text-primary:#e2e8f0;--text-muted:#64748b;--danger:#ef4444;--warning:#f59e0b;
 }
 html,body{height:100%;overflow:hidden;font-family:'Inter',sans-serif;background:var(--bg);color:var(--text)}
 
@@ -177,7 +178,6 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',sans-serif;background:
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:rgba(99,102,241,0.2);border-radius:2px}
 
-/* ═══ RESPONSIVE ═══ */
 /* ═══ BOTTOM FLAGS BAR ═══ */
 .flags-bar{
   position:fixed;bottom:0;left:0;right:0;z-index:100;height:56px;
@@ -295,7 +295,7 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',sans-serif;background:
     <div class="panel-body" id="partnerList"></div>
     <div class="panel-footer">
       <button class="big-btn prof" id="btnProfStart" onclick="startProfileDownload()">👤 Scarica Profili</button>
-      <button class="big-btn stop" id="btnProfStop" onclick="stopDownload()" style="display:none;flex:0 0 auto;padding:10px 16px">■</button>
+      <button class="big-btn stop" id="btnProfStop" onclick="stopProfileDownload()" style="display:none;flex:0 0 auto;padding:10px 16px">■</button>
     </div>
   </div>
 
@@ -310,35 +310,135 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',sans-serif;background:
   <div class="flags-scroll" id="flagsScroll"></div>
 </div>
 
+<!-- ═══════════════════════════════════════════════════════════════════
+     HIDDEN MANAGEMENT ELEMENTS — required by the 32 JS files
+     ═══════════════════════════════════════════════════════════════════ -->
+<div id="mgmtCompat" style="display:none">
+  <!-- Login -->
+  <button id="btnLogin"></button>
+  <span id="loginBadge"></span>
+  <!-- Scraping controls -->
+  <button id="btnStart"></button>
+  <button id="btnStop"></button>
+  <button id="btnResume"></button>
+  <button id="btnSyncDir"></button>
+  <input type="checkbox" id="chkUpdateAddress">
+  <!-- Status bar -->
+  <div id="activeDownloadRow"><span id="dmIcon"></span><span id="dmTitle"></span></div>
+  <div id="statusDot"></div>
+  <div id="statusText"></div>
+  <div id="statusTextFallback"></div>
+  <div id="progressFill"></div>
+  <div id="progressText"></div>
+  <!-- Active country -->
+  <div id="activeCountryBadge"><span id="activeCountryFlag"></span><span id="activeCountryName"></span></div>
+  <!-- Activity bar -->
+  <div id="activityBar"><span id="activityIcon"></span><span id="activityText"></span><span id="activityTimer"></span></div>
+  <!-- Country completion -->
+  <div id="completedNetworksRow"></div>
+  <div id="countryCompletionBar"><div id="countryCompletionFill"></div><div id="countryCompletionText"></div></div>
+  <!-- Tabs & sections -->
+  <div id="tabsSection"></div>
+  <div id="scrapedTabsBar"></div>
+  <div id="scrapedCount"></div>
+  <div id="profilePreview"></div>
+  <!-- Header badges -->
+  <span id="headerTotalPartners"></span>
+  <span id="headerLimitedPartners"></span>
+  <span id="headerDirPartners"></span>
+  <span id="headerDirCountries"></span>
+  <span id="headerDbPartners"></span>
+  <span id="headerDbCountries"></span>
+  <span id="failedCountHeader"></span>
+  <div id="headerFlags"></div>
+  <!-- Results -->
+  <div id="resultsCard" style="display:none"><table><tbody id="resultsBody"></tbody></table></div>
+  <span id="discoverCount"></span>
+  <div id="dbFlash"></div>
+  <!-- Networks -->
+  <div id="networksGrid"></div>
+  <div id="networkPopupOverlay"></div>
+  <span id="selectedNetworksTags"></span>
+  <span id="networkSelBadge"></span>
+  <span id="networkSelCount"></span>
+  <span id="networkSelCountInline"></span>
+  <!-- Search popup -->
+  <div id="searchPopupOverlay"><input id="searchPopupInput"><select id="searchPopupBy"></select></div>
+  <input id="txtSearch"><select id="selSearchBy"></select>
+  <!-- Country popup -->
+  <div id="countryPopupOverlay"><input id="countryFilter"></div>
+  <span id="countrySelCount"></span>
+  <div id="selectedCountriesPreview"></div>
+  <input type="checkbox" id="chkAllCountries">
+  <span id="allCountriesHint"></span>
+  <div id="countryList"></div>
+  <!-- Log -->
+  <div id="logArea"></div>
+  <div id="logPopupOverlay"></div>
+  <span id="logCountBadge"></span>
+  <!-- Reset panel -->
+  <div id="resetPanelOverlay" style="display:none"></div>
+  <!-- Scrape stats -->
+  <div id="scrapeStatsRow"><span id="statFoundInNetwork"></span><span id="statDownloaded"></span><span id="statSkipped"></span></div>
+  <!-- Monitor -->
+  <div id="monitorPanel"></div>
+  <div id="monitorBlacklistList"></div>
+  <div id="monitorExpirationList"></div>
+  <div id="monitorDirectoryList"></div>
+</div>
+
+<!-- ═══ LOAD ALL 32 MANAGEMENT JS FILES ═══ -->
+<script src="js/config.js"></script>
+<script src="js/state.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/ui-log.js"></script>
+<script src="js/ui-status.js"></script>
+<script src="js/ui-country.js"></script>
+<script src="js/ui-network.js"></script>
+<script src="js/notifications.js"></script>
+<script src="js/scraping-stats.js"></script>
+<script src="js/directory-local.js"></script>
+<script src="js/directory-cache.js"></script>
+<script src="js/directory-fast.js"></script>
+<script src="js/directory-full.js"></script>
+<script src="js/supabase.js"></script>
+<script src="js/directory-sync.js"></script>
+<script src="js/countries.js"></script>
+<script src="js/networks-grid.js"></script>
+<script src="js/results.js"></script>
+<script src="js/tabs.js"></script>
+<script src="js/jobs.js"></script>
+<script src="js/popups.js"></script>
+<script src="js/login.js"></script>
+<script src="js/export.js"></script>
+<script src="js/scraping-core.js"></script>
+<script src="js/scraping-start.js"></script>
+<script src="js/scraping-range.js"></script>
+<script src="js/scraping-network.js"></script>
+<script src="js/turbo.js"></script>
+<script src="js/test-download.js"></script>
+<script src="js/monitor.js"></script>
+<script src="js/monitor-panel.js"></script>
+<script src="js/init.js"></script>
+
+<!-- ═══ DASHBOARD INLINE SCRIPT ═══ -->
 <script>
 // ═══════════════════════════════════════════════════
-// CONFIG
+// DASHBOARD GLOBALS (config.js provides API, ALL_NETWORKS, etc.)
 // ═══════════════════════════════════════════════════
-const API = window.location.origin;
 const SUPABASE_URL = "https://dlldkrzoxvjxpgkkttxu.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRsbGRrcnpveHZqeHBna2t0dHh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDMxODIxNjgsImV4cCI6MjA1ODc1ODE2OH0.LCxqLNlOvMbyMRucc9gkMbqDdOMC25v9rMqMKMKIiDI";
 
-const ALL_NETWORKS = [
-  { domain:"wcaprojects.com", name:"WCA Projects", logo:"logos/WCAProjects.png" },
-  { domain:"wcadangerousgoods.com", name:"WCA Dangerous Goods", logo:"logos/WCADangerousGoods.png" },
-  { domain:"wcaperishables.com", name:"WCA Perishables", logo:"logos/WCAPerishables.png" },
-  { domain:"wcatimecritical.com", name:"WCA Time Critical", logo:"logos/WCATimeCritical.png" },
-  { domain:"wcapharma.com", name:"WCA Pharma", logo:"logos/WCAPharma.png" },
-  { domain:"wcarelocations.com", name:"WCA Relocations", logo:"logos/WCARelocations.png" },
-  { domain:"wcaecommercesolutions.com", name:"WCA eCommerce", logo:"logos/WCAeCommerceSolutions.png" },
-  { domain:"wcaexpo.com", name:"WCA Expo", logo:"logos/WCAExpo.png" },
-  { domain:"lognetglobal.com", name:"Lognet Global", logo:"logos/Lognet_logo.png" },
-  { domain:"globalaffinityalliance.com", name:"GAA", logo:"logos/GAA_logo.png" },
-  { domain:"elitegln.com", name:"EGLN", logo:"logos/EGLN_logo.png" },
-  { domain:"ifc8.network", name:"IFC8", logo:"logos/IFC8_logo.png" },
-  { domain:"wca-first", name:"WCA First", logo:"logos/WCAFirst.png" },
-  { domain:"wca-advanced", name:"WCA Advanced", logo:"logos/WCAAdvancedProfessionals.png" },
-  { domain:"wca-chinaglobal", name:"WCA China Global", logo:"logos/WCAChinaGlobal.png" },
-  { domain:"wca-interglobal", name:"WCA Inter Global", logo:"logos/WCAInterGlobal.png" },
-  { domain:"wca-vendors", name:"WCA Vendors", logo:"logos/WCAESN_With_Tagline.png" },
-];
+// flag() alias for countryFlag() from utils.js
+function flag(code){ return countryFlag(code); }
 
-function flag(code){ if(!code||code.length!==2) return ""; return String.fromCodePoint(...[...code.toUpperCase()].map(c=>0x1F1E6+c.charCodeAt(0)-65)); }
+// Dashboard state
+let dirStats = {};
+let profStats = {};
+let dashCountries = [];
+let downloading = false;
+let downloadType = null;
+let _dashStatsInterval = null;
 
 // ═══════════════════════════════════════════════════
 // MATRIX RAIN — fullscreen, slow, dynamic colors
@@ -350,51 +450,40 @@ const chars = "WCANETWORKPARTNERDIRECTORYGLOBALLOGISTICSFREIGHTSHIPPINGCARGOTRAD
 const FONT_SIZE = 14;
 let matrixFrame = 0;
 
-// Matrix color state: idle=cyan/purple, downloading=red, countryFlash=gold, done=green
-let matrixHueBase = 200;   // idle: 200 (cyan)
+let matrixHueBase = 200;
 let matrixHueTarget = 200;
-let matrixHueRange = 80;   // spread around base
+let matrixHueRange = 80;
 let matrixSat = 70;
 let matrixAlphaBase = 0.10;
-let matrixFadeAlpha = 0.04; // lower = longer trails = slower feel
+let matrixFadeAlpha = 0.04;
 
 function initMatrix(){
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
   columns = Math.floor(canvas.width / FONT_SIZE);
   drops = Array(columns).fill(0).map(() => Math.random() * (canvas.height / FONT_SIZE));
-  dropSpeeds = Array(columns).fill(0).map(() => 0.3 + Math.random() * 0.5); // slow speeds
+  dropSpeeds = Array(columns).fill(0).map(() => 0.3 + Math.random() * 0.5);
 }
 
 function drawMatrix(){
   matrixFrame++;
-  // Smooth color transition
   matrixHueBase += (matrixHueTarget - matrixHueBase) * 0.02;
-
-  // Slow fade — long trails
   ctx.fillStyle = `rgba(8,8,26,${matrixFadeAlpha})`;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.font = `${FONT_SIZE}px 'JetBrains Mono'`;
-
   for(let i = 0; i < drops.length; i++){
-    // Only draw some columns each frame for extra slowness
     if(matrixFrame % 3 !== i % 3) { drops[i] += dropSpeeds[i]; continue; }
-
     const char = chars[Math.floor(Math.random() * chars.length)];
     const x = i * FONT_SIZE;
     const y = Math.floor(drops[i]) * FONT_SIZE;
     const hue = matrixHueBase + Math.random() * matrixHueRange;
     const alpha = matrixAlphaBase + Math.random() * 0.12;
-
     ctx.fillStyle = `hsla(${hue},${matrixSat}%,55%,${alpha})`;
     ctx.fillText(char, x, y);
-
-    // Bright head char (rare)
     if(Math.random() > 0.985){
       ctx.fillStyle = `hsla(${hue},90%,80%,0.6)`;
       ctx.fillText(char, x, y);
     }
-
     drops[i] += dropSpeeds[i];
     if(y > canvas.height && Math.random() > 0.99){
       drops[i] = 0;
@@ -405,21 +494,14 @@ function drawMatrix(){
 }
 
 // ═══ MATRIX COLOR MODES ═══
-function setMatrixIdle(){
-  matrixHueTarget = 200; matrixHueRange = 80; matrixSat = 70; matrixAlphaBase = 0.10; matrixFadeAlpha = 0.04;
-}
-function setMatrixDownloading(){
-  matrixHueTarget = 0; matrixHueRange = 30; matrixSat = 80; matrixAlphaBase = 0.14; matrixFadeAlpha = 0.035;
-}
+function setMatrixIdle(){ matrixHueTarget=200; matrixHueRange=80; matrixSat=70; matrixAlphaBase=0.10; matrixFadeAlpha=0.04; }
+function setMatrixDownloading(){ matrixHueTarget=0; matrixHueRange=30; matrixSat=80; matrixAlphaBase=0.14; matrixFadeAlpha=0.035; }
 function setMatrixCountryFlash(){
-  // Brief gold flash — auto-returns to red after 800ms
-  const prevTarget = matrixHueTarget;
-  matrixHueTarget = 45; matrixHueRange = 20; matrixSat = 90; matrixAlphaBase = 0.18;
-  setTimeout(() => { matrixHueTarget = prevTarget; matrixHueRange = 30; matrixSat = 80; matrixAlphaBase = 0.14; }, 800);
+  const prevTarget=matrixHueTarget;
+  matrixHueTarget=45; matrixHueRange=20; matrixSat=90; matrixAlphaBase=0.18;
+  setTimeout(()=>{ matrixHueTarget=prevTarget; matrixHueRange=30; matrixSat=80; matrixAlphaBase=0.14; }, 800);
 }
-function setMatrixDone(){
-  matrixHueTarget = 140; matrixHueRange = 20; matrixSat = 75; matrixAlphaBase = 0.12; matrixFadeAlpha = 0.03;
-}
+function setMatrixDone(){ matrixHueTarget=140; matrixHueRange=20; matrixSat=75; matrixAlphaBase=0.12; matrixFadeAlpha=0.03; }
 
 window.addEventListener("resize", initMatrix);
 initMatrix();
@@ -432,43 +514,56 @@ const paradeEl = document.getElementById("netParade");
 let paradeIdx = 0;
 
 function initParade(){
-  // Double the logos for seamless scroll
-  const html = [...ALL_NETWORKS,...ALL_NETWORKS].map((n,i) =>
-    `<img src="${n.logo}" alt="${n.name}" data-idx="${i % ALL_NETWORKS.length}" onerror="this.style.display='none'">`
+  const nets = (typeof ALL_NETWORKS !== 'undefined') ? ALL_NETWORKS : [];
+  const html = [...nets,...nets].map((n,i) =>
+    `<img src="${n.logo}" alt="${n.name}" data-idx="${i % nets.length}" onerror="this.style.display='none'">`
   ).join("");
   paradeEl.innerHTML = html;
 }
 
 function highlightParadeLogo(){
+  const nets = (typeof ALL_NETWORKS !== 'undefined') ? ALL_NETWORKS : [];
   const imgs = paradeEl.querySelectorAll("img");
   imgs.forEach(img => img.classList.remove("active"));
   const targets = paradeEl.querySelectorAll(`img[data-idx="${paradeIdx}"]`);
   targets.forEach(t => t.classList.add("active"));
-  paradeIdx = (paradeIdx + 1) % ALL_NETWORKS.length;
+  paradeIdx = (paradeIdx + 1) % (nets.length || 1);
 }
 
 initParade();
 setInterval(highlightParadeLogo, 1500);
 
 // ═══════════════════════════════════════════════════
-// LOAD STATS FROM SUPABASE
+// TOAST
 // ═══════════════════════════════════════════════════
-let dirStats = {}; // { countryCode: count }
-let profStats = {}; // { countryCode: count }
-let allCountries = [];
+let toastTimer;
+function showToast(msg, color){
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.style.display = "block";
+  t.style.borderColor = color || "var(--border)";
+  t.style.color = color || "var(--text)";
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.style.display = "none"; }, 4000);
+}
 
-async function loadStats(){
+// ═══════════════════════════════════════════════════
+// LOAD STATS FROM SUPABASE — real-time refresh
+// ═══════════════════════════════════════════════════
+async function loadDashStats(){
   try {
     // Directory stats
     const dirResp = await fetch(API+"/api/load-directory?mode=stats");
     const dirData = await dirResp.json();
     if(dirData.success){
       dirStats = dirData.byCountry || {};
-      document.getElementById("statDir").textContent = (dirData.totalPartners||0).toLocaleString();
-      document.getElementById("ckDir").textContent = (dirData.totalPartners||0).toLocaleString();
-      document.getElementById("statCountries").textContent = dirData.totalCountries||0;
-      document.getElementById("ckCountries").textContent = dirData.totalCountries||0;
-      document.getElementById("dirTotal").textContent = (dirData.totalPartners||0).toLocaleString();
+      const dirTotal = dirData.totalPartners || 0;
+      const dirCountries = dirData.totalCountries || 0;
+      document.getElementById("statDir").textContent = dirTotal.toLocaleString();
+      document.getElementById("ckDir").textContent = dirTotal.toLocaleString();
+      document.getElementById("statCountries").textContent = dirCountries;
+      document.getElementById("ckCountries").textContent = dirCountries;
+      document.getElementById("dirTotal").textContent = dirTotal.toLocaleString();
     }
 
     // Profile stats
@@ -476,6 +571,7 @@ async function loadStats(){
     const profData = await profResp.json();
     if(profData.success){
       let total = 0;
+      profStats = {};
       for(const [code, count] of Object.entries(profData.counts||{})){
         profStats[code] = count;
         total += count;
@@ -484,14 +580,14 @@ async function loadStats(){
       document.getElementById("ckProf").textContent = total.toLocaleString();
       document.getElementById("profTotal").textContent = total.toLocaleString();
     }
-  } catch(e){ console.warn("loadStats:", e.message); }
+  } catch(e){ console.warn("loadDashStats:", e.message); }
 }
 
-// Build country list from dir stats
+// Country list rendering
 function renderCountryList(){
   const dirList = document.getElementById("dirList");
   const entries = Object.entries(dirStats).sort((a,b) => b[1]-a[1]);
-  allCountries = entries.map(([code]) => code);
+  dashCountries = entries.map(([code]) => code);
 
   dirList.innerHTML = entries.map(([code, count]) => {
     const prof = profStats[code] || 0;
@@ -511,47 +607,84 @@ function renderCountryList(){
   }).join("");
 }
 
-// ═══════════════════════════════════════════════════
-// TOAST
-// ═══════════════════════════════════════════════════
-let toastTimer;
-function showToast(msg, color){
-  const t = document.getElementById("toast");
-  t.textContent = msg;
-  t.style.display = "block";
-  t.style.borderColor = color || "var(--border)";
-  t.style.color = color || "var(--text)";
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { t.style.display = "none"; }, 4000);
+function renderFlagsBar(){
+  const scroll = document.getElementById("flagsScroll");
+  const entries = Object.entries(dirStats).sort((a,b) => b[1]-a[1]);
+  document.getElementById("flagsBarTotal").textContent = entries.length;
+  scroll.innerHTML = entries.map(([code, count]) => {
+    const prof = profStats[code] || 0;
+    return `<div class="flag-chip" id="fc_${code}">
+      <span class="flag-chip-emoji">${flag(code)}</span>
+      <span class="flag-chip-count">${count}</span>
+      ${prof > 0 ? `<span class="flag-chip-prof">👤${prof}</span>` : ""}
+    </div>`;
+  }).join("");
+}
+
+function highlightFlagChip(code){
+  const chip = document.getElementById("fc_"+code);
+  if(!chip) return;
+  chip.classList.add("active");
+  chip.scrollIntoView({ behavior:"smooth", block:"nearest", inline:"center" });
+  setTimeout(() => chip.classList.remove("active"), 2000);
+}
+
+function updateDashTopStats(){
+  let total = 0;
+  for(const v of Object.values(dirStats)) total += v;
+  document.getElementById("statDir").textContent = total.toLocaleString();
+  document.getElementById("ckDir").textContent = total.toLocaleString();
+  document.getElementById("dirTotal").textContent = total.toLocaleString();
+  document.getElementById("statCountries").textContent = Object.keys(dirStats).length;
+  document.getElementById("ckCountries").textContent = Object.keys(dirStats).length;
+}
+
+// Start real-time polling when downloads are active
+function startRealtimePolling(){
+  if(_dashStatsInterval) return;
+  _dashStatsInterval = setInterval(async () => {
+    await loadDashStats();
+    renderCountryList();
+    renderFlagsBar();
+  }, 8000); // ogni 8 secondi
+}
+function stopRealtimePolling(){
+  if(_dashStatsInterval){ clearInterval(_dashStatsInterval); _dashStatsInterval = null; }
 }
 
 // ═══════════════════════════════════════════════════
-// DIRECTORY DOWNLOAD
+// ACTIVE DOWNLOAD UI
 // ═══════════════════════════════════════════════════
-let downloading = false;
-let downloadType = null;
-
-// ═══ AUTO LOGIN WCA ═══
-let wcaSession = null;
-async function ensureWcaLogin(){
-  if(wcaSession) return true;
-  showToast("🔑 Login WCA in corso...","var(--cyan)");
-  try {
-    const resp = await fetch(API+"/api/login",{ method:"POST", headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({ username:"tmsrlmin", password:"G0u3v!VvCn" })
-    });
-    const data = await resp.json();
-    if(data.success && data.cookies){
-      wcaSession = data.cookies;
-      showToast("🔑 Login WCA riuscito!","var(--green)");
-      return true;
-    } else {
-      showToast("⚠️ Login fallito: "+(data.error||"unknown"),"var(--danger)");
-      return false;
-    }
-  } catch(e){ showToast("⚠️ Errore login: "+e.message,"var(--danger)"); return false; }
+function updateActiveDl(code, status, detail, pct){
+  const el = document.getElementById("activeDl");
+  if(el) el.style.display = "flex";
+  const f = document.getElementById("dlFlag"); if(f) f.textContent = flag(code);
+  const s = document.getElementById("dlStatus"); if(s) s.textContent = status;
+  const d = document.getElementById("dlDetail"); if(d) d.textContent = detail;
+  const p = document.getElementById("dlFill"); if(p) p.style.width = pct+"%";
 }
 
+function addPartnerFeedItem(code, count, type){
+  const list = document.getElementById("partnerList");
+  if(!list) return;
+  const item = document.createElement("div");
+  item.className = "partner-item";
+  const icon = type === "profiles" ? "👤" : "📂";
+  const label = type === "profiles" ? "Profilo salvato" : "Directory salvata";
+  item.innerHTML = `
+    <div class="partner-name">${flag(code)} ${code} — ${count} partner</div>
+    <div class="partner-meta">
+      <span>${icon} ${label}</span>
+      <span style="margin-left:auto;font-size:.5rem;color:var(--muted)">${new Date().toLocaleTimeString()}</span>
+    </div>
+  `;
+  list.insertBefore(item, list.firstChild);
+  while(list.children.length > 50) list.removeChild(list.lastChild);
+}
+
+// ═══════════════════════════════════════════════════
+// DIRECTORY DOWNLOAD (dashboard-specific)
+// ═══════════════════════════════════════════════════
 async function startDirectoryDownload(){
   if(downloading){ showToast("Download già in corso","var(--warning)"); return; }
   downloading = true;
@@ -560,15 +693,16 @@ async function startDirectoryDownload(){
   document.getElementById("btnDirStart").style.display = "none";
   document.getElementById("btnDirStop").style.display = "block";
   document.getElementById("activeDl").style.display = "flex";
+  startRealtimePolling();
 
   showToast("📂 Download directory avviato","var(--cyan)");
 
-  const countriesToScan = allCountries.length > 0 ? [...allCountries] : ["IT","US","GB","DE","FR","ES","CN","IN"];
+  const countriesToScan = dashCountries.length > 0 ? [...dashCountries] : ["IT","US","GB","DE","FR","ES","CN","IN"];
   const total = countriesToScan.length;
 
   for(let i = 0; i < countriesToScan.length && downloading; i++){
     const code = countriesToScan[i];
-    setMatrixCountryFlash(); // gold flash per ogni paese
+    setMatrixCountryFlash();
     updateActiveDl(code, `📂 Directory ${i+1}/${total}`, `Scaricando ${code}...`, ((i+1)/total)*100);
 
     let page = 1, hasMore = true, members = [];
@@ -595,118 +729,187 @@ async function startDirectoryDownload(){
           body:JSON.stringify({ countryCode: code, members })
         });
         dirStats[code] = members.length;
-        addMatrixFlash(code, members.length);
+        addPartnerFeedItem(code, members.length, "directory");
         highlightFlagChip(code);
       } catch(e){}
     }
 
     renderCountryList();
     renderFlagsBar();
-    updateTopStats();
+    updateDashTopStats();
   }
 
-  setMatrixDone(); // verde statico a completamento
-  stopDownload();
+  setMatrixDone();
+  finishDirectoryDownload();
   showToast("📂 Directory completata!","var(--green)");
-  loadStats();
+  loadDashStats().then(() => { renderCountryList(); renderFlagsBar(); });
 }
 
-// ═══ PROFILE DOWNLOAD — rimanda a Management (richiede SSO + pause) ═══
-async function startProfileDownload(){
-  showToast("👤 Lo scraping profili richiede login WCA e pause — apri Management","var(--purple)");
-  setTimeout(() => { window.location = "admin.html"; }, 2000);
-}
-
-// ═══════════════════════════════════════════════════
-// ACTIVE DOWNLOAD UI
-// ═══════════════════════════════════════════════════
-function updateActiveDl(code, status, detail, pct){
-  document.getElementById("dlFlag").textContent = flag(code);
-  document.getElementById("dlStatus").textContent = status;
-  document.getElementById("dlDetail").textContent = detail;
-  document.getElementById("dlFill").style.width = pct+"%";
-}
-
-function stopDownload(){
+function finishDirectoryDownload(){
   downloading = false;
   downloadType = null;
   document.getElementById("activeDl").style.display = "none";
   document.getElementById("btnDirStart").style.display = "block";
   document.getElementById("btnDirStop").style.display = "none";
-  document.getElementById("btnProfStart").style.display = "block";
-  document.getElementById("btnProfStop").style.display = "none";
-  // Matrix torna idle dopo 10s dal verde completamento
+  stopRealtimePolling();
   setTimeout(setMatrixIdle, 10000);
 }
 
-// ═══════════════════════════════════════════════════
-// MATRIX FLASH — inject bright chars when data arrives
-// ═══════════════════════════════════════════════════
-let flashQueue = [];
-function addMatrixFlash(code, count){
-  flashQueue.push({ code, count, ts: Date.now() });
-  // Also add partner items to the right panel as a visual feed
-  addPartnerFeedItem(code, count);
-}
-
-function addPartnerFeedItem(code, count, type){
-  const list = document.getElementById("partnerList");
-  const item = document.createElement("div");
-  item.className = "partner-item";
-  const icon = type === "profiles" ? "👤" : "📂";
-  const label = type === "profiles" ? "Profili salvati" : "Directory salvata";
-  item.innerHTML = `
-    <div class="partner-name">${flag(code)} ${code} — ${count} partner</div>
-    <div class="partner-meta">
-      <span>${icon} ${label}</span>
-      <span style="margin-left:auto;font-size:.5rem;color:var(--muted)">${new Date().toLocaleTimeString()}</span>
-    </div>
-  `;
-  list.insertBefore(item, list.firstChild);
-  // Keep max 50 items
-  while(list.children.length > 50) list.removeChild(list.lastChild);
-}
-
-function updateTopStats(){
-  let total = 0;
-  for(const v of Object.values(dirStats)) total += v;
-  document.getElementById("statDir").textContent = total.toLocaleString();
-  document.getElementById("ckDir").textContent = total.toLocaleString();
-  document.getElementById("dirTotal").textContent = total.toLocaleString();
-  document.getElementById("statCountries").textContent = Object.keys(dirStats).length;
-  document.getElementById("ckCountries").textContent = Object.keys(dirStats).length;
+function stopDownload(){
+  downloading = false;
+  finishDirectoryDownload();
+  showToast("⏹ Download fermato","var(--muted)");
 }
 
 // ═══════════════════════════════════════════════════
-// BOTTOM FLAGS BAR
+// PROFILE DOWNLOAD — uses Management's startScraping() pipeline
 // ═══════════════════════════════════════════════════
-function renderFlagsBar(){
-  const scroll = document.getElementById("flagsScroll");
-  const entries = Object.entries(dirStats).sort((a,b) => b[1]-a[1]);
-  document.getElementById("flagsBarTotal").textContent = entries.length;
 
-  scroll.innerHTML = entries.map(([code, count]) => {
-    const prof = profStats[code] || 0;
-    return `<div class="flag-chip" id="fc_${code}">
-      <span class="flag-chip-emoji">${flag(code)}</span>
-      <span class="flag-chip-count">${count}</span>
-      ${prof > 0 ? `<span class="flag-chip-prof">👤${prof}</span>` : ""}
-    </div>`;
-  }).join("");
+// Hook into Management JS functions for dashboard UI feedback
+(function hookManagementFunctions(){
+  // Hook setStatus — mirror to dashboard active-dl bar
+  if(typeof setStatus === "function"){
+    const _origSetStatus = setStatus;
+    setStatus = function(text, showSpinner){
+      _origSetStatus(text, showSpinner);
+      const s = document.getElementById("dlStatus");
+      if(s && scraping) s.textContent = text;
+    };
+  }
+
+  // Hook setProgress — mirror to dashboard progress bar
+  if(typeof setProgress === "function"){
+    const _origSetProgress = setProgress;
+    setProgress = function(current, total){
+      _origSetProgress(current, total);
+      if(scraping && total > 0){
+        const pct = Math.round((current/total)*100);
+        const p = document.getElementById("dlFill");
+        if(p) p.style.width = pct+"%";
+        const d = document.getElementById("dlDetail");
+        if(d) d.textContent = `${current}/${total} (${pct}%)`;
+      }
+    };
+  }
+
+  // Hook setActiveCountry — mirror to dashboard + matrix flash
+  if(typeof setActiveCountry === "function"){
+    const _origSetActiveCountry = setActiveCountry;
+    setActiveCountry = function(code, name){
+      _origSetActiveCountry(code, name);
+      if(scraping){
+        setMatrixCountryFlash();
+        const f = document.getElementById("dlFlag");
+        if(f) f.textContent = flag(code);
+        highlightFlagChip(code);
+      }
+    };
+  }
+
+  // Hook log — add important events to partner feed
+  if(typeof log === "function"){
+    const _origLog = log;
+    log = function(msg, type){
+      _origLog(msg, type);
+      // Detect saved profiles from log messages
+      if(type === "ok" && msg.includes("salvat")){
+        // Extract country code and count if possible
+        const m = msg.match(/([A-Z]{2}).*?(\d+)/);
+        if(m){
+          addPartnerFeedItem(m[1], parseInt(m[2]), "profiles");
+          // Refresh stats periodically
+          if(!_dashStatsInterval) loadDashStats().then(() => { renderCountryList(); renderFlagsBar(); });
+        }
+      }
+    };
+  }
+})();
+
+async function startProfileDownload(){
+  if(scraping){ showToast("Download già in corso","var(--warning)"); return; }
+
+  // 1. Auto-login se necessario
+  if(!sessionCookies){
+    showToast("🔑 Login WCA in corso...","var(--cyan)");
+    try {
+      const resp = await fetch(API+"/api/login",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({ username:"tmsrlmin", password:"G0u3v!VvCn" })
+      });
+      const data = await resp.json();
+      if(data.success && data.cookies){
+        sessionCookies = data.cookies;
+        wcaToken = data.wcaToken || null;
+        showToast("🔑 Login WCA riuscito!","var(--green)");
+      } else {
+        showToast("⚠️ Login fallito — "+(data.error||"errore"),"var(--danger)");
+        return;
+      }
+    } catch(e){ showToast("⚠️ Errore login: "+e.message,"var(--danger)"); return; }
+  }
+
+  // 2. Verifica directory disponibile
+  const countries = Object.keys(dirStats).sort();
+  if(countries.length === 0){ showToast("⚠️ Scarica prima la directory","var(--warning)"); return; }
+
+  // 3. Imposta selectedCountries per il Management JS
+  selectedCountries = countries.map(code => ({ code, name: code }));
+
+  // 4. UI dashboard — mostra stato download
+  setMatrixDownloading();
+  document.getElementById("btnProfStart").style.display = "none";
+  document.getElementById("btnProfStop").style.display = "block";
+  document.getElementById("activeDl").style.display = "flex";
+  updateActiveDl("", "👤 Scaricando profili...", "Avvio pipeline...", 0);
+  startRealtimePolling();
+
+  // 5. Avvia startScraping() — stessa pipeline del Management con popup, pause, SSO, retry
+  startScraping();
 }
 
-function highlightFlagChip(code){
-  const chip = document.getElementById("fc_"+code);
-  if(!chip) return;
-  chip.classList.add("active");
-  chip.scrollIntoView({ behavior:"smooth", block:"nearest", inline:"center" });
-  setTimeout(() => chip.classList.remove("active"), 2000);
+function stopProfileDownload(){
+  // Usa lo stop del Management
+  if(typeof stopScraping === "function") stopScraping();
+  document.getElementById("activeDl").style.display = "none";
+  document.getElementById("btnProfStart").style.display = "block";
+  document.getElementById("btnProfStop").style.display = "none";
+  stopRealtimePolling();
+  setMatrixDone();
+  setTimeout(setMatrixIdle, 10000);
+  showToast("⏹ Download profili fermato","var(--muted)");
+  loadDashStats().then(() => { renderCountryList(); renderFlagsBar(); });
 }
 
+// Watch for scraping completion (Management sets scraping=false when done)
+setInterval(() => {
+  if(typeof scraping !== 'undefined' && !scraping){
+    const profBtn = document.getElementById("btnProfStop");
+    if(profBtn && profBtn.style.display === "block"){
+      // Scraping just finished
+      document.getElementById("activeDl").style.display = "none";
+      document.getElementById("btnProfStart").style.display = "block";
+      profBtn.style.display = "none";
+      stopRealtimePolling();
+      setMatrixDone();
+      setTimeout(setMatrixIdle, 10000);
+      showToast("✅ Download profili completato!","var(--green)");
+      loadDashStats().then(() => { renderCountryList(); renderFlagsBar(); });
+    }
+  }
+}, 2000);
+
 // ═══════════════════════════════════════════════════
-// INIT
+// INIT — load stats, render, start
 // ═══════════════════════════════════════════════════
-loadStats().then(() => { renderCountryList(); renderFlagsBar(); });
+loadDashStats().then(() => { renderCountryList(); renderFlagsBar(); });
+
+// Refresh stats every 30s even when idle
+setInterval(() => {
+  if(!downloading && (typeof scraping === 'undefined' || !scraping)){
+    loadDashStats().then(() => { renderCountryList(); renderFlagsBar(); });
+  }
+}, 30000);
 </script>
 </body>
 </html>
