@@ -18,11 +18,11 @@
     <h1 style="margin:0;font-size:1.05rem;line-height:1.2;white-space:nowrap">WCA Partner Scraper</h1>
     <!-- Badge stats + Reset a destra -->
     <div style="margin-left:auto;display:flex;align-items:center;gap:4px;flex-wrap:wrap">
-      <span class="header-stat partners" data-tip="Numero totale di partner salvati nel database"><span id="headerTotalPartners">0</span> partner</span>
-      <span class="header-stat limited" data-tip="Partner con dati incompleti (accesso limitato)"><span id="headerLimitedPartners">0</span> limitati</span>
-      <span class="header-stat" style="background:rgba(14,165,233,0.1);border-color:rgba(14,165,233,0.25);color:#7dd3fc" data-tip="Partner totali censiti nelle directory locali"><span id="headerDirPartners">0</span> dir</span>
-      <span class="header-stat" style="background:rgba(16,185,129,0.1);border-color:rgba(16,185,129,0.25);color:#6ee7b7" data-tip="Partner salvati in Supabase DB"><span id="headerDbPartners">—</span> DB</span>
-      <span class="header-stat" style="background:rgba(16,185,129,0.1);border-color:rgba(16,185,129,0.25);color:#6ee7b7" data-tip="Paesi salvati in Supabase DB"><span id="headerDbCountries">—</span> paesi DB</span>
+      <span class="header-stat" style="background:rgba(139,92,246,0.1);border-color:rgba(139,92,246,0.25);color:#c4b5fd;cursor:help" data-tip="Profili completi scaricati e salvati in DB (tabella wca_profiles)" onclick="showBadgeToast('👤 PROFILI SCARICATI','Profili partner con dati completi (email, telefono, contatti) salvati nella tabella wca_profiles','#8b5cf6')">👤 <span id="headerTotalPartners">0</span> profili</span>
+      <span class="header-stat limited" style="cursor:help" data-tip="Profili con accesso limitato (dati parziali, serve login WCA)" onclick="showBadgeToast('⚠️ PROFILI LIMITATI','Partner con dati incompleti — serve accesso WCA per scaricare il profilo completo','#f59e0b')">⚠️ <span id="headerLimitedPartners">0</span> limitati</span>
+      <span class="header-stat" style="background:rgba(14,165,233,0.1);border-color:rgba(14,165,233,0.25);color:#7dd3fc;cursor:help" data-tip="Partner censiti nella directory locale (cache browser)" onclick="showBadgeToast('📂 DIRECTORY LOCALE','Elenco partner salvato nella cache del browser. Scaricato con il tasto Directory.','#0ea5e9')">📂 <span id="headerDirPartners">0</span> dir locale</span>
+      <span class="header-stat" style="background:rgba(16,185,129,0.1);border-color:rgba(16,185,129,0.25);color:#6ee7b7;cursor:help" data-tip="Partner nella directory Supabase (tabella wca_directory)" onclick="showBadgeToast('💾 DIRECTORY DB','Partner salvati nella tabella wca_directory su Supabase. Aggiornati automaticamente durante il download directory.','#10b981')">💾 <span id="headerDbPartners">—</span> dir DB</span>
+      <span class="header-stat" style="background:rgba(16,185,129,0.1);border-color:rgba(16,185,129,0.25);color:#6ee7b7;cursor:help" data-tip="Paesi con almeno 1 partner nella directory Supabase" onclick="showBadgeToast('🌍 PAESI IN DB','Numero di paesi che hanno almeno 1 partner nella directory Supabase.','#10b981')">🌍 <span id="headerDbCountries">—</span> paesi</span>
       <!-- Icona Estensione -->
       <a href="/wca-extension.zip" download title="Scarica estensione Chrome" style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border:1px solid rgba(255,255,255,0.12);border-radius:6px;background:rgba(255,255,255,0.02);cursor:pointer;text-decoration:none;transition:all .15s;margin-left:4px" onmouseover="this.style.background='rgba(99,102,241,0.08)'" onmouseout="this.style.background='rgba(255,255,255,0.02)'">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -199,8 +199,8 @@
     <div id="downloadManagerPanel" class="card" style="display:none;padding:10px 14px;flex:0 0 340px;max-width:380px;margin-bottom:0">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
         <div style="display:flex;align-items:center;gap:6px">
-          <span style="font-size:.85rem">📥</span>
-          <span style="font-size:.72rem;font-weight:700;color:var(--text-primary)">Download Manager</span>
+          <span style="font-size:.85rem" id="dmIcon">📥</span>
+          <span style="font-size:.72rem;font-weight:700;color:var(--text-primary)" id="dmTitle">Download Manager</span>
           <span id="dmJobCount" style="font-size:.58rem;padding:1px 6px;border-radius:6px;background:rgba(99,102,241,0.12);color:#a5b4fc;font-weight:600"></span>
         </div>
         <div style="display:flex;gap:4px">

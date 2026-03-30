@@ -27,3 +27,30 @@ async function sleepWithActivity(icon, text, ms){
 function sleep(ms){
   return new Promise(r=>setTimeout(r,ms));
 }
+
+// ═══ DOWNLOAD MODE — indica cosa si sta scaricando ═══
+let currentDownloadMode = null;
+function setDownloadMode(mode){
+  currentDownloadMode = mode;
+  const icon = document.getElementById("dmIcon");
+  const title = document.getElementById("dmTitle");
+  const statusDot = document.getElementById("statusDot");
+  if(mode === "directory"){
+    if(icon) icon.textContent = "📂";
+    if(title){ title.textContent = "Download Directory"; title.style.color = "#7dd3fc"; }
+    if(statusDot) statusDot.style.background = "#0ea5e9";
+  } else if(mode === "network"){
+    if(icon) icon.textContent = "🔄";
+    if(title){ title.textContent = "Aggiornamento Network"; title.style.color = "#6ee7b7"; }
+    if(statusDot) statusDot.style.background = "#10b981";
+  } else if(mode === "profiles"){
+    if(icon) icon.textContent = "👤";
+    if(title){ title.textContent = "Download Profili"; title.style.color = "#c4b5fd"; }
+    if(statusDot) statusDot.style.background = "#8b5cf6";
+  } else {
+    if(icon) icon.textContent = "📥";
+    if(title){ title.textContent = "Download Manager"; title.style.color = ""; }
+    if(statusDot) statusDot.style.background = "";
+    currentDownloadMode = null;
+  }
+}

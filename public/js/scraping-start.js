@@ -8,6 +8,7 @@ async function startScraping(){
   const updateAddress = document.getElementById("chkUpdateAddress").checked;
 
   scraping = true;
+  setDownloadMode("profiles");
   delayIndex = 0;
   resetScrapeStats();
   notificationCount = 0;
@@ -88,6 +89,7 @@ async function startScraping(){
 
 function stopScraping(){
   scraping = false;
+  setDownloadMode(null);
   hideActivity();
   hideActiveNetwork();
   hideActiveCountry();

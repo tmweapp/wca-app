@@ -120,7 +120,9 @@ function showDbFlash(countryCode, saved, totalDb){
   // Anima il totale che sale
   const prevTotal = dbRunningTotal || (totalDb - saved);
   dbRunningTotal = totalDb;
-  el.innerHTML = `<span style="font-size:2rem;vertical-align:middle;margin-right:8px">${flag}</span> <span style="font-size:.85rem;opacity:.85">${countryName}</span> &nbsp; <span style="color:#fde68a;font-size:1.3rem">+${saved}</span> &nbsp; <span style="font-size:.8rem;opacity:.7">→</span> &nbsp; <span id="dbFlashTotal" style="font-size:1.5rem;color:#fff;text-shadow:0 0 12px rgba(255,255,255,0.5)">${totalDb.toLocaleString()}</span> <span style="font-size:.75rem;opacity:.6">partner totali in DB</span>`;
+  const modeLabel = currentDownloadMode === "profiles" ? "👤 PROFILO" : "📂 DIRECTORY";
+  const modeColor = currentDownloadMode === "profiles" ? "#c4b5fd" : "#7dd3fc";
+  el.innerHTML = `<span style="font-size:.65rem;text-transform:uppercase;letter-spacing:1px;color:${modeColor};font-weight:800">${modeLabel}</span> <span style="font-size:2rem;vertical-align:middle;margin:0 8px">${flag}</span> <span style="font-size:.85rem;opacity:.85">${countryName}</span> &nbsp; <span style="color:#fde68a;font-size:1.3rem">+${saved}</span> &nbsp; <span style="font-size:.8rem;opacity:.7">→</span> &nbsp; <span id="dbFlashTotal" style="font-size:1.5rem;color:#fff;text-shadow:0 0 12px rgba(255,255,255,0.5)">${totalDb.toLocaleString()}</span> <span style="font-size:.75rem;opacity:.6">totali in DB</span>`;
   el.style.display = "block";
   el.style.opacity = "1";
   // Anima il contatore DB nell'header con un pulse
@@ -168,6 +170,19 @@ async function saveToSupabase(profile){
       incrementPartnerCount(profile.country_code);
     }
   } catch(e){log(`❌ Errore save ${profile.wca_id}: ${e.message}`,"err");}
+}
+
+// ═══ BADGE TOAST — click su badge header ═══
+let badgeToastTimer = null;
+function showBadgeToast(title, message, color){
+  const el = document.getElementById("dbFlash");
+  if(!el) return;
+  el.innerHTML = `<div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:1rem;font-weight:800">${title}</span><span style="font-size:.8rem;opacity:.85">${message}</span></div>`;
+  el.style.background = `linear-gradient(135deg,${color}ee,${color}bb)`;
+  el.style.display = "block";
+  el.style.opacity = "1";
+  if(badgeToastTimer) clearTimeout(badgeToastTimer);
+  badgeToastTimer = setTimeout(() => { el.style.opacity = "0"; setTimeout(() => { el.style.display = "none"; el.style.background = ""; }, 400); }, 4000);
 }
 
 // Auto-backfill directory da localStorage a Supabase se non ancora fatto

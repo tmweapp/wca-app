@@ -62,6 +62,7 @@ async function syncAllDirectories(forceResume){
 
   dirSyncing = true;
   scraping = true;
+  setDownloadMode("directory");
   const btn = document.getElementById("btnSyncDir");
   if(btn) btn.style.opacity = "1";
   const dlRow = document.getElementById("activeDownloadRow");
@@ -117,10 +118,11 @@ async function syncAllDirectories(forceResume){
   if(wasInterrupted){
     dirSyncing = false;
     scraping = false;
+    setDownloadMode(null);
     hideActiveCountry();
     hideDownloadRow();
     if(btn) btn.style.opacity = ".5";
-    setStatus(`Directory interrotta — ${synced} sincronizzati. Riprendi quando vuoi.`, true);
+    setStatus(`📂 Directory interrotta — ${synced} sincronizzati. Riprendi quando vuoi.`, true);
     log(`⏸ Sync interrotta: ${synced} sincronizzati, ${skipped} in cache. Usa il tasto Directory per riprendere.`,"warn");
     updateDirHeaderCounts();
     return;
@@ -167,11 +169,12 @@ async function syncAllDirectories(forceResume){
   clearDirSyncState();
   dirSyncing = false;
   scraping = false;
+  setDownloadMode(null);
   hideActiveCountry();
   hideDownloadRow();
   if(btn) btn.style.opacity = ".5";
 
-  setStatus(`Directory globale completata! ${synced} sincronizzati, ${skipped} in cache`, true);
+  setStatus(`📂 Directory completata! ${synced} sincronizzati, ${skipped} in cache`, true);
   log(`✅ Directory globale completata: ${synced} paesi sincronizzati, ${skipped} già in cache`,"ok");
   updateDirHeaderCounts();
 }
@@ -225,6 +228,7 @@ async function retryIncompleteDirectories(){
 
   dirSyncing = true;
   scraping = true;
+  setDownloadMode("directory");
   const btn = document.getElementById("btnSyncDir");
   if(btn) btn.style.opacity = "1";
   const dlRow = document.getElementById("activeDownloadRow");
@@ -255,6 +259,7 @@ async function retryIncompleteDirectories(){
 
   dirSyncing = false;
   scraping = false;
+  setDownloadMode(null);
   hideActiveCountry();
   hideDownloadRow();
   if(btn) btn.style.opacity = ".5";
@@ -308,6 +313,7 @@ async function updateNetworksForCountries(){
   if(!confirm("AGGIORNA NETWORK\n\n" + countries.map(c=>c.name).join(", ") + "\n\nScansiona TUTTI i network WCA per trovare dove ogni partner e presente e calcola la URL di scraping.\n\nProcedere?")) return;
 
   dirSyncing = true; scraping = true;
+  setDownloadMode("network");
   const dlRow = document.getElementById("activeDownloadRow");
   if(dlRow) dlRow.style.display = "flex";
   log("=== AGGIORNAMENTO NETWORK: " + countries.length + " paesi ===","ok");
@@ -326,8 +332,9 @@ async function updateNetworksForCountries(){
   }
 
   dirSyncing = false; scraping = false;
+  setDownloadMode(null);
   hideActiveCountry(); hideDownloadRow();
-  setStatus("Network aggiornati per " + countries.length + " paesi!", true);
+  setStatus("🔄 Network aggiornati per " + countries.length + " paesi!", true);
   log("=== AGGIORNAMENTO NETWORK COMPLETATO ===","ok");
   updateDirHeaderCounts();
 }
