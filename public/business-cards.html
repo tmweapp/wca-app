@@ -739,8 +739,10 @@ async function aiMatchAll(){
   if(!OPENAI_KEY||!OPENAI_KEY.startsWith("sk-")){
     alert("Inserisci prima una chiave OpenAI valida"); return;
   }
-  const cards=getFilteredCards().filter(c=>c.id);
-  if(!cards.length){ alert("Nessun contatto da verificare"); return; }
+  const allFiltered=getFilteredCards().filter(c=>c.id);
+  // Salta i record già con match found/partial (algoritmo o AI precedente)
+  const cards=allFiltered.filter(c=>!c._match||c._match.type==="not-found");
+  if(!cards.length){ alert("Tutti i "+allFiltered.length+" contatti hanno già un match — nulla da analizzare."); return; }
 
   const btn=document.getElementById("btnAiMatch");
   const origText=btn.innerHTML;
