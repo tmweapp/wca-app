@@ -611,52 +611,10 @@ async function startDirectoryDownload(){
   loadStats();
 }
 
-// ═══ PROFILE DOWNLOAD con auto-login ═══
+// ═══ PROFILE DOWNLOAD — rimanda a Management (richiede SSO + pause) ═══
 async function startProfileDownload(){
-  if(downloading){ showToast("Download già in corso","var(--warning)"); return; }
-  const loggedIn = await ensureWcaLogin();
-  if(!loggedIn) return;
-
-  downloading = true;
-  downloadType = "profiles";
-  setMatrixDownloading();
-  document.getElementById("btnProfStart").style.display = "none";
-  document.getElementById("btnProfStop").style.display = "block";
-  document.getElementById("activeDl").style.display = "flex";
-  showToast("👤 Download profili avviato","var(--purple)");
-
-  // Scarica profili per ogni paese in directory
-  const countriesToScan = allCountries.length > 0 ? [...allCountries] : Object.keys(dirStats);
-  const total = countriesToScan.length;
-
-  for(let i = 0; i < countriesToScan.length && downloading; i++){
-    const code = countriesToScan[i];
-    setMatrixCountryFlash();
-    updateActiveDl(code, `👤 Profili ${i+1}/${total}: ${code}`, `Scaricando profili...`, ((i+1)/total)*100);
-
-    try {
-      const resp = await fetch(API+"/api/scrape",{
-        method:"POST", headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({ country: code, cookies: wcaSession, limit: 50 })
-      });
-      const data = await resp.json();
-      if(data.success){
-        const count = data.saved || data.processed || 0;
-        profStats[code] = (profStats[code]||0) + count;
-        addPartnerFeedItem(code, count, "profiles");
-        highlightFlagChip(code);
-      }
-    } catch(e){ console.warn("scrape error:", code, e.message); }
-
-    renderCountryList();
-    renderFlagsBar();
-    updateTopStats();
-  }
-
-  setMatrixDone();
-  stopDownload();
-  showToast("👤 Profili completati!","var(--green)");
-  loadStats();
+  showToast("👤 Lo scraping profili richiede login WCA e pause — apri Management","var(--purple)");
+  setTimeout(() => { window.location = "admin.html"; }, 2000);
 }
 
 // ═══════════════════════════════════════════════════
