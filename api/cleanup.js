@@ -60,7 +60,9 @@ module.exports = async (req, res) => {
     const incomplete = [];
 
     for (const p of partners) {
-      if (hasValidEmail(p) || hasValidPhone(p)) {
+      // [not_found] è sempre incompleto
+      const isNotFound = p.company_name === "[not_found]" || p.company_name === "not_found";
+      if (!isNotFound && (hasValidEmail(p) || hasValidPhone(p))) {
         complete.push(p);
       } else {
         incomplete.push(p);
@@ -101,8 +103,8 @@ module.exports = async (req, res) => {
       });
     }
 
-    // POST ?confirm=yes: delete
-    if (req.method === "POST" && req.query.confirm === "yes") {
+    // GET/POST ?confirm=yes: delete (GET supportato perché web_fetch non fa POST)
+    if (req.query.confirm === "yes") {
       const idsToDelete = incomplete.map(p => p.wca_id);
       if (idsToDelete.length === 0) {
         return res.json({ success: true, deleted: 0, message: "Nessun partner incompleto trovato." });
