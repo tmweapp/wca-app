@@ -161,14 +161,34 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',sans-serif;background:
 .cockpit-progress-text{font-size:.6rem;font-family:'JetBrains Mono',monospace;color:hsl(210 100% 75%);font-weight:500;letter-spacing:.1em}
 
 /* ═══ EXECUTION STEPS (download detail) ═══ */
-.exec-steps{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10;display:none;flex-direction:column;gap:8px;pointer-events:none;width:320px;margin-top:60px}
+.exec-steps{display:none;flex-direction:column;gap:6px;pointer-events:none;width:320px;margin-top:8px}
 .exec-step{display:flex;align-items:center;gap:10px;padding:8px 14px;border-radius:.75rem;background:hsl(240 5% 6%/.5);backdrop-filter:blur(20px);border:1px solid hsl(0 0% 100%/.03);font-size:.72rem;font-weight:300;animation:fadeUp .5s cubic-bezier(.2,.8,.2,1)}
 .exec-step .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
 .exec-step .dot.done{background:hsl(152 60% 45%);box-shadow:0 0 8px hsl(152 60% 45%/.4)}
-.exec-step .dot.running{background:hsl(38 90% 50%);animation:breathe 1.5s ease-in-out infinite;box-shadow:0 0 8px hsl(38 90% 50%/.4)}
+.exec-step .dot.running{background:hsl(38 90% 50%);animation:pulseStep 1.5s ease-in-out infinite;box-shadow:0 0 8px hsl(38 90% 50%/.4)}
 .exec-step .dot.pending{background:hsl(0 0% 20%);opacity:.5}
 .exec-step .step-detail{margin-left:auto;font-size:.58rem;color:hsl(0 0% 40%);font-family:'JetBrains Mono',monospace}
+@keyframes pulseStep{0%,100%{transform:scale(1);opacity:.8}50%{transform:scale(1.3);opacity:1}}
 @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+
+/* ═══ ACTIVE PARTNER OVERLAY — current entity being processed ═══ */
+.active-partner-overlay{
+  position:absolute;bottom:90px;left:50%;transform:translateX(-50%);z-index:12;
+  display:none;flex-direction:column;align-items:center;gap:6px;pointer-events:none;
+  animation:fadeUp .4s cubic-bezier(.2,.8,.2,1);
+}
+.active-partner-card{
+  display:flex;align-items:center;gap:12px;padding:10px 20px;border-radius:var(--radius);
+  background:hsl(240 5% 6%/.9);backdrop-filter:blur(40px) saturate(1.2);
+  border:1px solid hsl(210 100% 66%/.12);box-shadow:0 8px 40px hsl(0 0% 0%/.5),0 0 40px hsl(210 100% 66%/.08);
+  min-width:350px;max-width:560px;
+}
+.active-partner-card .ap-logo{height:28px;width:28px;border-radius:6px;object-fit:contain;background:hsl(0 0% 100%/.06);padding:3px;flex-shrink:0}
+.active-partner-card .ap-info{flex:1;display:flex;flex-direction:column;gap:2px}
+.active-partner-card .ap-name{font-size:.78rem;font-weight:500;color:hsl(0 0% 90%);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:300px}
+.active-partner-card .ap-detail{font-size:.58rem;color:hsl(0 0% 45%);font-family:'JetBrains Mono',monospace;display:flex;gap:8px;align-items:center}
+.active-partner-card .ap-flag{font-size:1.3rem;flex-shrink:0}
+.active-partner-card .ap-network{font-size:.55rem;padding:2px 8px;border-radius:2rem;background:hsl(270 60% 50%/.12);color:hsl(270 60% 75%);border:1px solid hsl(270 60% 50%/.15)}
 
 /* ═══ DOWNLOADING STATE ENHANCEMENTS ═══ */
 body.downloading-active .panel-left,body.downloading-active .panel-right{border-color:hsl(210 100% 66%/.06)}
@@ -239,7 +259,11 @@ body.downloading-active .flags-bar{border-top-color:hsl(210 100% 66%/.08)}
         <div class="cockpit-stat"><span class="cockpit-stat-value" id="ckProf">0</span><span class="cockpit-stat-label">Profili</span></div>
         <div class="cockpit-stat"><span class="cockpit-stat-value" id="ckCountries">0</span><span class="cockpit-stat-label">Paesi</span></div>
       </div>
+      <!-- EXEC STEPS — visible during download -->
+      <div class="exec-steps" id="execSteps"></div>
     </div>
+    <!-- ACTIVE PARTNER OVERLAY — shows current partner being processed -->
+    <div class="active-partner-overlay" id="activePartnerOverlay"></div>
     <div class="live-feed" id="liveFeed"></div>
     <div class="toast" id="toast"></div>
   </div>
@@ -596,21 +620,76 @@ function startCinema(){
   document.getElementById("cockpit").classList.add("downloading");
   document.getElementById("liveFeed").style.display = "flex";
   document.getElementById("cockpitProgress").style.display = "flex";
+  document.getElementById("execSteps").style.display = "flex";
+  document.getElementById("activePartnerOverlay").style.display = "flex";
   document.body.classList.add("downloading-active");
   setCockpitProgress(0, "Avvio...");
+  clearExecSteps();
 }
 function stopCinema(){
   cineActive = false;
   document.getElementById("cockpit").classList.remove("downloading");
   document.getElementById("liveFeed").style.display = "none";
   document.getElementById("cockpitProgress").style.display = "none";
+  document.getElementById("execSteps").style.display = "none";
+  document.getElementById("activePartnerOverlay").style.display = "none";
   document.body.classList.remove("downloading-active");
+  const sub = document.querySelector(".cockpit-subtitle");
+  if(sub) sub.textContent = "Scarica la directory dei partner o avvia il download dei profili dettagliati";
 }
 function setCockpitProgress(pct, text){
   const fill = document.getElementById("cockpitProgressFill");
   const label = document.getElementById("cockpitProgressText");
   if(fill) fill.style.width = pct + "%";
   if(label) label.textContent = text || (pct + "%");
+}
+function setCockpitSubtitle(text){
+  const sub = document.querySelector(".cockpit-subtitle");
+  if(sub) sub.textContent = text;
+}
+
+// ═══ EXEC STEPS — show pipeline steps during download ═══
+function clearExecSteps(){
+  document.getElementById("execSteps").innerHTML = "";
+}
+function addExecStep(label, status, detail){
+  // status: 'running', 'done', 'pending'
+  const el = document.getElementById("execSteps");
+  // Check if step with same label exists — update it
+  let existing = el.querySelector(`[data-step-label="${label}"]`);
+  if(existing){
+    existing.querySelector(".dot").className = "dot " + status;
+    const d = existing.querySelector(".step-detail");
+    if(d && detail) d.textContent = detail;
+    return;
+  }
+  const step = document.createElement("div");
+  step.className = "exec-step";
+  step.setAttribute("data-step-label", label);
+  step.innerHTML = `<span class="dot ${status}"></span><span>${label}</span><span class="step-detail">${detail||""}</span>`;
+  el.appendChild(step);
+  // Keep max 5 visible
+  while(el.children.length > 5) el.removeChild(el.firstChild);
+}
+
+// ═══ ACTIVE PARTNER OVERLAY — show current partner being processed ═══
+let _apTimer = null;
+function showActivePartner(name, countryCode, networkName, networkLogo){
+  const el = document.getElementById("activePartnerOverlay");
+  const fl = countryCode ? flag(countryCode) : "🌐";
+  let html = `<div class="active-partner-card">`;
+  if(networkLogo) html += `<img class="ap-logo" src="${networkLogo}" onerror="this.style.display='none'">`;
+  html += `<span class="ap-flag">${fl}</span>`;
+  html += `<div class="ap-info"><span class="ap-name">${name}</span><div class="ap-detail">`;
+  if(networkName) html += `<span class="ap-network">${networkName}</span>`;
+  if(countryCode) html += `<span>${countryCode}</span>`;
+  html += `</div></div></div>`;
+  el.innerHTML = html;
+  el.style.display = "flex";
+  // Auto-fade after 4s
+  clearTimeout(_apTimer);
+  _apTimer = setTimeout(()=>{ el.style.opacity='0.3'; }, 4000);
+  el.style.opacity = '1';
 }
 
 // ═══ LIVE FEED — show real-time download events at bottom center ═══
@@ -623,8 +702,8 @@ function addLiveFeedItem(flagEmoji, text, networkLogo, count){
   if(count) html += `<span class="feed-count">${count}</span>`;
   item.innerHTML = html;
   feed.insertBefore(item, feed.firstChild);
-  // Keep max 4 items, fade out old
-  while(feed.children.length > 4){
+  // Keep max 5 items, fade out old
+  while(feed.children.length > 5){
     const last = feed.lastChild;
     last.style.transition = 'opacity .3s';
     last.style.opacity = '0';
@@ -763,21 +842,34 @@ async function startDirectoryDownload(){
 
   const countriesToScan=dashCountries.length>0?[...dashCountries]:["IT","US","GB","DE","FR","ES","CN","IN"];
   const total=countriesToScan.length;
+  let totalMembers=0;
+  setCockpitSubtitle(`📂 Download directory · ${total} paesi da scansionare`);
 
   for(let i=0;i<countriesToScan.length&&downloading;i++){
     const code=countriesToScan[i];
     const pct = Math.round(((i)/total)*100);
     setCockpitProgress(pct, `${i+1}/${total} paesi · ${code}`);
+    setCockpitSubtitle(`📂 ${code} — scansione in corso... (${totalMembers} partner trovati)`);
     setMatrixCountryFlash();
     spawnFlagBurst(code);
+    addExecStep(code, "running", `pag. 1...`);
     addLiveFeedItem(flag(code), `Scaricando directory ${code}...`, null, `${i+1}/${total}`);
 
     let page=1, hasMore=true, members=[];
     while(hasMore&&downloading){
       try{
+        addExecStep(code, "running", `pag. ${page} · ${members.length} trovati`);
         const resp=await fetch(API+"/api/discover-global",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({country:code,page})});
         const data=await resp.json();
-        if(data.success&&data.members&&data.members.length>0){members.push(...data.members);hasMore=data.hasNext;page++;}
+        if(data.success&&data.members&&data.members.length>0){
+          members.push(...data.members);
+          hasMore=data.hasNext;page++;
+          // Show first member name as active
+          if(data.members[0]){
+            const m=data.members[0];
+            showActivePartner(m.name||m.company_name||code, code, null, null);
+          }
+        }
         else{hasMore=false;}
       }catch(e){hasMore=false;}
     }
@@ -786,16 +878,23 @@ async function startDirectoryDownload(){
       try{
         await fetch(API+"/api/save-directory",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({countryCode:code,members})});
         dirStats[code]=members.length;
+        totalMembers+=members.length;
         addPartnerFeedItem(code,members.length,"directory");
         highlightFlagChip(code);
+        addExecStep(code, "done", `${members.length} partner`);
         addLiveFeedItem(flag(code), `${code}: ${members.length} partner salvati`, null, "✅");
+        // Update live counter
+        document.getElementById("ckDir").textContent = totalMembers.toLocaleString();
       }catch(e){}
+    } else {
+      addExecStep(code, "done", "0");
     }
     renderCountryList(); renderFlagsBar(); updateDashTopStats();
   }
 
   setCockpitProgress(100, "Completato!");
-  setTimeout(()=>{ setMatrixDone(); stopCinema(); }, 1500);
+  setCockpitSubtitle(`✅ Directory completata — ${totalMembers.toLocaleString()} partner da ${total} paesi`);
+  setTimeout(()=>{ setMatrixDone(); stopCinema(); }, 3000);
   downloading=false; downloadType=null;
   document.getElementById("btnDirStart").style.display="block";
   document.getElementById("btnDirStop").style.display="none";
@@ -817,27 +916,37 @@ function stopDownload(){
 // ═══════════════════════════════════════════════════
 // PROFILE DOWNLOAD — cinematic hooks + Management pipeline
 // ═══════════════════════════════════════════════════
-(function hookManagementFunctions(){
+// Hook management functions — retry until they exist (scripts may load after)
+let _hookRetries = 0;
+function hookManagementFunctions(){
+  let hooked = 0;
   // Hook setStatus
-  if(typeof setStatus==="function"){
+  if(typeof setStatus==="function" && !setStatus._hooked){
     const _o=setStatus;
-    setStatus=function(text,s){_o(text,s);};
+    setStatus=function(text,s){
+      _o(text,s);
+      if(scraping && text) setCockpitSubtitle(text);
+    };
+    setStatus._hooked=true; hooked++;
   }
   // Hook setProgress
-  if(typeof setProgress==="function"){
+  if(typeof setProgress==="function" && !setProgress._hooked){
     const _o=setProgress;
     setProgress=function(cur,tot){
       _o(cur,tot);
       if(scraping&&tot>0){
         const pct=Math.round((cur/tot)*100);
         setCockpitProgress(pct, `${cur}/${tot} profili · ${pct}%`);
-        const sub=document.querySelector(".cockpit-subtitle");
-        if(sub) sub.textContent=`Download profili in corso...`;
+        setCockpitSubtitle(`👤 Download profili — ${cur}/${tot} (${pct}%)`);
+        addExecStep("Profili", "running", `${cur}/${tot}`);
+        // Update live cockpit stat
+        document.getElementById("ckProf").textContent = cur.toLocaleString();
       }
     };
+    setProgress._hooked=true; hooked++;
   }
   // Hook setActiveCountry — flag burst + cinema
-  if(typeof setActiveCountry==="function"){
+  if(typeof setActiveCountry==="function" && !setActiveCountry._hooked){
     const _o=setActiveCountry;
     setActiveCountry=function(code,name){
       _o(code,name);
@@ -845,41 +954,56 @@ function stopDownload(){
         setMatrixCountryFlash();
         spawnFlagBurst(code);
         highlightFlagChip(code);
+        addExecStep(name||code, "running", code);
         addLiveFeedItem(flag(code), `${name||code}: scaricando profili...`, null, null);
       }
     };
+    setActiveCountry._hooked=true; hooked++;
   }
   // Hook setActiveNetwork — spawn orbiting logo
-  if(typeof setActiveNetwork==="function"){
+  if(typeof setActiveNetwork==="function" && !setActiveNetwork._hooked){
     const _o=setActiveNetwork;
     setActiveNetwork=function(domain,name){
       _o(domain,name);
       if(scraping){
         spawnNetworkLogo(domain);
         const net=(typeof ALL_NETWORKS!=='undefined')?ALL_NETWORKS.find(n=>n.domain===domain):null;
-        if(net) addLiveFeedItem("🔗", name, net.logo, null);
+        if(net){
+          addLiveFeedItem("🔗", name, net.logo, null);
+          addExecStep(name, "running", domain);
+        }
       }
     };
+    setActiveNetwork._hooked=true; hooked++;
   }
-  // Hook log — detect saved profiles, show partner fly-through
-  if(typeof log==="function"){
+  // Hook log — detect saved profiles, show partner fly-through + active overlay
+  if(typeof log==="function" && !log._hooked){
     const _o=log;
     log=function(msg,type){
       _o(msg,type);
       if(type==="ok"&&msg.startsWith("✓")){
-        // Extract company name from "✓ CompanyName (id) contatti:N"
         const m=msg.match(/✓\s+(.+?)\s+\(/);
         const net=msg.match(/\[([^\]]+)\]$/);
         if(m){
           spawnPartnerText(m[1], net ? net[1] : "");
-          // Get current country for feed
           const cc = typeof currentScrapingCountry!=='undefined' ? currentScrapingCountry : "";
           addPartnerFeedItem(cc, 1, "profiles");
+          // Show partner in active overlay
+          const netObj = net && (typeof ALL_NETWORKS!=='undefined') ? ALL_NETWORKS.find(n=>n.name===net[1]||n.domain===net[1]) : null;
+          showActivePartner(m[1], cc, net?net[1]:"", netObj?netObj.logo:"");
+          addExecStep(m[1], "done", cc);
         }
       }
     };
+    log._hooked=true; hooked++;
   }
-})();
+  // If not all hooked yet, retry
+  if(hooked < 5 && _hookRetries < 20){
+    _hookRetries++;
+    setTimeout(hookManagementFunctions, 500);
+  }
+}
+hookManagementFunctions();
 
 async function startProfileDownload(){
   if(scraping){showToast("Download già in corso","var(--warning)");return;}
