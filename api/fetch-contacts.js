@@ -458,23 +458,32 @@ async function loginSSO(targetBase) {
       if (wBody.includes("<form") && (wBody.includes("wresult") || wBody.includes("wsignin"))) {
         log.push(`  ★ WS-Fed form in warmup redirect!`);
         await processWsFedForm(wBody, jar, log, wNext);
-        // Re-fetch directory with new cookies
-        warmupResp = await fetch(`${targetBase}/Directory`, {
-          headers: { ...BROWSER_HEADERS, "Cookie": jar.get(TARGET_DOMAIN) },
-          redirect: "manual",
-        });
-        jar.add(TARGET_DOMAIN, warmupResp.headers.raw()["set-cookie"] || []);
       }
+      // Always re-fetch directory with (possibly updated) cookies for final check
+      warmupResp = await fetch(`${targetBase}/Directory`, {
+        headers: { ...BROWSER_HEADERS, "Cookie": jar.get(TARGET_DOMAIN) },
+        redirect: "manual",
+      });
+      jar.add(TARGET_DOMAIN, warmupResp.headers.raw()["set-cookie"] || []);
       break;
     }
   }
 
   let authenticated = false;
+  let warmupHtml = "";
   if (warmupResp.status === 200) {
-    const wHtml = await warmupResp.text();
-    const hasLogout = /logout|sign.?out/i.test(wHtml);
-    const hasPassword = wHtml.includes('type="password"');
-    log.push(`  Warmup result: hasLogout=${hasLogout} hasPassword=${hasPassword} len=${wHtml.length}`);
+    try { warmupHtml = await warmupResp.text(); } catch(e) { /* body already consumed in redirect loop */ }
+    if (!warmupHtml && warmupResp._bodyConsumed) {
+      // Body was consumed in the redirect loop above — re-fetch
+      const reFetch = await fetch(`${targetBase}/Directory`, {
+        headers: { ...BROWSER_HEADERS, "Cookie": jar.get(TARGET_DOMAIN) },
+        redirect: "manual",
+      });
+      if (reFetch.status === 200) warmupHtml = await reFetch.text();
+    }
+    const hasLogout = /logout|sign.?out/i.test(warmupHtml);
+    const hasPassword = warmupHtml.includes('type="password"');
+    log.push(`  Warmup result: hasLogout=${hasLogout} hasPassword=${hasPassword} len=${warmupHtml.length}`);
     authenticated = hasLogout && !hasPassword;
   } else {
     log.push(`  Warmup status: ${warmupResp.status}`);
