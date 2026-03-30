@@ -70,6 +70,29 @@ function updateNetworkSelBadge(){
 function openResetPanel(){ document.getElementById("resetPanelOverlay").style.display = "block"; }
 function closeResetPanel(){ document.getElementById("resetPanelOverlay").style.display = "none"; }
 
+async function deleteOrphanProfiles(){
+  // Prima mostra stats
+  try {
+    const statsResp = await fetch(API+"/api/cleanup");
+    const stats = await statsResp.json();
+    if(stats.incomplete === 0){
+      alert("Nessun profilo orfano trovato. Tutti i "+stats.total+" partner hanno email o telefono.");
+      return;
+    }
+    if(!confirm("Trovati "+stats.incomplete+" profili orfani su "+stats.total+" totali.\n\nSono partner senza email/telefono o [not_found].\nVuoi cancellarli? Potrai riscaricarli con dati completi.")) return;
+    closeResetPanel();
+    log("🗑 Cancellazione "+stats.incomplete+" profili orfani in corso...","warn");
+    const delResp = await fetch(API+"/api/cleanup?confirm=yes");
+    const result = await delResp.json();
+    if(result.success){
+      log("✅ Cancellati "+result.deleted+" profili orfani. Rimasti "+result.remaining+" completi.","ok");
+      if(typeof loadPartnerAgenda === "function") loadPartnerAgenda();
+    } else {
+      log("⚠ Errore cancellazione: "+(result.error||"sconosciuto"),"warn");
+    }
+  } catch(e){ log("⚠ Errore cleanup: "+e.message,"warn"); }
+}
+
 function resetLocalScrapeData(){
   if(!confirm("Cancellare tutti i dati locali di scraping?\n\nJob, sessioni, stato download verranno rimossi.\nIl database Supabase e la cache directory NON verranno toccati.")) return;
   const keysToRemove = [];

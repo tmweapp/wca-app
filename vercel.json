@@ -7,7 +7,8 @@
     "api/enrich.js": { "maxDuration": 30 },
     "api/worker.js": { "maxDuration": 30 },
     "api/fetch-contacts.js": { "maxDuration": 60 },
-    "api/test-auth.js": { "maxDuration": 30 }
+    "api/test-auth.js": { "maxDuration": 30 },
+    "api/cleanup.js": { "maxDuration": 60 }
   },
   "crons": [
     {
