@@ -66,6 +66,64 @@ function updateNetworkSelBadge(){
   }
 }
 
+// ═══ NETWORK CONFIRM POPUP — mostra selezione network + conferma ═══
+function showNetworkConfirmPopup(title, description){
+  return new Promise((resolve) => {
+    // Crea overlay
+    let overlay = document.getElementById("networkConfirmOverlay");
+    if(!overlay){
+      overlay = document.createElement("div");
+      overlay.id = "networkConfirmOverlay";
+      overlay.style.cssText = "position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)";
+      document.body.appendChild(overlay);
+    }
+
+    const selNets = getSelectedNetworks();
+    const allNets = typeof ALL_NETWORKS !== 'undefined' ? ALL_NETWORKS.filter(n => n.siteId > 0) : [];
+
+    let netListHtml = "";
+    for(const net of allNets){
+      const checked = selNets.includes(net.name) ? "checked" : "";
+      netListHtml += `<label style="display:flex;align-items:center;gap:6px;padding:4px 8px;border-radius:6px;cursor:pointer;transition:background .15s;font-size:.72rem;color:#e2e8f0" onmouseover="this.style.background='rgba(99,102,241,0.1)'" onmouseout="this.style.background='transparent'"><input type="checkbox" class="ncpCheck" value="${net.name}" ${checked} style="accent-color:#6366f1;width:13px;height:13px"> ${net.name}</label>`;
+    }
+
+    overlay.innerHTML = `
+      <div style="background:#1e1e2e;border:1px solid rgba(99,102,241,0.3);border-radius:16px;padding:20px 24px;max-width:440px;width:90%;max-height:80vh;overflow-y:auto;box-shadow:0 24px 48px rgba(0,0,0,0.5)">
+        <div style="font-size:1rem;font-weight:800;color:#fff;margin-bottom:4px">${title}</div>
+        <div style="font-size:.75rem;color:#94a3b8;margin-bottom:14px">${description}</div>
+        <div style="font-size:.65rem;font-weight:700;color:#a5b4fc;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Filtra Network (opzionale)</div>
+        <div style="display:flex;gap:6px;margin-bottom:10px">
+          <button onclick="document.querySelectorAll('.ncpCheck').forEach(c=>c.checked=true)" style="font-size:.6rem;padding:2px 8px;border-radius:4px;border:1px solid rgba(99,102,241,0.3);background:rgba(99,102,241,0.1);color:#a5b4fc;cursor:pointer">Tutti</button>
+          <button onclick="document.querySelectorAll('.ncpCheck').forEach(c=>c.checked=false)" style="font-size:.6rem;padding:2px 8px;border-radius:4px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.04);color:#94a3b8;cursor:pointer">Nessuno</button>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:2px;max-height:240px;overflow-y:auto;border:1px solid rgba(255,255,255,0.06);border-radius:8px;padding:6px;margin-bottom:16px;scrollbar-width:thin">${netListHtml}</div>
+        <div style="font-size:.65rem;color:#64748b;margin-bottom:14px">Se nessun network è selezionato, verranno scaricati <b style="color:#e2e8f0">tutti i partner</b>.</div>
+        <div style="display:flex;gap:8px;justify-content:flex-end">
+          <button id="ncpCancel" style="padding:6px 16px;border-radius:8px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.04);color:#94a3b8;font-size:.75rem;cursor:pointer;transition:all .15s">Annulla</button>
+          <button id="ncpConfirm" style="padding:6px 20px;border-radius:8px;border:none;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;font-size:.75rem;font-weight:700;cursor:pointer;transition:all .15s;box-shadow:0 4px 12px rgba(99,102,241,0.3)">Avvia</button>
+        </div>
+      </div>`;
+    overlay.style.display = "flex";
+
+    document.getElementById("ncpCancel").onclick = () => {
+      overlay.style.display = "none";
+      resolve(false);
+    };
+    document.getElementById("ncpConfirm").onclick = () => {
+      // Sincronizza selezione con la griglia network principale
+      const popupChecked = new Set(Array.from(document.querySelectorAll(".ncpCheck:checked")).map(c => c.value));
+      const mainChecks = document.querySelectorAll("#networksGrid input[type=checkbox]");
+      mainChecks.forEach(cb => { cb.checked = popupChecked.has(cb.value); });
+      updateNetworkSelBadge();
+      overlay.style.display = "none";
+      resolve(true);
+    };
+    overlay.onclick = (e) => {
+      if(e.target === overlay){ overlay.style.display = "none"; resolve(false); }
+    };
+  });
+}
+
 // Reset Panel
 function openResetPanel(){ document.getElementById("resetPanelOverlay").style.display = "block"; }
 function closeResetPanel(){ document.getElementById("resetPanelOverlay").style.display = "none"; }

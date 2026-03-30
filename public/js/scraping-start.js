@@ -5,6 +5,10 @@
 async function startScraping(){
   if(!sessionCookies){log("Devi prima fare il login","err");return;}
 
+  // ═══ POPUP CONFERMA con selezione network ═══
+  const shouldProceed = await showNetworkConfirmPopup("👤 DOWNLOAD PROFILI", "Scarica i profili dettagliati dei partner selezionati. Puoi filtrare per network oppure scaricare tutti.");
+  if(!shouldProceed) return;
+
   const updateAddress = document.getElementById("chkUpdateAddress").checked;
 
   scraping = true;

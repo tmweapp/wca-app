@@ -310,7 +310,8 @@ function toggleDirSync(){
 async function updateNetworksForCountries(){
   const countries = selectedCountries.length > 0 ? [...selectedCountries] : [];
   if(countries.length === 0){ alert("Seleziona almeno un paese!"); return; }
-  if(!confirm("AGGIORNA NETWORK\n\n" + countries.map(c=>c.name).join(", ") + "\n\nScansiona TUTTI i network WCA per trovare dove ogni partner e presente e calcola la URL di scraping.\n\nProcedere?")) return;
+  const shouldProceed = await showNetworkConfirmPopup("🔄 AGGIORNA NETWORK", "Scansiona i network WCA per " + countries.map(c=>c.name).join(", ") + ". Puoi filtrare per network specifici.");
+  if(!shouldProceed) return;
 
   dirSyncing = true; scraping = true;
   setDownloadMode("network");

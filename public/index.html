@@ -47,18 +47,8 @@
       </button>
     </div>
   </div>
-  <!-- Toolbar: Filtra Network a sinistra + bottoni al centro -->
+  <!-- Toolbar: bottoni utilità -->
   <div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-top:1px solid rgba(255,255,255,0.04);flex-wrap:wrap">
-    <!-- Filtra Network a sinistra -->
-    <button onclick="openNetworkPopup()" class="picker-btn" id="btnPickNetwork" style="display:inline-flex;align-items:center;flex-direction:row;padding:3px 10px;gap:4px;border-radius:8px;min-width:auto">
-      <img src="https://dlldkrzoxvjxpgkkttxu.supabase.co/storage/v1/object/public/icons/satellite.png?v=2" class="picker-icon-img" alt="Network" style="width:20px;height:20px">
-      <span style="font-size:.62rem;color:var(--text-muted)">Filtra Network</span>
-      <span id="networkSelBadge" class="picker-badge" style="display:none"></span>
-    </button>
-    <span id="networkSelCountInline" style="font-size:.68rem;color:var(--text-muted);padding:3px 10px;border-radius:6px;background:rgba(255,255,255,0.04)"></span>
-    <div id="selectedNetworksTags" style="display:flex;flex-wrap:wrap;gap:4px"></div>
-    <div style="width:1px;height:22px;background:rgba(255,255,255,0.08);margin:0 2px"></div>
-    <!-- Bottoni al centro -->
     <button onclick="openSearchPopup()" style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.02);cursor:pointer;color:var(--text-muted);font-size:.62rem;transition:all .15s" onmouseover="this.style.background='rgba(99,102,241,0.08)'" onmouseout="this.style.background='rgba(255,255,255,0.02)'">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       Cerca
@@ -66,11 +56,15 @@
     <button class="btn btn-secondary btn-sm" onclick="openAgenda()" style="font-size:.62rem;padding:3px 10px">Agenda</button>
     <button class="btn btn-secondary btn-sm" onclick="window.open('directory.html','_blank')" style="font-size:.62rem;padding:3px 10px;color:#a5b4fc;border-color:rgba(99,102,241,0.25)">📂 Directory</button>
     <button class="btn btn-secondary btn-sm" onclick="window.open('business-cards.html','_blank')" style="font-size:.62rem;padding:3px 10px">💼 Business Cards</button>
-    <!-- campo nascosto per compatibilità JS -->
+    <!-- elementi nascosti per compatibilità JS -->
     <div id="fieldSearch" style="display:none">
       <input type="text" id="txtSearch" class="field-input">
       <select id="selSearchBy" class="field-input"><option value="">Paese</option><option value="company_name">Nome</option><option value="id_number">ID</option></select>
     </div>
+    <span id="networkSelBadge" style="display:none"></span>
+    <span id="networkSelCountInline" style="display:none"></span>
+    <div id="selectedNetworksTags" style="display:none"></div>
+    <button id="btnPickNetwork" style="display:none"></button>
   </div>
 
   <div class="header-flags-row" id="headerFlags"></div>
