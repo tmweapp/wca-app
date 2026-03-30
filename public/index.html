@@ -95,59 +95,50 @@
         <div id="selectedCountriesPreview" style="display:none;align-items:center;gap:3px;flex:1;min-width:0;overflow-x:auto;overflow-y:hidden;white-space:nowrap;scrollbar-width:thin;scrollbar-color:rgba(99,102,241,0.3) transparent;padding:1px 0"></div>
       </div>
 
-      <!-- ROW B: Action buttons — centrati sul bordo superiore del container -->
+      <!-- ROW B: Action pills — una riga, centrata sul bordo superiore -->
       <div class="action-pills-bar">
-
+        <!-- GRUPPO 1: Scraping -->
         <button id="btnStart" onclick="startScraping()" disabled class="action-pill" style="--pill-color:#10b981">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
           <span>Avvia</span>
         </button>
-
         <button id="btnResume" onclick="resumeScraping()" class="action-pill" style="display:none;--pill-color:#a5b4fc">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/><line x1="19" y1="3" x2="19" y2="21"/></svg>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/><line x1="19" y1="3" x2="19" y2="21"/></svg>
           <span>Continua</span>
         </button>
-
         <button id="btnStop" onclick="stopScraping()" disabled class="action-pill" style="--pill-color:#ef4444">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
           <span>Stop</span>
         </button>
-
-        <button id="btnStartBg" onclick="startBackgroundJob()" class="action-pill" style="--pill-color:#8b5cf6">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-          <span>Background</span>
-        </button>
-
-        <div style="width:1px;height:20px;background:rgba(255,255,255,0.08)"></div>
-
-        <button id="btnUpdateNet" onclick="updateNetworksForCountries()" class="action-pill" style="--pill-color:#6ee7b7">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6"/><path d="M23 20v-6h-6"/><path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/></svg>
-          <span>Network</span>
-        </button>
-
+        <div class="pill-sep"></div>
+        <!-- GRUPPO 2: Dati -->
         <button id="btnSyncDir" onclick="toggleDirSync()" class="action-pill" style="--pill-color:#0ea5e9">
-          <svg id="syncDirIcon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <svg id="syncDirIcon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           <span>Directory</span>
         </button>
-
+        <button id="btnUpdateNet" onclick="updateNetworksForCountries()" class="action-pill" style="--pill-color:#6ee7b7">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6"/><path d="M23 20v-6h-6"/><path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/></svg>
+          <span>Network</span>
+        </button>
+        <button id="btnStartBg" onclick="startBackgroundJob()" class="action-pill" style="--pill-color:#8b5cf6">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+          <span>Background</span>
+        </button>
+        <div class="pill-sep"></div>
+        <!-- GRUPPO 3: Opzioni -->
+        <label class="action-pill" style="--pill-color:#94a3b8;cursor:pointer">
+          <input type="checkbox" id="chkUpdateAddress" style="accent-color:var(--accent);width:11px;height:11px;margin:0">
+          <span>Aggiorna</span>
+        </label>
         <button id="btnBell" onclick="toggleNotifications()" class="action-pill" style="position:relative;--pill-color:#f59e0b">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
           <span>Notifiche</span>
           <span id="bellBadge" style="position:absolute;top:-4px;right:-4px;font-size:.48rem;min-width:13px;height:13px;line-height:13px;text-align:center;padding:0 2px;border-radius:7px;background:#ef4444;color:white;font-weight:700;display:none"></span>
         </button>
-
-        <div style="width:1px;height:20px;background:rgba(255,255,255,0.08)"></div>
-
-        <label class="action-pill" style="--pill-color:#94a3b8;cursor:pointer">
-          <input type="checkbox" id="chkUpdateAddress" style="accent-color:var(--accent);width:12px;height:12px;margin:0">
-          <span>Aggiorna</span>
-        </label>
-
         <button onclick="resetCountryAndRestart()" class="action-pill" style="--pill-color:#f87171">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
           <span>Reset</span>
         </button>
-
       </div>
 
       <!-- ROW C: Download attivo — logo paese grande + info + network completati -->
