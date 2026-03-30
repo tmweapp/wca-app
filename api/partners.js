@@ -25,22 +25,27 @@ module.exports = async (req, res) => {
           body: JSON.stringify({}),
         });
       } catch(e) {}
-      // Fallback: carica tutti i country_code e conta lato server
+      // Fallback: carica tutti i country_code con paginazione e conta lato server
       if (!resp || !resp.ok) {
-        const fallbackUrl = `${SUPABASE_URL}/rest/v1/wca_partners?select=country_code&limit=10000`;
-        const fbResp = await fetch(fallbackUrl, {
-          headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` },
-        });
-        if (fbResp.ok) {
+        const counts = {};
+        let offset = 0;
+        const batchSize = 1000;
+        while (true) {
+          const fallbackUrl = `${SUPABASE_URL}/rest/v1/wca_partners?select=country_code&order=wca_id.asc&offset=${offset}&limit=${batchSize}`;
+          const fbResp = await fetch(fallbackUrl, {
+            headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` },
+          });
+          if (!fbResp.ok) break;
           const rows = await fbResp.json();
-          const counts = {};
+          if (!rows || rows.length === 0) break;
           for (const r of rows) {
             const cc = (r.country_code || "").toUpperCase().trim();
             if (cc) counts[cc] = (counts[cc] || 0) + 1;
           }
-          return res.json({ success: true, counts });
+          if (rows.length < batchSize) break;
+          offset += batchSize;
         }
-        return res.json({ success: true, counts: {} });
+        return res.json({ success: true, counts });
       }
       const data = await resp.json();
       const counts = {};
@@ -48,13 +53,36 @@ module.exports = async (req, res) => {
       return res.json({ success: true, counts });
     }
 
-    const offset = (parseInt(page) - 1) * parseInt(limit);
+    const reqLimit = parseInt(limit);
+    const reqPage = parseInt(page);
     const fields = select || "*";
 
-    let url = `${SUPABASE_URL}/rest/v1/wca_partners?select=${encodeURIComponent(fields)}&order=company_name.asc&offset=${offset}&limit=${limit}`;
+    let filters = "";
+    if (country) filters += `&country_code=ilike.*${encodeURIComponent(country)}*`;
+    if (search) filters += `&company_name=ilike.*${encodeURIComponent(search)}*`;
 
-    if (country) url += `&country_code=ilike.*${encodeURIComponent(country)}*`;
-    if (search) url += `&company_name=ilike.*${encodeURIComponent(search)}*`;
+    // Se il limit richiesto è > 1000, pagina automaticamente (Supabase max 1000/request)
+    if (reqLimit > 1000) {
+      const allData = [];
+      let off = 0;
+      const batchSize = 1000;
+      while (true) {
+        const url = `${SUPABASE_URL}/rest/v1/wca_partners?select=${encodeURIComponent(fields)}&order=company_name.asc&offset=${off}&limit=${batchSize}${filters}`;
+        const r = await fetch(url, {
+          headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` },
+        });
+        if (!r.ok) break;
+        const rows = await r.json();
+        if (!rows || rows.length === 0) break;
+        allData.push(...rows);
+        if (rows.length < batchSize) break;
+        off += batchSize;
+      }
+      return res.json({ success: true, partners: allData, total: allData.length, page: 1 });
+    }
+
+    const offset = (reqPage - 1) * reqLimit;
+    const url = `${SUPABASE_URL}/rest/v1/wca_partners?select=${encodeURIComponent(fields)}&order=company_name.asc&offset=${offset}&limit=${reqLimit}${filters}`;
 
     const resp = await fetch(url, {
       headers: {
@@ -72,7 +100,7 @@ module.exports = async (req, res) => {
     const data = await resp.json();
     const total = resp.headers.get("content-range")?.split("/")?.[1] || data.length;
 
-    return res.json({ success: true, partners: data, total: parseInt(total), page: parseInt(page) });
+    return res.json({ success: true, partners: data, total: parseInt(total), page: reqPage });
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message });
   }
