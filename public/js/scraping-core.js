@@ -21,6 +21,22 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
     if(doneIds.size > 0) log(`📂 ${countryName}: ${doneIds.size} profili già completati in directory locale`,"ok");
   }
 
+  // ═══ CHECK SUPABASE — carica wca_id già presenti in wca_profiles ═══
+  if(!updateAddress){
+    try {
+      const dbResp = await fetch(API+"/api/partners?action=existing_ids&country="+encodeURIComponent(country));
+      const dbData = await dbResp.json();
+      if(dbData.success && dbData.ids){
+        let newFromDb = 0;
+        for(const id of dbData.ids){
+          if(!doneIds.has(id)){ doneIds.add(id); newFromDb++; }
+        }
+        if(newFromDb > 0) log(`🗄️ ${countryName}: +${newFromDb} profili già in Supabase (totale skip: ${doneIds.size})`,"ok");
+        else if(dbData.count > 0) log(`🗄️ ${countryName}: ${dbData.count} profili in Supabase (già noti dal locale)`,"ok");
+      }
+    } catch(e){ log(`⚠ Check Supabase fallito: ${e.message} — uso solo directory locale`,"warn"); }
+  }
+
   // === HELPER: estrai dominio reale da scrape_url ===
   function getDomainFromScrapeUrl(scrapeUrl){
     if(!scrapeUrl) return null;

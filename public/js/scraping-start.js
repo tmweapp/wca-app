@@ -234,10 +234,18 @@ async function resumeScraping(jobCode){
   }
   currentNetworkMap = networkMap;
 
-  // === USA DIRECTORY LOCALE — ZERO QUERY SERVER ===
-  const pendingIds = getPendingIds(countryCode);
-  const pendingSet = new Set(pendingIds);
-  const toDownload = members.filter(m => pendingSet.has(String(m.id)));
+  // === USA DIRECTORY LOCALE + CHECK SUPABASE ===
+  const pendingIds = new Set(getPendingIds(countryCode));
+  // Aggiungi check Supabase per gli ID già scaricati
+  try {
+    const dbResp = await fetch(API+"/api/partners?action=existing_ids&country="+encodeURIComponent(countryCode));
+    const dbData = await dbResp.json();
+    if(dbData.success && dbData.ids){
+      for(const id of dbData.ids) pendingIds.delete(String(id));
+      if(dbData.count > 0) log(`🗄️ ${countryName}: ${dbData.count} profili già in Supabase — esclusi`,"ok");
+    }
+  } catch(e){ log(`⚠ Check Supabase: ${e.message}`,"warn"); }
+  const toDownload = members.filter(m => pendingIds.has(String(m.id)));
   const done = members.length - toDownload.length;
 
   currentScrapingCountry = countryCode;

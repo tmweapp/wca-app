@@ -179,95 +179,101 @@ async function syncAllDirectories(forceResume){
   updateDirHeaderCounts();
 }
 
-// ═══ RETRY DIRECTORY — confronta locale vs SUPABASE, riscarica mancanti da WCA ═══
+// ═══ RETRY PROFILI — confronta wca_directory vs wca_profiles, scarica solo i mancanti ═══
 async function retryIncompleteDirectories(){
-  if(dirSyncing){ setStatus("⚠ Sync directory già in corso", true); return; }
+  if(dirSyncing){ setStatus("⚠ Operazione già in corso", true); return; }
+  if(!sessionCookies){ log("⚠ Devi prima fare il login","err"); return; }
 
-  setStatus("📂 Confronto locale vs Supabase...", true);
-  log("📂 Carico conteggi da Supabase...","ok");
+  setStatus("🔍 Confronto directory vs profili su Supabase...", true);
+  log("🔍 Carico conteggi directory e profili da Supabase...","ok");
 
-  // 1. Chiedi a Supabase i conteggi per paese
-  let dbByCountry = {};
-  let dbTotal = 0;
+  // 1. Carica conteggi directory (wca_directory) per paese
+  let dirByCountry = {};
   try {
     const resp = await fetch(API + "/api/load-directory?mode=stats");
     const data = await resp.json();
-    if(!data.success){ setStatus("⚠ Errore caricamento stats Supabase", true); return; }
-    dbByCountry = data.byCountry || {};
-    dbTotal = data.totalPartners || 0;
-  } catch(e){ setStatus("⚠ Errore connessione Supabase: " + e.message, true); return; }
+    if(!data.success){ setStatus("⚠ Errore caricamento directory", true); return; }
+    dirByCountry = data.byCountry || {};
+  } catch(e){ setStatus("⚠ Errore: " + e.message, true); return; }
 
-  // 2. Confronta locale vs Supabase per ogni paese
-  const allCountries = getAllCountryList();
+  // 2. Carica conteggi profili (wca_profiles) per paese
+  let profByCountry = {};
+  try {
+    const resp = await fetch(API + "/api/partners?action=country_counts");
+    const data = await resp.json();
+    if(data.success) profByCountry = data.counts || {};
+  } catch(e){ log("⚠ Errore conteggi profili: " + e.message,"warn"); }
+
+  // 3. Confronta: paesi dove directory > profili = profili mancanti
   const toRetry = [];
-  let localTotal = 0;
-  for(const c of allCountries){
-    const fullDir = getFullDirectory(c.code);
-    const localCount = (fullDir && fullDir.members) ? fullDir.members.length : 0;
-    const dbCount = dbByCountry[c.code] || 0;
-    localTotal += localCount;
-    // Paese incompleto se Supabase ha più IDs del locale
-    if(dbCount > localCount){
-      toRetry.push({ code: c.code, name: c.name, localCount, dbCount, missing: dbCount - localCount });
+  for(const [code, dirCount] of Object.entries(dirByCountry)){
+    const profCount = profByCountry[code] || 0;
+    const missing = dirCount - profCount;
+    if(missing > 0){
+      toRetry.push({ code, dirCount, profCount, missing });
     }
   }
 
-  log(`📂 Confronto: locale=${localTotal.toLocaleString()}, Supabase=${dbTotal.toLocaleString()}, differenza=${(dbTotal - localTotal).toLocaleString()}`,"ok");
-
   if(toRetry.length === 0){
-    setStatus(`✅ Locale allineato con Supabase (${localTotal.toLocaleString()} IDs)`, true);
-    log("✅ Nessun paese con IDs mancanti rispetto a Supabase","ok");
+    const totalDir = Object.values(dirByCountry).reduce((s,v) => s+v, 0);
+    const totalProf = Object.values(profByCountry).reduce((s,v) => s+v, 0);
+    setStatus(`✅ Tutti i profili scaricati! Directory: ${totalDir.toLocaleString()}, Profili: ${totalProf.toLocaleString()}`, true);
+    log("✅ Nessun paese con profili mancanti — tutto completo!","ok");
     return;
   }
 
   toRetry.sort((a,b) => b.missing - a.missing);
   const totalMissing = toRetry.reduce((s, c) => s + c.missing, 0);
 
-  log(`📂 RETRY: ${toRetry.length} paesi con ${totalMissing} IDs mancanti vs Supabase`,"warn");
-  log(`📂 Paesi: ${toRetry.map(c => c.name+'(-'+c.missing+')').join(', ')}`,"warn");
+  // 4. Mostra popup conferma con lista paesi incompleti
+  const listHtml = toRetry.map(c =>
+    `${countryFlag(c.code)} <b>${c.code}</b>: ${c.profCount}/${c.dirCount} profili (mancano <b>${c.missing}</b>)`
+  ).join("<br>");
 
-  dirSyncing = true;
+  const popupOk = await showNetworkConfirmPopup(
+    `👤 RETRY PROFILI MANCANTI`,
+    `<b>${toRetry.length} paesi</b> con <b>${totalMissing.toLocaleString()}</b> profili da scaricare:<br><br>${listHtml}<br><br>Vuoi avviare il download dei profili mancanti?`
+  );
+  if(!popupOk) return;
+
+  log(`👤 RETRY: ${toRetry.length} paesi, ${totalMissing.toLocaleString()} profili mancanti`,"warn");
+
+  // 5. Per ogni paese incompleto, lancia scrapeDiscoverCountry()
+  //    (che ora fa il check Supabase e salta automaticamente gli ID già presenti)
   scraping = true;
-  setDownloadMode("directory");
-  const btn = document.getElementById("btnSyncDir");
-  if(btn) btn.style.opacity = "1";
+  setDownloadMode("profiles");
   const dlRow = document.getElementById("activeDownloadRow");
   if(dlRow) dlRow.style.display = "flex";
 
-  let synced = 0, newIds = 0;
+  // Imposta selectedCountries per il pipeline
+  selectedCountries = toRetry.map(c => ({ code: c.code, name: c.code }));
+
+  const selectedNetDomains = getSelectedNetworkObjects().map(n => n.domain);
+  const networkFilter = selectedNetDomains.length > 0 ? selectedNetDomains : null;
+
   for(let i = 0; i < toRetry.length && scraping; i++){
     const c = toRetry[i];
-    const before = getFullDirectory(c.code)?.members?.length || 0;
+    log(`═══ RETRY ${i+1}/${toRetry.length}: ${countryFlag(c.code)} ${c.code} — ${c.missing} mancanti ═══`,"warn");
+    setStatus(`RETRY ${i+1}/${toRetry.length}: ${c.code} (${c.missing} mancanti)`, true);
 
-    setActiveCountry(c.code, c.name);
-    setStatus(`📂 Retry ${i+1}/${toRetry.length}: ${c.name} (locale ${before}, DB ${c.dbCount}, -${c.missing})`, true);
-    setProgress(i+1, toRetry.length);
+    await scrapeDiscoverCountry(c.code, c.code, false, networkFilter);
 
-    // Scarica directory da WCA (merge con esistente)
-    await discoverFastDirectory(c.code, c.name);
-
-    const after = getFullDirectory(c.code)?.members?.length || 0;
-    const gained = after - before;
-    if(gained > 0){
-      log(`📂 ${c.name}: +${gained} IDs recuperati (${before} → ${after}, DB=${c.dbCount})`,"ok");
-      newIds += gained;
+    // Pausa tra paesi
+    if(i + 1 < toRetry.length && scraping){
+      const pause = typeof COUNTRY_PAUSE !== 'undefined' ? COUNTRY_PAUSE : 10000;
+      await sleepWithActivity("🌍", `Pausa tra paesi — prossimo: ${toRetry[i+1].code}`, pause);
     }
-    synced++;
-
-    updateDirHeaderCounts();
   }
 
-  dirSyncing = false;
   scraping = false;
   setDownloadMode(null);
   hideActiveCountry();
   hideDownloadRow();
-  if(btn) btn.style.opacity = ".5";
+  hideActivity();
 
-  const newLocalTotal = allCountries.reduce((s, c) => s + (getFullDirectory(c.code)?.members?.length || 0), 0);
-  setStatus(`📂 Retry completato: ${synced} paesi, +${newIds} IDs recuperati (${newLocalTotal.toLocaleString()} totali)`, true);
-  log(`✅ Retry: ${synced} paesi. IDs: ${localTotal.toLocaleString()} → ${newLocalTotal.toLocaleString()} (+${newIds}) — DB: ${dbTotal.toLocaleString()}`,"ok");
-  updateDirHeaderCounts();
+  setStatus(`✅ Retry completato: ${toRetry.length} paesi elaborati`, true);
+  log(`✅ RETRY COMPLETATO: ${toRetry.length} paesi, ${totalMissing} profili mancanti elaborati`,"ok");
+  loadHeaderCounts();
 }
 
 function stopDirSync(){

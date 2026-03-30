@@ -10,6 +10,26 @@ module.exports = async (req, res) => {
   try {
     const { country, search, page = 1, limit = 100, select, action } = req.query || {};
 
+    // Lista wca_id già presenti per un paese (per evitare re-download)
+    if (action === "existing_ids" && country) {
+      const ids = [];
+      let offset = 0;
+      const batchSize = 1000;
+      while (true) {
+        const url = `${SUPABASE_URL}/rest/v1/wca_profiles?select=wca_id&country_code=ilike.${encodeURIComponent(country)}&order=wca_id.asc&offset=${offset}&limit=${batchSize}`;
+        const r = await fetch(url, {
+          headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` },
+        });
+        if (!r.ok) break;
+        const rows = await r.json();
+        if (!rows || rows.length === 0) break;
+        for (const row of rows) if (row.wca_id) ids.push(row.wca_id);
+        if (rows.length < batchSize) break;
+        offset += batchSize;
+      }
+      return res.json({ success: true, ids, count: ids.length });
+    }
+
     // Conteggio partner per paese
     if (action === "country_counts") {
       const url = `${SUPABASE_URL}/rest/v1/rpc/count_by_country`;
