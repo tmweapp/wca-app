@@ -73,6 +73,29 @@ module.exports = async (req, res) => {
       return res.json({ success: true, counts });
     }
 
+    // Conteggio DIRECTORY per paese (wca_directory)
+    if (action === "directory_counts") {
+      const counts = {};
+      let offset = 0;
+      const batchSize = 1000;
+      while (true) {
+        const url = `${SUPABASE_URL}/rest/v1/wca_directory?select=country_code&order=wca_id.asc&offset=${offset}&limit=${batchSize}`;
+        const resp = await fetch(url, {
+          headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` },
+        });
+        if (!resp.ok) break;
+        const rows = await resp.json();
+        if (!rows || rows.length === 0) break;
+        for (const r of rows) {
+          const cc = (r.country_code || "").toUpperCase().trim();
+          if (cc) counts[cc] = (counts[cc] || 0) + 1;
+        }
+        if (rows.length < batchSize) break;
+        offset += batchSize;
+      }
+      return res.json({ success: true, counts });
+    }
+
     const reqLimit = parseInt(limit);
     const reqPage = parseInt(page);
     const fields = select || "*";

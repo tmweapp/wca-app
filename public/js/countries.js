@@ -10,6 +10,23 @@ const ALL_COUNTRIES = [
 ];
 
 let countryPartnerCounts = {};
+let countryDirCounts = {};
+
+async function loadDirCounts(){
+  try {
+    const resp = await fetch(API+"/api/partners?action=directory_counts");
+    const data = await resp.json();
+    if(data.success && data.counts){
+      countryDirCounts = data.counts;
+      try { sessionStorage.setItem("wca_dir_counts", JSON.stringify(countryDirCounts)); } catch(e){}
+    } else {
+      try { const c = sessionStorage.getItem("wca_dir_counts"); if(c) countryDirCounts = JSON.parse(c); } catch(e){}
+    }
+  } catch(e){
+    try { const c = sessionStorage.getItem("wca_dir_counts"); if(c) countryDirCounts = JSON.parse(c); } catch(e2){}
+  }
+}
+
 async function loadCountryCounts(){
   try {
     const resp = await fetch(API+"/api/partners?action=country_counts");
@@ -54,18 +71,29 @@ function recoverPartnerCounts(){
 }
 
 async function initCountrySelector(){
-  await loadCountryCounts();
+  await Promise.all([loadCountryCounts(), loadDirCounts()]);
   const list = document.getElementById("countryList");
   let html = "";
   for(const group of ALL_COUNTRIES){
     html += `<div style="padding:4px 8px;font-size:.65rem;color:#6366f1;font-weight:700;text-transform:uppercase;letter-spacing:1px;background:rgba(0,0,0,0.3)">${group.g}</div>`;
     for(const [code, name] of group.items){
       const flag = countryFlag(code);
-      const cnt = countryPartnerCounts[code] || 0;
-      const cntBadge = cnt > 0 ? `<span style="margin-left:auto;background:rgba(16,185,129,0.15);color:#6ee7b7;font-size:.65rem;padding:1px 6px;border-radius:8px;min-width:20px;text-align:center">${cnt}</span>` : `<span style="margin-left:auto;color:#475569;font-size:.65rem">0</span>`;
+      const profCnt = countryPartnerCounts[code] || 0;
+      const dirCnt = countryDirCounts[code] || 0;
       const doneBadge = isCountryCompleted(code) ? `<span style="background:rgba(16,185,129,0.15);color:#6ee7b7;font-size:.6rem;padding:1px 5px;border-radius:4px">done</span>` : "";
+      // Badge: dirCnt (directory) / profCnt (scaricati)
+      let cntBadge = "";
+      if(dirCnt > 0 || profCnt > 0){
+        const pColor = profCnt >= dirCnt && dirCnt > 0 ? "#6ee7b7" : "#93c5fd";
+        cntBadge = `<span style="margin-left:auto;display:flex;gap:3px;align-items:center;font-size:.6rem">`;
+        if(dirCnt > 0) cntBadge += `<span style="background:rgba(99,102,241,0.15);color:#a5b4fc;padding:1px 5px;border-radius:6px" title="In directory">${dirCnt}</span>`;
+        cntBadge += `<span style="background:rgba(16,185,129,0.15);color:${pColor};padding:1px 5px;border-radius:6px" title="Profili scaricati">${profCnt}</span>`;
+        cntBadge += `</span>`;
+      } else {
+        cntBadge = `<span style="margin-left:auto;color:#475569;font-size:.65rem">—</span>`;
+      }
       html += `<label style="display:flex;align-items:center;gap:6px;padding:5px 8px;font-size:.78rem;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.04);transition:all 0.15s" data-code="${code}" data-name="${name.toLowerCase()}" onmouseover="this.style.background='rgba(99,102,241,0.08)'" onmouseout="this.style.background='transparent'">
-        <input type="checkbox" value="${code}" onchange="toggleCountry('${code}','${name}')" style="accent-color:#6366f1"> ${flag} ${name} (${code}) ${doneBadge} ${cntBadge}
+        <input type="checkbox" value="${code}" onchange="toggleCountry('${code}','${name}')" style="accent-color:#6366f1"> ${flag} ${name} ${doneBadge} ${cntBadge}
       </label>`;
     }
   }
