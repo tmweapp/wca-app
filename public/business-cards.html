@@ -1497,11 +1497,14 @@ async function confirmImport(){
     seen.add(key);
     return true;
   });
-  // Also skip if already in DB
+  // Also skip if already in DB (but never skip cards with all-empty key fields)
   const dbKeys=new Set(allCards.map(c=>(c.company_name||"").toLowerCase().trim()+"||"+(c.contact_name||"").toLowerCase().trim()+"||"+(c.email||"").toLowerCase().trim()));
   cards=cards.filter(c=>{
-    const key=(c.company_name||"").toLowerCase().trim()+"||"+(c.contact_name||"").toLowerCase().trim()+"||"+(c.email||"").toLowerCase().trim();
-    return !dbKeys.has(key);
+    const cn=(c.company_name||"").toLowerCase().trim();
+    const nm=(c.contact_name||"").toLowerCase().trim();
+    const em=(c.email||"").toLowerCase().trim();
+    if(!cn&&!nm&&!em) return true; // don't dedup empty-key cards
+    return !dbKeys.has(cn+"||"+nm+"||"+em);
   });
   if(!cards.length){ alert("Tutti i contatti sono già presenti nel database."); cancelImport(); return; }
   // Store event info in notes (event_name/contact_date/upload_date don't exist in DB schema)
@@ -1534,17 +1537,21 @@ function parseCSVFallback(text){
   text=text.replace(/\uFEFF/g,"");
   const lines=text.split(/\r?\n/).filter(l=>l.trim());
   if(lines.length<2) return [];
-  const headers=lines[0].split(";").map(h=>h.trim().replace(/^"|"$/g,""));
+  // Auto-detect separator: ; or , or \t
+  const firstLine=lines[0];
+  const sep=firstLine.includes("\t")?"\t":(firstLine.split(";").length>=firstLine.split(",").length?";":","  );
+  console.log("CSV separator detected:", JSON.stringify(sep), "columns:", firstLine.split(sep).length);
+  const headers=lines[0].split(sep).map(h=>h.trim().replace(/^"|"$/g,""));
   const results=[];
   for(let i=1;i<lines.length;i++){
     const line=lines[i];
-    // Smart split: respect quoted fields containing semicolons
+    // Smart split: respect quoted fields containing separator
     const fields=[];
     let current="", inQuote=false;
     for(let j=0;j<line.length;j++){
       const ch=line[j];
       if(ch==='"'){ inQuote=!inQuote; continue; }
-      if(ch===";"&&!inQuote){ fields.push(current.trim()); current=""; continue; }
+      if(ch===sep&&!inQuote){ fields.push(current.trim()); current=""; continue; }
       current+=ch;
     }
     fields.push(current.trim());
@@ -1555,8 +1562,9 @@ function parseCSVFallback(text){
     const allVals=Object.values(row).join("");
     const special=(allVals.match(/[=|{}\\<>_~^#\[\]]/g)||[]).length;
     if(special/Math.max(allVals.length,1)>0.12) continue;
-    // Skip empty rows
-    if(!row["Nome"]&&!row["Azienda"]&&!row["Email"]) continue;
+    // Skip empty rows — check all values, not just specific header names
+    const anyValue=Object.values(row).some(v=>v&&v.trim().length>1);
+    if(!anyValue) continue;
     results.push(row);
   }
   return results;
