@@ -348,57 +348,19 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
   } // fine else Phase 3
 
   // ═══════════════════════════════════════════════════════════════════════════════
-  // FASE 4: DISCOVER NO NETWORK — scopri i partner che NON sono in nessun network
+  // FASE 4: IDENTIFICA NO NETWORK — usa fullDir già caricata in Fase 1
   // ═══════════════════════════════════════════════════════════════════════════════
   if(!scraping) return;
 
-  log(`═══ FASE 4: DISCOVER NO NETWORK ═══`,"info");
-  setStatus(`FASE 4: Scopri partner senza network...`, true);
+  log(`═══ FASE 4: IDENTIFICA NO NETWORK (da directory già caricata) ═══`,"ok");
 
-  // Scarica directory globale con paginazione (WCA limita a 50 per pagina)
-  const globalDir = [];
-  let globalPage = 1;
-  let globalHasMore = true;
-  while(globalHasMore && scraping){
-    try {
-      const globalResp = await fetch(API+"/api/discover-global",{
-        method:"POST",headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({ country: country, page: globalPage })
-      });
-      const globalData = await globalResp.json();
-      if(globalData.success && globalData.members && globalData.members.length > 0){
-        for(const m of globalData.members){
-          if(!globalDir.find(x => x.id === m.id)) globalDir.push(m);
-        }
-        globalHasMore = globalData.hasNext;
-        globalPage++;
-        setStatus(`FASE 4: Directory globale p.${globalPage} — ${globalDir.length} partner...`, true);
-        if(globalHasMore && scraping){
-          const nextDelay = getNextDirDelay();
-          await sleepWithActivity("🔍", `Pausa ${Math.round(nextDelay/1000)}s — prossima pagina globale`, nextDelay);
-        }
-      } else {
-        globalHasMore = false;
-      }
-    } catch(e){
-      log(`⚠ Errore download directory globale p.${globalPage}: ${e.message}`,"warn");
-      globalHasMore = false;
-    }
-  }
-  if(globalDir.length === 0){
-    log(`⚠ Directory globale vuota — skip NO NETWORK`,"warn");
-    return;
-  }
-  log(`📂 Directory globale: ${globalDir.length} partner totali`,"ok");
-
-  // Identifica i 142 NO NETWORK
+  // fullDir.members contiene TUTTI i membri del paese (caricati in Fase 1)
+  // targetMembers è il sottoinsieme filtrato per network selezionati
+  // I "no network" sono quelli in fullDir ma NON in targetMembers
   const networkMemberIds = new Set(targetMembers.map(m => m.id));
-  const noNetworkMembers = globalDir.filter(g => !networkMemberIds.has(g.id));
+  const noNetworkMembers = fullDir.members.filter(m => !networkMemberIds.has(m.id));
 
-  log(`📊 Statistiche:`, "ok");
-  log(`   Totali globali: ${globalDir.length}`, "ok");
-  log(`   Con network: ${networkMemberIds.size}`, "ok");
-  log(`   Senza network (NO NETWORK): ${noNetworkMembers.length}`, "ok");
+  log(`📊 ${countryName}: ${fullDir.members.length} totali, ${networkMemberIds.size} con network, ${noNetworkMembers.length} senza network`,"ok");
 
   if(noNetworkMembers.length === 0){
     log(`✅ Nessun partner senza network — procedura completata!`,"ok");

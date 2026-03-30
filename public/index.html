@@ -14,155 +14,96 @@
 }
 html,body{height:100%;overflow:hidden;font-family:'Inter',sans-serif;background:var(--bg);color:var(--text)}
 
-/* ═══ TOP BAR ═══ */
 .topbar{
   position:fixed;top:0;left:0;right:0;z-index:100;height:48px;
-  background:rgba(8,8,26,0.70);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid var(--border);
+  background:rgba(8,8,26,0.70);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);
   display:flex;align-items:center;padding:0 20px;gap:12px;
 }
 .topbar-logo{width:32px;height:32px;filter:drop-shadow(0 2px 8px rgba(139,92,246,0.5))}
 .topbar-title{font-size:.85rem;font-weight:700;background:linear-gradient(135deg,#a5b4fc,#c4b5fd);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
 .topbar-nav{margin-left:auto;display:flex;gap:4px}
-.topbar-btn{
-  padding:5px 14px;border-radius:8px;font-size:.68rem;font-weight:600;cursor:pointer;
-  border:1px solid var(--border);background:transparent;color:var(--muted);transition:all .2s;
-}
+.topbar-btn{padding:5px 14px;border-radius:8px;font-size:.68rem;font-weight:600;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--muted);transition:all .2s}
 .topbar-btn:hover{background:rgba(99,102,241,0.08);color:var(--text)}
 .topbar-btn.active{background:rgba(99,102,241,0.15);color:#a5b4fc;border-color:rgba(99,102,241,0.3)}
 .topbar-stats{display:flex;gap:8px;align-items:center;margin-right:12px}
-.stat-chip{
-  font-size:.62rem;font-weight:700;padding:3px 10px;border-radius:6px;
-  background:rgba(255,255,255,0.03);border:1px solid var(--border);color:var(--muted);
-  font-family:'JetBrains Mono',monospace;
-}
+.stat-chip{font-size:.62rem;font-weight:700;padding:3px 10px;border-radius:6px;background:rgba(255,255,255,0.03);border:1px solid var(--border);color:var(--muted);font-family:'JetBrains Mono',monospace}
 .stat-chip b{color:var(--text);font-size:.72rem}
 
-/* ═══ FULLSCREEN MATRIX CANVAS ═══ */
 #matrixCanvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0}
 
-/* ═══ MAIN LAYOUT — 3 COLUMNS ═══ */
-.main{
-  position:fixed;top:48px;bottom:56px;left:0;right:0;
-  display:grid;grid-template-columns:280px 1fr 280px;gap:0;
-  z-index:1;
-}
+.main{position:fixed;top:48px;bottom:56px;left:0;right:0;display:grid;grid-template-columns:280px 1fr 280px;gap:0;z-index:1}
 
-/* ═══ LEFT PANEL — DIRECTORY ═══ */
 .panel-left,.panel-right{
-  background:rgba(14,14,36,0.70);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
-  border-right:1px solid var(--border);
-  display:flex;flex-direction:column;overflow:hidden;
+  background:rgba(14,14,36,0.70);backdrop-filter:blur(12px);
+  border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;
 }
 .panel-right{border-right:none;border-left:1px solid var(--border)}
-.panel-header{
-  padding:16px 18px 12px;border-bottom:1px solid var(--border);
-  display:flex;align-items:center;gap:10px;flex-shrink:0;
-}
+.panel-header{padding:16px 18px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-shrink:0}
 .panel-icon{font-size:2rem;filter:drop-shadow(0 2px 8px rgba(99,102,241,0.3))}
 .panel-title{font-size:.82rem;font-weight:800;letter-spacing:-.02em}
 .panel-subtitle{font-size:.6rem;color:var(--muted);margin-top:1px}
 .panel-body{flex:1;overflow-y:auto;padding:12px;scrollbar-width:thin;scrollbar-color:rgba(99,102,241,0.2) transparent}
-.panel-footer{
-  padding:10px 14px;border-top:1px solid var(--border);flex-shrink:0;
-  display:flex;align-items:center;gap:8px;
-}
+.panel-footer{padding:10px 14px;border-top:1px solid var(--border);flex-shrink:0;display:flex;align-items:center;gap:8px}
 
-/* Big action button */
-.big-btn{
-  flex:1;padding:10px;border-radius:10px;border:none;font-size:.75rem;font-weight:700;
-  cursor:pointer;transition:all .25s;letter-spacing:.02em;
-}
+.big-btn{flex:1;padding:10px;border-radius:10px;border:none;font-size:.75rem;font-weight:700;cursor:pointer;transition:all .25s;letter-spacing:.02em}
 .big-btn:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(0,0,0,0.3)}
 .big-btn.dir{background:linear-gradient(135deg,#0ea5e9,#06b6d4);color:#fff}
 .big-btn.prof{background:linear-gradient(135deg,#8b5cf6,#a78bfa);color:#fff}
 .big-btn.stop{background:linear-gradient(135deg,#ef4444,#f87171);color:#fff}
 .big-btn:disabled{opacity:.35;cursor:default;transform:none;box-shadow:none}
 
-/* Country list items */
-.country-item{
-  display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;
-  transition:background .15s;cursor:default;
-}
+.country-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;transition:background .15s;cursor:default}
 .country-item:hover{background:rgba(99,102,241,0.06)}
-.country-flag{font-size:1.4rem}
 .country-name{font-size:.72rem;font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.country-count{
-  font-size:.6rem;font-family:'JetBrains Mono',monospace;padding:2px 6px;border-radius:4px;
-  background:rgba(14,165,233,0.1);color:#7dd3fc;font-weight:600;
-}
+.country-count{font-size:.6rem;font-family:'JetBrains Mono',monospace;padding:2px 6px;border-radius:4px;background:rgba(14,165,233,0.1);color:#7dd3fc;font-weight:600}
 .country-count.profiles{background:rgba(139,92,246,0.1);color:#c4b5fd}
-.country-bar{
-  height:3px;border-radius:2px;background:rgba(255,255,255,0.04);overflow:hidden;
-  width:100%;margin-top:2px;
-}
+.country-bar{height:3px;border-radius:2px;background:rgba(255,255,255,0.04);overflow:hidden;width:100%;margin-top:2px}
 .country-bar-fill{height:100%;border-radius:2px;transition:width .6s ease-out}
 
-/* Partner items */
-.partner-item{
-  padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);
-  margin-bottom:4px;transition:all .3s;animation:partnerIn .4s ease-out;
-}
+.partner-item{padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);margin-bottom:4px;transition:all .3s;animation:partnerIn .4s ease-out}
 .partner-item:hover{background:rgba(139,92,246,0.06);border-color:rgba(139,92,246,0.15)}
 .partner-name{font-size:.72rem;font-weight:700;margin-bottom:2px}
 .partner-meta{font-size:.58rem;color:var(--muted);display:flex;gap:6px;align-items:center}
-.partner-nets{display:flex;gap:3px;margin-top:3px}
-.partner-nets img{height:14px;opacity:.7;transition:opacity .2s}
-.partner-nets img:hover{opacity:1}
 @keyframes partnerIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
 
-/* ═══ CENTER — COCKPIT AREA ═══ */
+/* ═══ CENTER — CINEMATIC COCKPIT ═══ */
 .center{position:relative;overflow:hidden;background:transparent}
+#cineCanvas{position:absolute;top:0;left:0;width:100%;height:100%;z-index:2}
 
-/* Center overlay cockpit */
+/* Cockpit overlay — floats on top of cinema canvas */
 .cockpit{
   position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
-  display:flex;flex-direction:column;align-items:center;gap:16px;z-index:10;
-  pointer-events:none;
+  display:flex;flex-direction:column;align-items:center;gap:12px;z-index:10;
+  pointer-events:none;transition:all .6s ease;
 }
-.cockpit-logo{width:80px;height:80px;filter:drop-shadow(0 4px 24px rgba(139,92,246,0.5));animation:pulse 3s ease-in-out infinite}
+.cockpit.downloading{top:18%;transform:translate(-50%,0)}
+.cockpit-logo{width:72px;height:72px;filter:drop-shadow(0 4px 24px rgba(139,92,246,0.5));animation:pulse 3s ease-in-out infinite}
 @keyframes pulse{0%,100%{transform:scale(1);filter:drop-shadow(0 4px 24px rgba(139,92,246,0.5))}50%{transform:scale(1.05);filter:drop-shadow(0 4px 32px rgba(139,92,246,0.7))}}
-.cockpit-title{font-size:1.6rem;font-weight:900;letter-spacing:-.04em;text-align:center;line-height:1.1}
+.cockpit-title{font-size:1.4rem;font-weight:900;letter-spacing:-.04em;text-align:center;line-height:1.1}
 .cockpit-title span{background:linear-gradient(135deg,#a5b4fc,#06b6d4);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.cockpit-subtitle{font-size:.7rem;color:var(--muted);text-align:center;max-width:280px;line-height:1.5}
+.cockpit-subtitle{font-size:.65rem;color:var(--muted);text-align:center;max-width:280px;line-height:1.4}
+.cockpit-stats{display:flex;gap:20px;margin-top:4px}
+.cockpit-stat{display:flex;flex-direction:column;align-items:center;gap:2px}
+.cockpit-stat-value{font-size:1.6rem;font-weight:900;font-family:'JetBrains Mono',monospace;background:linear-gradient(135deg,#6366f1,#06b6d4);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.cockpit-stat-label{font-size:.5rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-weight:700}
 
-/* Cockpit stats ring */
-.cockpit-stats{
-  display:flex;gap:20px;margin-top:8px;
+/* Live event feed — bottom center, shows during download */
+.live-feed{
+  position:absolute;bottom:12px;left:50%;transform:translateX(-50%);z-index:10;
+  display:none;flex-direction:column;align-items:center;gap:6px;
+  pointer-events:none;min-width:400px;max-width:600px;
 }
-.cockpit-stat{
-  display:flex;flex-direction:column;align-items:center;gap:2px;
+.live-feed-item{
+  padding:6px 16px;border-radius:10px;font-size:.7rem;font-weight:600;
+  background:rgba(14,14,36,0.85);backdrop-filter:blur(12px);border:1px solid var(--border);
+  box-shadow:0 4px 16px rgba(0,0,0,0.3);animation:feedIn .4s ease-out;
+  display:flex;align-items:center;gap:8px;width:100%;
 }
-.cockpit-stat-value{
-  font-size:1.8rem;font-weight:900;font-family:'JetBrains Mono',monospace;
-  background:linear-gradient(135deg,#6366f1,#06b6d4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;
-}
-.cockpit-stat-label{font-size:.55rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-weight:700}
-
-/* Active download overlay */
-.active-dl{
-  position:absolute;bottom:20px;left:50%;transform:translateX(-50%);z-index:10;
-  background:rgba(14,14,36,0.85);backdrop-filter:blur(16px);border:1px solid var(--border);
-  border-radius:14px;padding:12px 24px;display:none;align-items:center;gap:14px;
-  box-shadow:0 12px 40px rgba(0,0,0,0.4);pointer-events:auto;min-width:400px;
-}
-.active-dl-flag{font-size:2.4rem;filter:drop-shadow(0 2px 6px rgba(0,0,0,0.4))}
-.active-dl-info{flex:1}
-.active-dl-status{font-size:.72rem;font-weight:700;margin-bottom:2px}
-.active-dl-detail{font-size:.6rem;color:var(--muted)}
-.active-dl-progress{height:4px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden;margin-top:6px}
-.active-dl-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--cyan),var(--green));transition:width .3s}
-
-/* Network logo parade */
-.net-parade{
-  position:absolute;bottom:80px;left:0;right:0;z-index:5;
-  display:flex;gap:24px;align-items:center;justify-content:center;
-  animation:netScroll 20s linear infinite;
-}
-.net-parade img{
-  height:36px;opacity:.15;filter:grayscale(1) brightness(1.5);transition:all .4s;
-}
-.net-parade img.active{opacity:.9;filter:grayscale(0);transform:scale(1.3)}
-@keyframes netScroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+.live-feed-item .feed-flag{font-size:1.4rem}
+.live-feed-item .feed-text{flex:1;color:var(--text)}
+.live-feed-item .feed-net{height:18px;opacity:.8;filter:brightness(1.3)}
+.live-feed-item .feed-count{font-family:'JetBrains Mono',monospace;font-size:.65rem;color:var(--cyan);font-weight:700}
+@keyframes feedIn{from{opacity:0;transform:translateX(-50%) translateY(10px) scale(.95)}to{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}}
 
 /* Status toast */
 .toast{
@@ -173,7 +114,6 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',sans-serif;background:
 }
 @keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(-10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
 
-/* ═══ SCROLLBAR ═══ */
 ::-webkit-scrollbar{width:4px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:rgba(99,102,241,0.2);border-radius:2px}
@@ -181,24 +121,14 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',sans-serif;background:
 /* ═══ BOTTOM FLAGS BAR ═══ */
 .flags-bar{
   position:fixed;bottom:0;left:0;right:0;z-index:100;height:56px;
-  background:rgba(8,8,26,0.70);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid var(--border);
+  background:rgba(8,8,26,0.70);backdrop-filter:blur(16px);border-top:1px solid var(--border);
   display:flex;align-items:center;padding:0 12px;gap:0;
 }
-.flags-bar-label{
-  flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:1px;
-  padding:0 14px 0 6px;border-right:1px solid var(--border);margin-right:10px;
-}
+.flags-bar-label{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:1px;padding:0 14px 0 6px;border-right:1px solid var(--border);margin-right:10px}
 .flags-bar-label-big{font-size:1.1rem;font-weight:900;font-family:'JetBrains Mono',monospace;color:var(--cyan)}
 .flags-bar-label-sm{font-size:.5rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-weight:700}
-.flags-scroll{
-  flex:1;display:flex;gap:4px;overflow-x:auto;overflow-y:hidden;align-items:center;
-  scrollbar-width:thin;scrollbar-color:rgba(99,102,241,0.15) transparent;padding:4px 0;
-}
-.flag-chip{
-  flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:1px;
-  padding:4px 6px;border-radius:8px;border:1px solid transparent;
-  transition:all .25s;cursor:default;min-width:48px;
-}
+.flags-scroll{flex:1;display:flex;gap:4px;overflow-x:auto;overflow-y:hidden;align-items:center;scrollbar-width:thin;scrollbar-color:rgba(99,102,241,0.15) transparent;padding:4px 0}
+.flag-chip{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:1px;padding:4px 6px;border-radius:8px;border:1px solid transparent;transition:all .25s;cursor:default;min-width:48px}
 .flag-chip:hover{background:rgba(99,102,241,0.08);border-color:var(--border)}
 .flag-chip.active{background:rgba(14,165,233,0.12);border-color:rgba(14,165,233,0.3);animation:flagPop .3s ease-out}
 .flag-chip-emoji{font-size:1.2rem;line-height:1}
@@ -215,10 +145,8 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',sans-serif;background:
 </style>
 </head>
 <body>
-<!-- FULLSCREEN MATRIX CANVAS -->
 <canvas id="matrixCanvas"></canvas>
 
-<!-- ═══ TOP BAR ═══ -->
 <div class="topbar">
   <img src="logos/dragon.png" class="topbar-logo" alt="Logo" onerror="this.src='https://dlldkrzoxvjxpgkkttxu.supabase.co/storage/v1/object/public/icons/dragon.png'">
   <span class="topbar-title">WCA Network Navigator</span>
@@ -235,17 +163,12 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',sans-serif;background:
   </div>
 </div>
 
-<!-- ═══ MAIN 3-COLUMN LAYOUT ═══ -->
 <div class="main">
-
   <!-- LEFT: DIRECTORY -->
   <div class="panel-left">
     <div class="panel-header">
       <span class="panel-icon">📂</span>
-      <div>
-        <div class="panel-title">Directory</div>
-        <div class="panel-subtitle">Elenco partner per paese</div>
-      </div>
+      <div><div class="panel-title">Directory</div><div class="panel-subtitle">Elenco partner per paese</div></div>
       <span id="dirTotal" style="margin-left:auto;font-size:.65rem;font-family:'JetBrains Mono',monospace;color:var(--cyan);font-weight:700">0</span>
     </div>
     <div class="panel-body" id="dirList"></div>
@@ -255,9 +178,10 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',sans-serif;background:
     </div>
   </div>
 
-  <!-- CENTER: COCKPIT -->
+  <!-- CENTER: CINEMATIC COCKPIT -->
   <div class="center">
-    <div class="cockpit">
+    <canvas id="cineCanvas"></canvas>
+    <div class="cockpit" id="cockpit">
       <img src="logos/dragon.png" class="cockpit-logo" alt="" onerror="this.src='https://dlldkrzoxvjxpgkkttxu.supabase.co/storage/v1/object/public/icons/dragon.png'">
       <div class="cockpit-title"><span>WCA Network</span><br>Navigator</div>
       <div class="cockpit-subtitle">Scarica la directory dei partner o avvia il download dei profili dettagliati</div>
@@ -267,18 +191,7 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',sans-serif;background:
         <div class="cockpit-stat"><span class="cockpit-stat-value" id="ckCountries">0</span><span class="cockpit-stat-label">Paesi</span></div>
       </div>
     </div>
-    <!-- Active download bar -->
-    <div class="active-dl" id="activeDl">
-      <span class="active-dl-flag" id="dlFlag"></span>
-      <div class="active-dl-info">
-        <div class="active-dl-status" id="dlStatus">Scaricando...</div>
-        <div class="active-dl-detail" id="dlDetail"></div>
-        <div class="active-dl-progress"><div class="active-dl-fill" id="dlFill" style="width:0%"></div></div>
-      </div>
-    </div>
-    <!-- Network logo parade -->
-    <div class="net-parade" id="netParade"></div>
-    <!-- Toast -->
+    <div class="live-feed" id="liveFeed"></div>
     <div class="toast" id="toast"></div>
   </div>
 
@@ -286,10 +199,7 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',sans-serif;background:
   <div class="panel-right">
     <div class="panel-header">
       <span class="panel-icon">👤</span>
-      <div>
-        <div class="panel-title">Partner</div>
-        <div class="panel-subtitle">Profili scaricati in tempo reale</div>
-      </div>
+      <div><div class="panel-title">Partner</div><div class="panel-subtitle">Profili scaricati in tempo reale</div></div>
       <span id="profTotal" style="margin-left:auto;font-size:.65rem;font-family:'JetBrains Mono',monospace;color:var(--purple);font-weight:700">0</span>
     </div>
     <div class="panel-body" id="partnerList"></div>
@@ -298,10 +208,8 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',sans-serif;background:
       <button class="big-btn stop" id="btnProfStop" onclick="stopProfileDownload()" style="display:none;flex:0 0 auto;padding:10px 16px">■</button>
     </div>
   </div>
-
 </div>
 
-<!-- BOTTOM FLAGS BAR -->
 <div class="flags-bar">
   <div class="flags-bar-label">
     <span class="flags-bar-label-big" id="flagsBarTotal">0</span>
@@ -310,84 +218,39 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',sans-serif;background:
   <div class="flags-scroll" id="flagsScroll"></div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════════════════
-     HIDDEN MANAGEMENT ELEMENTS — required by the 32 JS files
-     ═══════════════════════════════════════════════════════════════════ -->
+<!-- HIDDEN MANAGEMENT ELEMENTS -->
 <div id="mgmtCompat" style="display:none">
-  <!-- Login -->
-  <button id="btnLogin"></button>
-  <span id="loginBadge"></span>
-  <!-- Scraping controls -->
-  <button id="btnStart"></button>
-  <button id="btnStop"></button>
-  <button id="btnResume"></button>
-  <button id="btnSyncDir"></button>
+  <button id="btnLogin"></button><span id="loginBadge"></span>
+  <button id="btnStart"></button><button id="btnStop"></button><button id="btnResume"></button><button id="btnSyncDir"></button>
   <input type="checkbox" id="chkUpdateAddress">
-  <!-- Status bar -->
   <div id="activeDownloadRow"><span id="dmIcon"></span><span id="dmTitle"></span></div>
-  <div id="statusDot"></div>
-  <div id="statusText"></div>
-  <div id="statusTextFallback"></div>
-  <div id="progressFill"></div>
-  <div id="progressText"></div>
-  <!-- Active country -->
+  <div id="statusDot"></div><div id="statusText"></div><div id="statusTextFallback"></div>
+  <div id="progressFill"></div><div id="progressText"></div>
   <div id="activeCountryBadge"><span id="activeCountryFlag"></span><span id="activeCountryName"></span></div>
-  <!-- Activity bar -->
   <div id="activityBar"><span id="activityIcon"></span><span id="activityText"></span><span id="activityTimer"></span></div>
-  <!-- Country completion -->
   <div id="completedNetworksRow"></div>
   <div id="countryCompletionBar"><div id="countryCompletionFill"></div><div id="countryCompletionText"></div></div>
-  <!-- Tabs & sections -->
-  <div id="tabsSection"></div>
-  <div id="scrapedTabsBar"></div>
-  <div id="scrapedCount"></div>
-  <div id="profilePreview"></div>
-  <!-- Header badges -->
-  <span id="headerTotalPartners"></span>
-  <span id="headerLimitedPartners"></span>
-  <span id="headerDirPartners"></span>
-  <span id="headerDirCountries"></span>
-  <span id="headerDbPartners"></span>
-  <span id="headerDbCountries"></span>
-  <span id="failedCountHeader"></span>
+  <div id="tabsSection"></div><div id="scrapedTabsBar"></div><div id="scrapedCount"></div><div id="profilePreview"></div>
+  <span id="headerTotalPartners"></span><span id="headerLimitedPartners"></span>
+  <span id="headerDirPartners"></span><span id="headerDirCountries"></span>
+  <span id="headerDbPartners"></span><span id="headerDbCountries"></span><span id="failedCountHeader"></span>
   <div id="headerFlags"></div>
-  <!-- Results -->
   <div id="resultsCard" style="display:none"><table><tbody id="resultsBody"></tbody></table></div>
-  <span id="discoverCount"></span>
-  <div id="dbFlash"></div>
-  <!-- Networks -->
-  <div id="networksGrid"></div>
-  <div id="networkPopupOverlay"></div>
-  <span id="selectedNetworksTags"></span>
-  <span id="networkSelBadge"></span>
-  <span id="networkSelCount"></span>
-  <span id="networkSelCountInline"></span>
-  <!-- Search popup -->
+  <span id="discoverCount"></span><div id="dbFlash"></div>
+  <div id="networksGrid"></div><div id="networkPopupOverlay"></div>
+  <span id="selectedNetworksTags"></span><span id="networkSelBadge"></span><span id="networkSelCount"></span><span id="networkSelCountInline"></span>
   <div id="searchPopupOverlay"><input id="searchPopupInput"><select id="searchPopupBy"></select></div>
   <input id="txtSearch"><select id="selSearchBy"></select>
-  <!-- Country popup -->
   <div id="countryPopupOverlay"><input id="countryFilter"></div>
-  <span id="countrySelCount"></span>
-  <div id="selectedCountriesPreview"></div>
-  <input type="checkbox" id="chkAllCountries">
-  <span id="allCountriesHint"></span>
-  <div id="countryList"></div>
-  <!-- Log -->
-  <div id="logArea"></div>
-  <div id="logPopupOverlay"></div>
-  <span id="logCountBadge"></span>
-  <!-- Reset panel -->
+  <span id="countrySelCount"></span><div id="selectedCountriesPreview"></div>
+  <input type="checkbox" id="chkAllCountries"><span id="allCountriesHint"></span><div id="countryList"></div>
+  <div id="logArea"></div><div id="logPopupOverlay"></div><span id="logCountBadge"></span>
   <div id="resetPanelOverlay" style="display:none"></div>
-  <!-- Scrape stats -->
   <div id="scrapeStatsRow"><span id="statFoundInNetwork"></span><span id="statDownloaded"></span><span id="statSkipped"></span></div>
-  <!-- Monitor -->
-  <div id="monitorPanel"></div>
-  <div id="monitorBlacklistList"></div>
-  <div id="monitorExpirationList"></div>
-  <div id="monitorDirectoryList"></div>
+  <div id="monitorPanel"></div><div id="monitorBlacklistList"></div><div id="monitorExpirationList"></div><div id="monitorDirectoryList"></div>
 </div>
 
-<!-- ═══ LOAD ALL 32 MANAGEMENT JS FILES ═══ -->
+<!-- LOAD 32 MANAGEMENT JS FILES -->
 <script src="js/config.js"></script>
 <script src="js/state.js"></script>
 <script src="js/utils.js"></script>
@@ -421,185 +284,356 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',sans-serif;background:
 <script src="js/monitor-panel.js"></script>
 <script src="js/init.js"></script>
 
-<!-- ═══ DASHBOARD INLINE SCRIPT ═══ -->
 <script>
 // ═══════════════════════════════════════════════════
-// DASHBOARD GLOBALS (config.js provides API, ALL_NETWORKS, etc.)
+// DASHBOARD — CINEMATIC ENGINE
 // ═══════════════════════════════════════════════════
 const SUPABASE_URL = "https://dlldkrzoxvjxpgkkttxu.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRsbGRrcnpveHZqeHBna2t0dHh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDMxODIxNjgsImV4cCI6MjA1ODc1ODE2OH0.LCxqLNlOvMbyMRucc9gkMbqDdOMC25v9rMqMKMKIiDI";
-
-// flag() alias for countryFlag() from utils.js
 function flag(code){ return countryFlag(code); }
 
-// Dashboard state
-let dirStats = {};
-let profStats = {};
-let dashCountries = [];
-let downloading = false;
-let downloadType = null;
-let _dashStatsInterval = null;
+let dirStats={}, profStats={}, dashCountries=[], downloading=false, downloadType=null, _dashStatsInterval=null;
 
 // ═══════════════════════════════════════════════════
-// MATRIX RAIN — fullscreen, slow, dynamic colors
+// MATRIX RAIN — fullscreen background
 // ═══════════════════════════════════════════════════
 const canvas = document.getElementById("matrixCanvas");
 const ctx = canvas.getContext("2d");
 let columns, drops, dropSpeeds;
-const chars = "WCANETWORKPARTNERDIRECTORYGLOBALLOGISTICSFREIGHTSHIPPINGCARGOTRADEアウカエオ01";
-const FONT_SIZE = 14;
-let matrixFrame = 0;
-
-let matrixHueBase = 200;
-let matrixHueTarget = 200;
-let matrixHueRange = 80;
-let matrixSat = 70;
-let matrixAlphaBase = 0.10;
-let matrixFadeAlpha = 0.04;
+const chars="WCANETWORKPARTNERDIRECTORYGLOBALLOGISTICSFREIGHTSHIPPINGCARGOTRADEアウカエオ01";
+const FONT_SIZE=14;
+let matrixFrame=0, matrixHueBase=200, matrixHueTarget=200, matrixHueRange=80, matrixSat=70, matrixAlphaBase=0.10, matrixFadeAlpha=0.04;
 
 function initMatrix(){
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-  columns = Math.floor(canvas.width / FONT_SIZE);
-  drops = Array(columns).fill(0).map(() => Math.random() * (canvas.height / FONT_SIZE));
-  dropSpeeds = Array(columns).fill(0).map(() => 0.3 + Math.random() * 0.5);
+  canvas.width=window.innerWidth; canvas.height=window.innerHeight;
+  columns=Math.floor(canvas.width/FONT_SIZE);
+  drops=Array(columns).fill(0).map(()=>Math.random()*(canvas.height/FONT_SIZE));
+  dropSpeeds=Array(columns).fill(0).map(()=>0.3+Math.random()*0.5);
 }
-
 function drawMatrix(){
   matrixFrame++;
-  matrixHueBase += (matrixHueTarget - matrixHueBase) * 0.02;
-  ctx.fillStyle = `rgba(8,8,26,${matrixFadeAlpha})`;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.font = `${FONT_SIZE}px 'JetBrains Mono'`;
-  for(let i = 0; i < drops.length; i++){
-    if(matrixFrame % 3 !== i % 3) { drops[i] += dropSpeeds[i]; continue; }
-    const char = chars[Math.floor(Math.random() * chars.length)];
-    const x = i * FONT_SIZE;
-    const y = Math.floor(drops[i]) * FONT_SIZE;
-    const hue = matrixHueBase + Math.random() * matrixHueRange;
-    const alpha = matrixAlphaBase + Math.random() * 0.12;
-    ctx.fillStyle = `hsla(${hue},${matrixSat}%,55%,${alpha})`;
-    ctx.fillText(char, x, y);
-    if(Math.random() > 0.985){
-      ctx.fillStyle = `hsla(${hue},90%,80%,0.6)`;
-      ctx.fillText(char, x, y);
-    }
-    drops[i] += dropSpeeds[i];
-    if(y > canvas.height && Math.random() > 0.99){
-      drops[i] = 0;
-      dropSpeeds[i] = 0.3 + Math.random() * 0.5;
-    }
+  matrixHueBase+=(matrixHueTarget-matrixHueBase)*0.02;
+  ctx.fillStyle=`rgba(8,8,26,${matrixFadeAlpha})`;
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.font=`${FONT_SIZE}px 'JetBrains Mono'`;
+  for(let i=0;i<drops.length;i++){
+    if(matrixFrame%3!==i%3){drops[i]+=dropSpeeds[i];continue;}
+    const char=chars[Math.floor(Math.random()*chars.length)];
+    const x=i*FONT_SIZE, y=Math.floor(drops[i])*FONT_SIZE;
+    const hue=matrixHueBase+Math.random()*matrixHueRange;
+    const alpha=matrixAlphaBase+Math.random()*0.12;
+    ctx.fillStyle=`hsla(${hue},${matrixSat}%,55%,${alpha})`;
+    ctx.fillText(char,x,y);
+    if(Math.random()>0.985){ctx.fillStyle=`hsla(${hue},90%,80%,0.6)`;ctx.fillText(char,x,y);}
+    drops[i]+=dropSpeeds[i];
+    if(y>canvas.height&&Math.random()>0.99){drops[i]=0;dropSpeeds[i]=0.3+Math.random()*0.5;}
   }
   requestAnimationFrame(drawMatrix);
 }
-
-// ═══ MATRIX COLOR MODES ═══
-function setMatrixIdle(){ matrixHueTarget=200; matrixHueRange=80; matrixSat=70; matrixAlphaBase=0.10; matrixFadeAlpha=0.04; }
-function setMatrixDownloading(){ matrixHueTarget=0; matrixHueRange=30; matrixSat=80; matrixAlphaBase=0.14; matrixFadeAlpha=0.035; }
+function setMatrixIdle(){matrixHueTarget=200;matrixHueRange=80;matrixSat=70;matrixAlphaBase=0.10;matrixFadeAlpha=0.04;}
+function setMatrixDownloading(){matrixHueTarget=0;matrixHueRange=30;matrixSat=80;matrixAlphaBase=0.14;matrixFadeAlpha=0.035;}
 function setMatrixCountryFlash(){
-  const prevTarget=matrixHueTarget;
-  matrixHueTarget=45; matrixHueRange=20; matrixSat=90; matrixAlphaBase=0.18;
-  setTimeout(()=>{ matrixHueTarget=prevTarget; matrixHueRange=30; matrixSat=80; matrixAlphaBase=0.14; }, 800);
+  const p=matrixHueTarget;matrixHueTarget=45;matrixHueRange=20;matrixSat=90;matrixAlphaBase=0.18;
+  setTimeout(()=>{matrixHueTarget=p;matrixHueRange=30;matrixSat=80;matrixAlphaBase=0.14;},800);
 }
-function setMatrixDone(){ matrixHueTarget=140; matrixHueRange=20; matrixSat=75; matrixAlphaBase=0.12; matrixFadeAlpha=0.03; }
-
-window.addEventListener("resize", initMatrix);
-initMatrix();
-drawMatrix();
+function setMatrixDone(){matrixHueTarget=140;matrixHueRange=20;matrixSat=75;matrixAlphaBase=0.12;matrixFadeAlpha=0.03;}
+window.addEventListener("resize",initMatrix);
+initMatrix(); drawMatrix();
 
 // ═══════════════════════════════════════════════════
-// NETWORK LOGO PARADE
+// CINEMATIC CENTER CANVAS — particles, logos, flags, data bursts
 // ═══════════════════════════════════════════════════
-const paradeEl = document.getElementById("netParade");
-let paradeIdx = 0;
+const cine = document.getElementById("cineCanvas");
+const cctx = cine.getContext("2d");
+let cineW, cineH;
+const cineParticles = [];   // floating particles
+const cineLogos = [];       // network logo objects
+const cineFlags = [];       // flag burst animations
+const cineTexts = [];       // partner name fly-throughs
+let cineActive = false;     // only animate during downloads
+let cineLogoImages = {};    // preloaded logo images
 
-function initParade(){
-  const nets = (typeof ALL_NETWORKS !== 'undefined') ? ALL_NETWORKS : [];
-  const html = [...nets,...nets].map((n,i) =>
-    `<img src="${n.logo}" alt="${n.name}" data-idx="${i % nets.length}" onerror="this.style.display='none'">`
-  ).join("");
-  paradeEl.innerHTML = html;
+function initCine(){
+  const rect = cine.parentElement.getBoundingClientRect();
+  cine.width = cineW = rect.width;
+  cine.height = cineH = rect.height;
 }
 
-function highlightParadeLogo(){
+// Preload network logo images
+function preloadLogos(){
   const nets = (typeof ALL_NETWORKS !== 'undefined') ? ALL_NETWORKS : [];
-  const imgs = paradeEl.querySelectorAll("img");
-  imgs.forEach(img => img.classList.remove("active"));
-  const targets = paradeEl.querySelectorAll(`img[data-idx="${paradeIdx}"]`);
-  targets.forEach(t => t.classList.add("active"));
-  paradeIdx = (paradeIdx + 1) % (nets.length || 1);
+  nets.forEach(n => {
+    const img = new Image();
+    img.src = n.logo;
+    img.onload = () => { cineLogoImages[n.domain] = img; };
+  });
 }
 
-initParade();
-setInterval(highlightParadeLogo, 1500);
+// ═══ PARTICLE SYSTEM ═══
+function spawnParticle(x, y, hue, size, life){
+  cineParticles.push({
+    x: x || Math.random()*cineW, y: y || Math.random()*cineH,
+    vx: (Math.random()-0.5)*2, vy: (Math.random()-0.5)*2,
+    hue: hue || 200, size: size || 2+Math.random()*3,
+    life: life || 60+Math.random()*120, maxLife: life || 120, alpha: 1
+  });
+}
+
+// ═══ NETWORK LOGO ORBIT — spinning logos during download ═══
+function spawnNetworkLogo(domain){
+  const img = cineLogoImages[domain];
+  if(!img) return;
+  const angle = Math.random()*Math.PI*2;
+  const radius = Math.min(cineW, cineH) * 0.3;
+  cineLogos.push({
+    img, cx: cineW/2, cy: cineH/2, angle, radius,
+    speed: 0.005 + Math.random()*0.008, size: 36+Math.random()*20,
+    alpha: 0, fadeIn: true, life: 200+Math.random()*200, maxLife: 300,
+    glow: 0, glowTarget: 0.6+Math.random()*0.4
+  });
+}
+
+// ═══ FLAG BURST — country flag explodes into view ═══
+function spawnFlagBurst(code){
+  const emoji = flag(code);
+  if(!emoji) return;
+  cineFlags.push({
+    emoji, x: cineW/2, y: cineH*0.55,
+    scale: 0.1, targetScale: 4+Math.random()*2,
+    alpha: 1, life: 90, maxLife: 90,
+    ring: 0, ringMax: Math.min(cineW, cineH)*0.3
+  });
+  // Spawn particles around the flag
+  for(let i=0; i<30; i++){
+    const angle = Math.random()*Math.PI*2;
+    const speed = 2+Math.random()*4;
+    cineParticles.push({
+      x: cineW/2, y: cineH*0.55,
+      vx: Math.cos(angle)*speed, vy: Math.sin(angle)*speed,
+      hue: 45+Math.random()*20, size: 2+Math.random()*4,
+      life: 40+Math.random()*40, maxLife: 60, alpha: 1
+    });
+  }
+}
+
+// ═══ PARTNER NAME FLY-THROUGH ═══
+function spawnPartnerText(name, networkDomain){
+  const netName = (typeof ALL_NETWORKS !== 'undefined') ? (ALL_NETWORKS.find(n=>n.domain===networkDomain)?.name || '') : '';
+  cineTexts.push({
+    text: name, network: netName,
+    x: -200, y: cineH*0.4 + (Math.random()-0.5)*cineH*0.3,
+    speed: 1.5+Math.random()*2, alpha: 0, phase: 'in',
+    hue: networkDomain ? 270 : 200
+  });
+}
+
+// ═══ DRAW CINEMATIC FRAME ═══
+function drawCine(){
+  if(!cineActive && cineParticles.length===0 && cineLogos.length===0 && cineFlags.length===0 && cineTexts.length===0){
+    requestAnimationFrame(drawCine);
+    return;
+  }
+  cctx.clearRect(0,0,cineW,cineH);
+
+  // Background ambient glow when downloading
+  if(cineActive){
+    const grad = cctx.createRadialGradient(cineW/2,cineH/2,0,cineW/2,cineH/2,cineW*0.5);
+    const hue = matrixHueBase;
+    grad.addColorStop(0, `hsla(${hue},60%,20%,0.08)`);
+    grad.addColorStop(1, `hsla(${hue},60%,10%,0)`);
+    cctx.fillStyle = grad;
+    cctx.fillRect(0,0,cineW,cineH);
+    // Spawn ambient particles
+    if(Math.random() > 0.92) spawnParticle(null,null,matrixHueBase);
+  }
+
+  // Draw particles
+  for(let i=cineParticles.length-1; i>=0; i--){
+    const p = cineParticles[i];
+    p.x += p.vx; p.y += p.vy;
+    p.life--;
+    p.alpha = Math.min(1, p.life / (p.maxLife * 0.3));
+    if(p.life <= 0){ cineParticles.splice(i,1); continue; }
+    cctx.beginPath();
+    cctx.arc(p.x, p.y, p.size, 0, Math.PI*2);
+    cctx.fillStyle = `hsla(${p.hue},80%,65%,${p.alpha*0.6})`;
+    cctx.fill();
+    // Glow
+    cctx.beginPath();
+    cctx.arc(p.x, p.y, p.size*2.5, 0, Math.PI*2);
+    cctx.fillStyle = `hsla(${p.hue},80%,55%,${p.alpha*0.1})`;
+    cctx.fill();
+  }
+
+  // Draw orbiting network logos
+  for(let i=cineLogos.length-1; i>=0; i--){
+    const l = cineLogos[i];
+    l.angle += l.speed;
+    l.life--;
+    if(l.fadeIn && l.alpha < 1){ l.alpha = Math.min(1, l.alpha + 0.02); if(l.alpha >= 1) l.fadeIn = false; }
+    if(l.life < 40) l.alpha = l.life / 40;
+    if(l.life <= 0){ cineLogos.splice(i,1); continue; }
+    l.glow += (l.glowTarget - l.glow) * 0.05;
+    const x = l.cx + Math.cos(l.angle) * l.radius;
+    const y = l.cy + Math.sin(l.angle) * l.radius * 0.4; // elliptical orbit
+    cctx.save();
+    cctx.globalAlpha = l.alpha * 0.85;
+    // Glow behind logo
+    cctx.shadowColor = `hsla(260,80%,70%,${l.glow})`;
+    cctx.shadowBlur = 20;
+    cctx.drawImage(l.img, x - l.size/2, y - l.size/2, l.size, l.size);
+    cctx.restore();
+  }
+
+  // Draw flag bursts
+  for(let i=cineFlags.length-1; i>=0; i--){
+    const f = cineFlags[i];
+    f.life--;
+    const t = 1 - f.life/f.maxLife;
+    f.scale += (f.targetScale - f.scale) * 0.08;
+    if(f.life < 30) f.alpha = f.life / 30;
+    if(f.life <= 0){ cineFlags.splice(i,1); continue; }
+    // Expanding ring
+    f.ring = t * f.ringMax;
+    cctx.beginPath();
+    cctx.arc(f.x, f.y, f.ring, 0, Math.PI*2);
+    cctx.strokeStyle = `hsla(45,90%,70%,${f.alpha*0.3*(1-t)})`;
+    cctx.lineWidth = 2;
+    cctx.stroke();
+    // Flag emoji
+    cctx.save();
+    cctx.globalAlpha = f.alpha;
+    cctx.font = `${Math.round(f.scale * 14)}px sans-serif`;
+    cctx.textAlign = 'center';
+    cctx.textBaseline = 'middle';
+    cctx.fillText(f.emoji, f.x, f.y);
+    cctx.restore();
+  }
+
+  // Draw partner name fly-throughs
+  for(let i=cineTexts.length-1; i>=0; i--){
+    const t = cineTexts[i];
+    t.x += t.speed;
+    if(t.phase === 'in'){ t.alpha = Math.min(1, t.alpha + 0.03); if(t.x > cineW*0.2) t.phase = 'mid'; }
+    if(t.x > cineW*0.7) t.phase = 'out';
+    if(t.phase === 'out') t.alpha = Math.max(0, t.alpha - 0.03);
+    if(t.alpha <= 0 && t.phase === 'out'){ cineTexts.splice(i,1); continue; }
+    cctx.save();
+    cctx.globalAlpha = t.alpha * 0.7;
+    cctx.font = '600 13px Inter';
+    cctx.fillStyle = `hsla(${t.hue},70%,75%,1)`;
+    cctx.textBaseline = 'middle';
+    cctx.fillText(t.text, t.x, t.y);
+    if(t.network){
+      cctx.font = '500 9px Inter';
+      cctx.fillStyle = `hsla(${t.hue},50%,55%,0.7)`;
+      cctx.fillText(t.network, t.x, t.y + 16);
+    }
+    // Trail
+    cctx.beginPath();
+    cctx.moveTo(t.x - 10, t.y);
+    cctx.lineTo(t.x - 60, t.y);
+    cctx.strokeStyle = `hsla(${t.hue},70%,65%,${t.alpha*0.15})`;
+    cctx.lineWidth = 1;
+    cctx.stroke();
+    cctx.restore();
+  }
+
+  requestAnimationFrame(drawCine);
+}
+
+function startCinema(){
+  cineActive = true;
+  document.getElementById("cockpit").classList.add("downloading");
+  document.getElementById("liveFeed").style.display = "flex";
+}
+function stopCinema(){
+  cineActive = false;
+  document.getElementById("cockpit").classList.remove("downloading");
+  document.getElementById("liveFeed").style.display = "none";
+}
+
+// ═══ LIVE FEED — show real-time download events at bottom center ═══
+function addLiveFeedItem(flagEmoji, text, networkLogo, count){
+  const feed = document.getElementById("liveFeed");
+  const item = document.createElement("div");
+  item.className = "live-feed-item";
+  let html = `<span class="feed-flag">${flagEmoji}</span><span class="feed-text">${text}</span>`;
+  if(networkLogo) html += `<img class="feed-net" src="${networkLogo}" onerror="this.style.display='none'">`;
+  if(count) html += `<span class="feed-count">${count}</span>`;
+  item.innerHTML = html;
+  feed.insertBefore(item, feed.firstChild);
+  // Keep max 4 items, fade out old
+  while(feed.children.length > 4){
+    const last = feed.lastChild;
+    last.style.transition = 'opacity .3s';
+    last.style.opacity = '0';
+    setTimeout(() => last.remove(), 300);
+  }
+  // Auto-remove after 8s
+  setTimeout(() => { if(item.parentNode){ item.style.transition='opacity .5s'; item.style.opacity='0'; setTimeout(()=>item.remove(),500); } }, 8000);
+}
+
+window.addEventListener("resize", initCine);
+initCine();
+preloadLogos();
+drawCine();
 
 // ═══════════════════════════════════════════════════
 // TOAST
 // ═══════════════════════════════════════════════════
 let toastTimer;
 function showToast(msg, color){
-  const t = document.getElementById("toast");
-  t.textContent = msg;
-  t.style.display = "block";
-  t.style.borderColor = color || "var(--border)";
-  t.style.color = color || "var(--text)";
+  const t=document.getElementById("toast");
+  t.textContent=msg; t.style.display="block";
+  t.style.borderColor=color||"var(--border)"; t.style.color=color||"var(--text)";
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { t.style.display = "none"; }, 4000);
+  toastTimer=setTimeout(()=>{t.style.display="none";},4000);
 }
 
 // ═══════════════════════════════════════════════════
-// LOAD STATS FROM SUPABASE — real-time refresh
+// STATS + COUNTRY LIST + FLAGS BAR
 // ═══════════════════════════════════════════════════
 async function loadDashStats(){
   try {
-    // Directory stats
-    const dirResp = await fetch(API+"/api/load-directory?mode=stats");
-    const dirData = await dirResp.json();
+    const dirResp=await fetch(API+"/api/load-directory?mode=stats");
+    const dirData=await dirResp.json();
     if(dirData.success){
-      dirStats = dirData.byCountry || {};
-      const dirTotal = dirData.totalPartners || 0;
-      const dirCountries = dirData.totalCountries || 0;
-      document.getElementById("statDir").textContent = dirTotal.toLocaleString();
-      document.getElementById("ckDir").textContent = dirTotal.toLocaleString();
-      document.getElementById("statCountries").textContent = dirCountries;
-      document.getElementById("ckCountries").textContent = dirCountries;
-      document.getElementById("dirTotal").textContent = dirTotal.toLocaleString();
+      dirStats=dirData.byCountry||{};
+      const dt=dirData.totalPartners||0, dc=dirData.totalCountries||0;
+      document.getElementById("statDir").textContent=dt.toLocaleString();
+      document.getElementById("ckDir").textContent=dt.toLocaleString();
+      document.getElementById("statCountries").textContent=dc;
+      document.getElementById("ckCountries").textContent=dc;
+      document.getElementById("dirTotal").textContent=dt.toLocaleString();
     }
-
-    // Profile stats
-    const profResp = await fetch(API+"/api/partners?action=country_counts");
-    const profData = await profResp.json();
+    const profResp=await fetch(API+"/api/partners?action=country_counts");
+    const profData=await profResp.json();
     if(profData.success){
-      let total = 0;
-      profStats = {};
-      for(const [code, count] of Object.entries(profData.counts||{})){
-        profStats[code] = count;
-        total += count;
-      }
-      document.getElementById("statProfiles").textContent = total.toLocaleString();
-      document.getElementById("ckProf").textContent = total.toLocaleString();
-      document.getElementById("profTotal").textContent = total.toLocaleString();
+      let total=0; profStats={};
+      for(const [code,count] of Object.entries(profData.counts||{})){ profStats[code]=count; total+=count; }
+      document.getElementById("statProfiles").textContent=total.toLocaleString();
+      document.getElementById("ckProf").textContent=total.toLocaleString();
+      document.getElementById("profTotal").textContent=total.toLocaleString();
     }
-  } catch(e){ console.warn("loadDashStats:", e.message); }
+  } catch(e){ console.warn("loadDashStats:",e.message); }
 }
 
-// Country list rendering
 function renderCountryList(){
-  const dirList = document.getElementById("dirList");
-  const entries = Object.entries(dirStats).sort((a,b) => b[1]-a[1]);
-  dashCountries = entries.map(([code]) => code);
-
-  dirList.innerHTML = entries.map(([code, count]) => {
-    const prof = profStats[code] || 0;
-    const pct = count > 0 ? Math.round((prof/count)*100) : 0;
-    const barColor = pct >= 100 ? "var(--green)" : pct > 50 ? "var(--cyan)" : "var(--accent)";
+  const dirList=document.getElementById("dirList");
+  const entries=Object.entries(dirStats).sort((a,b)=>b[1]-a[1]);
+  dashCountries=entries.map(([c])=>c);
+  dirList.innerHTML=entries.map(([code,count])=>{
+    const prof=profStats[code]||0;
+    const pct=count>0?Math.round((prof/count)*100):0;
+    const barColor=pct>=100?"var(--green)":pct>50?"var(--cyan)":"var(--accent)";
     return `<div class="country-item" data-code="${code}">
-      <span class="country-flag">${flag(code)}</span>
+      <span style="font-size:1.4rem">${flag(code)}</span>
       <div style="flex:1;min-width:0">
         <div style="display:flex;align-items:center;gap:6px">
           <span class="country-name">${code}</span>
           <span class="country-count">${count}</span>
-          ${prof > 0 ? `<span class="country-count profiles">${prof}</span>` : ""}
+          ${prof>0?`<span class="country-count profiles">${prof}</span>`:""}
         </div>
         <div class="country-bar"><div class="country-bar-fill" style="width:${pct}%;background:${barColor}"></div></div>
       </div>
@@ -608,217 +642,176 @@ function renderCountryList(){
 }
 
 function renderFlagsBar(){
-  const scroll = document.getElementById("flagsScroll");
-  const entries = Object.entries(dirStats).sort((a,b) => b[1]-a[1]);
-  document.getElementById("flagsBarTotal").textContent = entries.length;
-  scroll.innerHTML = entries.map(([code, count]) => {
-    const prof = profStats[code] || 0;
+  const scroll=document.getElementById("flagsScroll");
+  const entries=Object.entries(dirStats).sort((a,b)=>b[1]-a[1]);
+  document.getElementById("flagsBarTotal").textContent=entries.length;
+  scroll.innerHTML=entries.map(([code,count])=>{
+    const prof=profStats[code]||0;
     return `<div class="flag-chip" id="fc_${code}">
       <span class="flag-chip-emoji">${flag(code)}</span>
       <span class="flag-chip-count">${count}</span>
-      ${prof > 0 ? `<span class="flag-chip-prof">👤${prof}</span>` : ""}
+      ${prof>0?`<span class="flag-chip-prof">👤${prof}</span>`:""}
     </div>`;
   }).join("");
 }
 
 function highlightFlagChip(code){
-  const chip = document.getElementById("fc_"+code);
-  if(!chip) return;
+  const chip=document.getElementById("fc_"+code);
+  if(!chip)return;
   chip.classList.add("active");
-  chip.scrollIntoView({ behavior:"smooth", block:"nearest", inline:"center" });
-  setTimeout(() => chip.classList.remove("active"), 2000);
+  chip.scrollIntoView({behavior:"smooth",block:"nearest",inline:"center"});
+  setTimeout(()=>chip.classList.remove("active"),2000);
 }
 
 function updateDashTopStats(){
-  let total = 0;
-  for(const v of Object.values(dirStats)) total += v;
-  document.getElementById("statDir").textContent = total.toLocaleString();
-  document.getElementById("ckDir").textContent = total.toLocaleString();
-  document.getElementById("dirTotal").textContent = total.toLocaleString();
-  document.getElementById("statCountries").textContent = Object.keys(dirStats).length;
-  document.getElementById("ckCountries").textContent = Object.keys(dirStats).length;
+  let t=0; for(const v of Object.values(dirStats)) t+=v;
+  document.getElementById("statDir").textContent=t.toLocaleString();
+  document.getElementById("ckDir").textContent=t.toLocaleString();
+  document.getElementById("dirTotal").textContent=t.toLocaleString();
+  document.getElementById("statCountries").textContent=Object.keys(dirStats).length;
+  document.getElementById("ckCountries").textContent=Object.keys(dirStats).length;
 }
 
-// Start real-time polling when downloads are active
 function startRealtimePolling(){
-  if(_dashStatsInterval) return;
-  _dashStatsInterval = setInterval(async () => {
-    await loadDashStats();
-    renderCountryList();
-    renderFlagsBar();
-  }, 8000); // ogni 8 secondi
+  if(_dashStatsInterval)return;
+  _dashStatsInterval=setInterval(async()=>{await loadDashStats();renderCountryList();renderFlagsBar();},8000);
 }
-function stopRealtimePolling(){
-  if(_dashStatsInterval){ clearInterval(_dashStatsInterval); _dashStatsInterval = null; }
+function stopRealtimePolling(){if(_dashStatsInterval){clearInterval(_dashStatsInterval);_dashStatsInterval=null;}}
+
+function addPartnerFeedItem(code,count,type){
+  const list=document.getElementById("partnerList"); if(!list)return;
+  const item=document.createElement("div"); item.className="partner-item";
+  const icon=type==="profiles"?"👤":"📂";
+  const label=type==="profiles"?"Profilo salvato":"Directory salvata";
+  item.innerHTML=`<div class="partner-name">${flag(code)} ${code} — ${count} partner</div>
+    <div class="partner-meta"><span>${icon} ${label}</span>
+    <span style="margin-left:auto;font-size:.5rem;color:var(--muted)">${new Date().toLocaleTimeString()}</span></div>`;
+  list.insertBefore(item,list.firstChild);
+  while(list.children.length>50) list.removeChild(list.lastChild);
 }
 
 // ═══════════════════════════════════════════════════
-// ACTIVE DOWNLOAD UI
-// ═══════════════════════════════════════════════════
-function updateActiveDl(code, status, detail, pct){
-  const el = document.getElementById("activeDl");
-  if(el) el.style.display = "flex";
-  const f = document.getElementById("dlFlag"); if(f) f.textContent = flag(code);
-  const s = document.getElementById("dlStatus"); if(s) s.textContent = status;
-  const d = document.getElementById("dlDetail"); if(d) d.textContent = detail;
-  const p = document.getElementById("dlFill"); if(p) p.style.width = pct+"%";
-}
-
-function addPartnerFeedItem(code, count, type){
-  const list = document.getElementById("partnerList");
-  if(!list) return;
-  const item = document.createElement("div");
-  item.className = "partner-item";
-  const icon = type === "profiles" ? "👤" : "📂";
-  const label = type === "profiles" ? "Profilo salvato" : "Directory salvata";
-  item.innerHTML = `
-    <div class="partner-name">${flag(code)} ${code} — ${count} partner</div>
-    <div class="partner-meta">
-      <span>${icon} ${label}</span>
-      <span style="margin-left:auto;font-size:.5rem;color:var(--muted)">${new Date().toLocaleTimeString()}</span>
-    </div>
-  `;
-  list.insertBefore(item, list.firstChild);
-  while(list.children.length > 50) list.removeChild(list.lastChild);
-}
-
-// ═══════════════════════════════════════════════════
-// DIRECTORY DOWNLOAD (dashboard-specific)
+// DIRECTORY DOWNLOAD
 // ═══════════════════════════════════════════════════
 async function startDirectoryDownload(){
-  if(downloading){ showToast("Download già in corso","var(--warning)"); return; }
-  downloading = true;
-  downloadType = "directory";
-  setMatrixDownloading();
-  document.getElementById("btnDirStart").style.display = "none";
-  document.getElementById("btnDirStop").style.display = "block";
-  document.getElementById("activeDl").style.display = "flex";
-  startRealtimePolling();
-
+  if(downloading){showToast("Download già in corso","var(--warning)");return;}
+  downloading=true; downloadType="directory";
+  setMatrixDownloading(); startCinema(); startRealtimePolling();
+  document.getElementById("btnDirStart").style.display="none";
+  document.getElementById("btnDirStop").style.display="block";
   showToast("📂 Download directory avviato","var(--cyan)");
 
-  const countriesToScan = dashCountries.length > 0 ? [...dashCountries] : ["IT","US","GB","DE","FR","ES","CN","IN"];
-  const total = countriesToScan.length;
+  const countriesToScan=dashCountries.length>0?[...dashCountries]:["IT","US","GB","DE","FR","ES","CN","IN"];
+  const total=countriesToScan.length;
 
-  for(let i = 0; i < countriesToScan.length && downloading; i++){
-    const code = countriesToScan[i];
+  for(let i=0;i<countriesToScan.length&&downloading;i++){
+    const code=countriesToScan[i];
     setMatrixCountryFlash();
-    updateActiveDl(code, `📂 Directory ${i+1}/${total}`, `Scaricando ${code}...`, ((i+1)/total)*100);
+    spawnFlagBurst(code);
+    addLiveFeedItem(flag(code), `Scaricando directory ${code}...`, null, `${i+1}/${total}`);
 
-    let page = 1, hasMore = true, members = [];
-    while(hasMore && downloading){
-      try {
-        const resp = await fetch(API+"/api/discover-global",{
-          method:"POST",headers:{"Content-Type":"application/json"},
-          body:JSON.stringify({ country: code, page })
-        });
-        const data = await resp.json();
-        if(data.success && data.members && data.members.length > 0){
-          members.push(...data.members);
-          hasMore = data.hasNext;
-          page++;
-          updateActiveDl(code, `📂 Directory ${i+1}/${total}: ${code}`, `${members.length} partner (p.${page})...`, ((i+1)/total)*100);
-        } else { hasMore = false; }
-      } catch(e){ hasMore = false; }
+    let page=1, hasMore=true, members=[];
+    while(hasMore&&downloading){
+      try{
+        const resp=await fetch(API+"/api/discover-global",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({country:code,page})});
+        const data=await resp.json();
+        if(data.success&&data.members&&data.members.length>0){members.push(...data.members);hasMore=data.hasNext;page++;}
+        else{hasMore=false;}
+      }catch(e){hasMore=false;}
     }
 
-    if(members.length > 0 && downloading){
-      try {
-        await fetch(API+"/api/save-directory",{
-          method:"POST",headers:{"Content-Type":"application/json"},
-          body:JSON.stringify({ countryCode: code, members })
-        });
-        dirStats[code] = members.length;
-        addPartnerFeedItem(code, members.length, "directory");
+    if(members.length>0&&downloading){
+      try{
+        await fetch(API+"/api/save-directory",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({countryCode:code,members})});
+        dirStats[code]=members.length;
+        addPartnerFeedItem(code,members.length,"directory");
         highlightFlagChip(code);
-      } catch(e){}
+        addLiveFeedItem(flag(code), `${code}: ${members.length} partner salvati`, null, "✅");
+      }catch(e){}
     }
-
-    renderCountryList();
-    renderFlagsBar();
-    updateDashTopStats();
+    renderCountryList(); renderFlagsBar(); updateDashTopStats();
   }
 
-  setMatrixDone();
-  finishDirectoryDownload();
-  showToast("📂 Directory completata!","var(--green)");
-  loadDashStats().then(() => { renderCountryList(); renderFlagsBar(); });
-}
-
-function finishDirectoryDownload(){
-  downloading = false;
-  downloadType = null;
-  document.getElementById("activeDl").style.display = "none";
-  document.getElementById("btnDirStart").style.display = "block";
-  document.getElementById("btnDirStop").style.display = "none";
+  setMatrixDone(); stopCinema();
+  downloading=false; downloadType=null;
+  document.getElementById("btnDirStart").style.display="block";
+  document.getElementById("btnDirStop").style.display="none";
   stopRealtimePolling();
-  setTimeout(setMatrixIdle, 10000);
+  showToast("📂 Directory completata!","var(--green)");
+  loadDashStats().then(()=>{renderCountryList();renderFlagsBar();});
+  setTimeout(setMatrixIdle,10000);
 }
 
 function stopDownload(){
-  downloading = false;
-  finishDirectoryDownload();
+  downloading=false; stopCinema();
+  document.getElementById("btnDirStart").style.display="block";
+  document.getElementById("btnDirStop").style.display="none";
+  stopRealtimePolling();
   showToast("⏹ Download fermato","var(--muted)");
+  setTimeout(setMatrixIdle,3000);
 }
 
 // ═══════════════════════════════════════════════════
-// PROFILE DOWNLOAD — uses Management's startScraping() pipeline
+// PROFILE DOWNLOAD — cinematic hooks + Management pipeline
 // ═══════════════════════════════════════════════════
-
-// Hook into Management JS functions for dashboard UI feedback
 (function hookManagementFunctions(){
-  // Hook setStatus — mirror to dashboard active-dl bar
-  if(typeof setStatus === "function"){
-    const _origSetStatus = setStatus;
-    setStatus = function(text, showSpinner){
-      _origSetStatus(text, showSpinner);
-      const s = document.getElementById("dlStatus");
-      if(s && scraping) s.textContent = text;
-    };
+  // Hook setStatus
+  if(typeof setStatus==="function"){
+    const _o=setStatus;
+    setStatus=function(text,s){_o(text,s);};
   }
-
-  // Hook setProgress — mirror to dashboard progress bar
-  if(typeof setProgress === "function"){
-    const _origSetProgress = setProgress;
-    setProgress = function(current, total){
-      _origSetProgress(current, total);
-      if(scraping && total > 0){
-        const pct = Math.round((current/total)*100);
-        const p = document.getElementById("dlFill");
-        if(p) p.style.width = pct+"%";
-        const d = document.getElementById("dlDetail");
-        if(d) d.textContent = `${current}/${total} (${pct}%)`;
+  // Hook setProgress
+  if(typeof setProgress==="function"){
+    const _o=setProgress;
+    setProgress=function(cur,tot){
+      _o(cur,tot);
+      if(scraping&&tot>0){
+        const pct=Math.round((cur/tot)*100);
+        // Update cockpit subtitle with progress
+        const sub=document.querySelector(".cockpit-subtitle");
+        if(sub) sub.textContent=`Download ${cur}/${tot} (${pct}%)`;
       }
     };
   }
-
-  // Hook setActiveCountry — mirror to dashboard + matrix flash
-  if(typeof setActiveCountry === "function"){
-    const _origSetActiveCountry = setActiveCountry;
-    setActiveCountry = function(code, name){
-      _origSetActiveCountry(code, name);
+  // Hook setActiveCountry — flag burst + cinema
+  if(typeof setActiveCountry==="function"){
+    const _o=setActiveCountry;
+    setActiveCountry=function(code,name){
+      _o(code,name);
       if(scraping){
         setMatrixCountryFlash();
-        const f = document.getElementById("dlFlag");
-        if(f) f.textContent = flag(code);
+        spawnFlagBurst(code);
         highlightFlagChip(code);
+        addLiveFeedItem(flag(code), `${name||code}: scaricando profili...`, null, null);
       }
     };
   }
-
-  // Hook log — add important events to partner feed
-  if(typeof log === "function"){
-    const _origLog = log;
-    log = function(msg, type){
-      _origLog(msg, type);
-      // Detect saved profiles from log messages
-      if(type === "ok" && msg.includes("salvat")){
-        // Extract country code and count if possible
-        const m = msg.match(/([A-Z]{2}).*?(\d+)/);
+  // Hook setActiveNetwork — spawn orbiting logo
+  if(typeof setActiveNetwork==="function"){
+    const _o=setActiveNetwork;
+    setActiveNetwork=function(domain,name){
+      _o(domain,name);
+      if(scraping){
+        spawnNetworkLogo(domain);
+        const net=(typeof ALL_NETWORKS!=='undefined')?ALL_NETWORKS.find(n=>n.domain===domain):null;
+        if(net) addLiveFeedItem("🔗", name, net.logo, null);
+      }
+    };
+  }
+  // Hook log — detect saved profiles, show partner fly-through
+  if(typeof log==="function"){
+    const _o=log;
+    log=function(msg,type){
+      _o(msg,type);
+      if(type==="ok"&&msg.startsWith("✓")){
+        // Extract company name from "✓ CompanyName (id) contatti:N"
+        const m=msg.match(/✓\s+(.+?)\s+\(/);
+        const net=msg.match(/\[([^\]]+)\]$/);
         if(m){
-          addPartnerFeedItem(m[1], parseInt(m[2]), "profiles");
-          // Refresh stats periodically
-          if(!_dashStatsInterval) loadDashStats().then(() => { renderCountryList(); renderFlagsBar(); });
+          spawnPartnerText(m[1], net ? net[1] : "");
+          // Get current country for feed
+          const cc = typeof currentScrapingCountry!=='undefined' ? currentScrapingCountry : "";
+          addPartnerFeedItem(cc, 1, "profiles");
         }
       }
     };
@@ -826,90 +819,66 @@ function stopDownload(){
 })();
 
 async function startProfileDownload(){
-  if(scraping){ showToast("Download già in corso","var(--warning)"); return; }
-
-  // 1. Auto-login se necessario
+  if(scraping){showToast("Download già in corso","var(--warning)");return;}
   if(!sessionCookies){
     showToast("🔑 Login WCA in corso...","var(--cyan)");
-    try {
-      const resp = await fetch(API+"/api/login",{
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({ username:"tmsrlmin", password:"G0u3v!VvCn" })
-      });
-      const data = await resp.json();
-      if(data.success && data.cookies){
-        sessionCookies = data.cookies;
-        wcaToken = data.wcaToken || null;
-        showToast("🔑 Login WCA riuscito!","var(--green)");
-      } else {
-        showToast("⚠️ Login fallito — "+(data.error||"errore"),"var(--danger)");
-        return;
-      }
-    } catch(e){ showToast("⚠️ Errore login: "+e.message,"var(--danger)"); return; }
+    try{
+      const resp=await fetch(API+"/api/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:"tmsrlmin",password:"G0u3v!VvCn"})});
+      const data=await resp.json();
+      if(data.success&&data.cookies){sessionCookies=data.cookies;wcaToken=data.wcaToken||null;showToast("🔑 Login WCA riuscito!","var(--green)");}
+      else{showToast("⚠️ Login fallito — "+(data.error||"errore"),"var(--danger)");return;}
+    }catch(e){showToast("⚠️ Errore login: "+e.message,"var(--danger)");return;}
   }
 
-  // 2. Verifica directory disponibile
-  const countries = Object.keys(dirStats).sort();
-  if(countries.length === 0){ showToast("⚠️ Scarica prima la directory","var(--warning)"); return; }
+  const countries=Object.keys(dirStats).sort();
+  if(countries.length===0){showToast("⚠️ Scarica prima la directory","var(--warning)");return;}
+  selectedCountries=countries.map(code=>({code,name:code}));
 
-  // 3. Imposta selectedCountries per il Management JS
-  selectedCountries = countries.map(code => ({ code, name: code }));
+  setMatrixDownloading(); startCinema(); startRealtimePolling();
+  document.getElementById("btnProfStart").style.display="none";
+  document.getElementById("btnProfStop").style.display="block";
 
-  // 4. UI dashboard — mostra stato download
-  setMatrixDownloading();
-  document.getElementById("btnProfStart").style.display = "none";
-  document.getElementById("btnProfStop").style.display = "block";
-  document.getElementById("activeDl").style.display = "flex";
-  updateActiveDl("", "👤 Scaricando profili...", "Avvio pipeline...", 0);
-  startRealtimePolling();
-
-  // 5. Avvia startScraping() — stessa pipeline del Management con popup, pause, SSO, retry
   startScraping();
 }
 
 function stopProfileDownload(){
-  // Usa lo stop del Management
-  if(typeof stopScraping === "function") stopScraping();
-  document.getElementById("activeDl").style.display = "none";
-  document.getElementById("btnProfStart").style.display = "block";
-  document.getElementById("btnProfStop").style.display = "none";
+  if(typeof stopScraping==="function") stopScraping();
+  stopCinema();
+  document.getElementById("btnProfStart").style.display="block";
+  document.getElementById("btnProfStop").style.display="none";
   stopRealtimePolling();
   setMatrixDone();
-  setTimeout(setMatrixIdle, 10000);
+  setTimeout(setMatrixIdle,10000);
   showToast("⏹ Download profili fermato","var(--muted)");
-  loadDashStats().then(() => { renderCountryList(); renderFlagsBar(); });
+  loadDashStats().then(()=>{renderCountryList();renderFlagsBar();});
 }
 
-// Watch for scraping completion (Management sets scraping=false when done)
-setInterval(() => {
-  if(typeof scraping !== 'undefined' && !scraping){
-    const profBtn = document.getElementById("btnProfStop");
-    if(profBtn && profBtn.style.display === "block"){
-      // Scraping just finished
-      document.getElementById("activeDl").style.display = "none";
-      document.getElementById("btnProfStart").style.display = "block";
-      profBtn.style.display = "none";
+// Watch for scraping completion
+setInterval(()=>{
+  if(typeof scraping!=='undefined'&&!scraping){
+    const btn=document.getElementById("btnProfStop");
+    if(btn&&btn.style.display==="block"){
+      stopCinema();
+      document.getElementById("btnProfStart").style.display="block";
+      btn.style.display="none";
       stopRealtimePolling();
       setMatrixDone();
-      setTimeout(setMatrixIdle, 10000);
+      setTimeout(setMatrixIdle,10000);
       showToast("✅ Download profili completato!","var(--green)");
-      loadDashStats().then(() => { renderCountryList(); renderFlagsBar(); });
+      loadDashStats().then(()=>{renderCountryList();renderFlagsBar();});
     }
   }
-}, 2000);
+},2000);
 
 // ═══════════════════════════════════════════════════
-// INIT — load stats, render, start
+// INIT
 // ═══════════════════════════════════════════════════
-loadDashStats().then(() => { renderCountryList(); renderFlagsBar(); });
-
-// Refresh stats every 30s even when idle
-setInterval(() => {
-  if(!downloading && (typeof scraping === 'undefined' || !scraping)){
-    loadDashStats().then(() => { renderCountryList(); renderFlagsBar(); });
+loadDashStats().then(()=>{renderCountryList();renderFlagsBar();});
+setInterval(()=>{
+  if(!downloading&&(typeof scraping==='undefined'||!scraping)){
+    loadDashStats().then(()=>{renderCountryList();renderFlagsBar();});
   }
-}, 30000);
+},30000);
 </script>
 </body>
 </html>
