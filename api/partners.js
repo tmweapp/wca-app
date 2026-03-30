@@ -31,7 +31,7 @@ module.exports = async (req, res) => {
         let offset = 0;
         const batchSize = 1000;
         while (true) {
-          const fallbackUrl = `${SUPABASE_URL}/rest/v1/wca_partners?select=country_code&order=wca_id.asc&offset=${offset}&limit=${batchSize}`;
+          const fallbackUrl = `${SUPABASE_URL}/rest/v1/wca_profiles?select=country_code&order=wca_id.asc&offset=${offset}&limit=${batchSize}`;
           const fbResp = await fetch(fallbackUrl, {
             headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` },
           });
@@ -67,7 +67,7 @@ module.exports = async (req, res) => {
       let off = 0;
       const batchSize = 1000;
       while (true) {
-        const url = `${SUPABASE_URL}/rest/v1/wca_partners?select=${encodeURIComponent(fields)}&order=company_name.asc&offset=${off}&limit=${batchSize}${filters}`;
+        const url = `${SUPABASE_URL}/rest/v1/wca_profiles?select=${encodeURIComponent(fields)}&order=company_name.asc&offset=${off}&limit=${batchSize}${filters}`;
         const r = await fetch(url, {
           headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` },
         });
@@ -82,7 +82,7 @@ module.exports = async (req, res) => {
     }
 
     const offset = (reqPage - 1) * reqLimit;
-    const url = `${SUPABASE_URL}/rest/v1/wca_partners?select=${encodeURIComponent(fields)}&order=company_name.asc&offset=${offset}&limit=${reqLimit}${filters}`;
+    const url = `${SUPABASE_URL}/rest/v1/wca_profiles?select=${encodeURIComponent(fields)}&order=company_name.asc&offset=${offset}&limit=${reqLimit}${filters}`;
 
     const resp = await fetch(url, {
       headers: {

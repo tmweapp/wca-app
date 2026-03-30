@@ -15,7 +15,8 @@ module.exports = async (req, res) => {
   if (req.method === "OPTIONS") return res.status(200).end();
 
   const results = {};
-  results.wca_partners = await testTable("wca_partners");
+  results.wca_directory = await testTable("wca_directory");
+  results.wca_profiles = await testTable("wca_profiles");
   results.wca_session = await testTable("wca_session");
   results.wca_jobs = await testTable("wca_jobs");
 
@@ -23,7 +24,18 @@ module.exports = async (req, res) => {
   results.sql_if_missing = `
 -- Esegui in Supabase SQL Editor se le tabelle non esistono:
 
-CREATE TABLE IF NOT EXISTS wca_partners (
+CREATE TABLE IF NOT EXISTS wca_directory (
+  wca_id INTEGER PRIMARY KEY,
+  company_name TEXT,
+  country_code TEXT,
+  country_name TEXT,
+  networks JSONB DEFAULT '[]',
+  scrape_url TEXT,
+  directory_synced_at TIMESTAMPTZ,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS wca_profiles (
   wca_id INTEGER PRIMARY KEY,
   company_name TEXT,
   logo_url TEXT,
@@ -33,7 +45,6 @@ CREATE TABLE IF NOT EXISTS wca_partners (
   enrolled_offices JSONB DEFAULT '[]',
   enrolled_since TEXT,
   expires TEXT,
-  networks JSONB DEFAULT '[]',
   profile_text TEXT,
   address TEXT,
   mailing TEXT,
@@ -50,17 +61,14 @@ CREATE TABLE IF NOT EXISTS wca_partners (
   country_name TEXT,
   city TEXT,
   member_since DATE,
+  networks JSONB DEFAULT '[]',
   raw_data JSONB,
-  updated_at TIMESTAMPTZ DEFAULT NOW(),
   access_limited BOOLEAN DEFAULT FALSE,
   enriched_from TEXT,
-  enriched_domain TEXT
+  enriched_domain TEXT,
+  blacklist_status TEXT,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
 );
-
--- Se la tabella esiste già, aggiungi le colonne mancanti:
-ALTER TABLE wca_partners ADD COLUMN IF NOT EXISTS country_name TEXT;
-ALTER TABLE wca_partners ADD COLUMN IF NOT EXISTS city TEXT;
-ALTER TABLE wca_partners ADD COLUMN IF NOT EXISTS member_since DATE;
 
 CREATE TABLE IF NOT EXISTS wca_session (
   id TEXT PRIMARY KEY DEFAULT 'default',
@@ -84,6 +92,9 @@ CREATE TABLE IF NOT EXISTS wca_jobs (
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+CREATE INDEX IF NOT EXISTS idx_directory_country ON wca_directory(country_code);
+CREATE INDEX IF NOT EXISTS idx_profiles_country ON wca_profiles(country_code);
   `;
 
   return res.json(results);

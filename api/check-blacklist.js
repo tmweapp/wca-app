@@ -116,7 +116,7 @@ module.exports = async (req, res) => {
       idsToCheck = wcaIds.slice(0, maxCheck);
     } else if (countryCode) {
       // Carica tutti gli ID per il paese da Supabase
-      const url = `${SUPABASE_URL}/rest/v1/wca_partners?select=wca_id&country_code=eq.${countryCode.toUpperCase()}&limit=${maxCheck}`;
+      const url = `${SUPABASE_URL}/rest/v1/wca_profiles?select=wca_id&country_code=eq.${countryCode.toUpperCase()}&limit=${maxCheck}`;
       const dbResp = await fetch(url, {
         headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` },
       });
@@ -145,7 +145,7 @@ module.exports = async (req, res) => {
       // Aggiorna Supabase con lo status
       if (result.status !== "error" && result.status !== "login_required") {
         try {
-          await fetch(`${SUPABASE_URL}/rest/v1/wca_partners?wca_id=eq.${id}`, {
+          await fetch(`${SUPABASE_URL}/rest/v1/wca_profiles?wca_id=eq.${id}`, {
             method: "PATCH",
             headers: {
               "Content-Type": "application/json",

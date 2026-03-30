@@ -888,7 +888,7 @@ Rispondi SOLO con il JSON array.`;
 // ==================== DATA LOADING ====================
 async function loadPartners(){
   try{
-    const r=await fetch(`${SUPABASE_URL}/rest/v1/wca_partners?select=wca_id,company_name,country_code,contacts,email,phone,website,address,logo_url&limit=10000`,{headers:SB_HEADERS});
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/wca_profiles?select=wca_id,company_name,country_code,contacts,email,phone,website,address,logo_url&limit=10000`,{headers:SB_HEADERS});
     if(r.ok) allPartners=await r.json();
   }catch(e){}
 }

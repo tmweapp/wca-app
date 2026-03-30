@@ -1,8 +1,8 @@
 /**
- * api/reset-directory.js — Resetta i dati directory in Supabase
+ * api/reset-directory.js — Resetta la tabella wca_directory in Supabase
  *
- * Imposta networks=[] e directory_synced_at=null per tutti i partner.
- * I profili (contatti, dettagli, enriched data) restano intatti.
+ * Cancella TUTTI i record dalla tabella wca_directory.
+ * NON tocca wca_profiles.
  */
 const fetch = require("node-fetch");
 const { SUPABASE_URL, SUPABASE_KEY } = require("./utils/auth");
@@ -15,9 +15,8 @@ module.exports = async (req, res) => {
   if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
 
   try {
-    // CANCELLA tutti i record directory da Supabase (quelli con directory_synced_at not null)
     const resp = await fetch(
-      `${SUPABASE_URL}/rest/v1/wca_partners?directory_synced_at=not.is.null`,
+      `${SUPABASE_URL}/rest/v1/wca_directory?wca_id=gt.0`,
       {
         method: "DELETE",
         headers: {
@@ -37,7 +36,7 @@ module.exports = async (req, res) => {
 
     const count = resp.headers.get("content-range");
     const deleted = count ? parseInt(count.split("/")[1]) || 0 : 0;
-    console.log(`[reset-directory] Cancellati ${deleted} record directory da Supabase`);
+    console.log(`[reset-directory] Cancellati ${deleted} record da wca_directory`);
     return res.json({ success: true, deleted });
   } catch (err) {
     console.log(`[reset-directory] Exception: ${err.message}`);

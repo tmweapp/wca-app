@@ -239,7 +239,7 @@ async function savePartner(profile, countryCode) {
     raw_data: profile, updated_at: new Date().toISOString(),
     access_limited: profile.access_limited || false,
   };
-  await fetch(`${SUPABASE_URL}/rest/v1/wca_partners`, {
+  await fetch(`${SUPABASE_URL}/rest/v1/wca_profiles`, {
     method: "POST", headers: { ...SB, "Prefer": "resolution=merge-duplicates" },
     body: JSON.stringify(row),
   });
@@ -250,7 +250,7 @@ async function loadExistingIds() {
   const ids = new Set();
   let page = 0;
   while (true) {
-    const resp = await fetch(`${SUPABASE_URL}/rest/v1/wca_partners?select=wca_id&limit=1000&offset=${page * 1000}`, {
+    const resp = await fetch(`${SUPABASE_URL}/rest/v1/wca_profiles?select=wca_id&limit=1000&offset=${page * 1000}`, {
       headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` },
     });
     if (!resp.ok) break;

@@ -17,19 +17,25 @@ module.exports = async (req, res) => {
 
     const results = {};
 
-    // 1. Cancella TUTTI i partner
-    const r1 = await fetch(`${SUPABASE_URL}/rest/v1/wca_partners?wca_id=gt.0`, {
+    // 1. Cancella TUTTI i profili
+    const r1a = await fetch(`${SUPABASE_URL}/rest/v1/wca_profiles?wca_id=gt.0`, {
       method: "DELETE", headers: { ...SB, "Prefer": "return=representation,count=exact" },
     });
-    results.partners = { status: r1.status, deleted: r1.headers.get("content-range") || "all" };
+    results.profiles = { status: r1a.status, deleted: r1a.headers.get("content-range") || "all" };
 
-    // 2. Cancella TUTTI i job
+    // 2. Cancella TUTTA la directory
+    const r1b = await fetch(`${SUPABASE_URL}/rest/v1/wca_directory?wca_id=gt.0`, {
+      method: "DELETE", headers: { ...SB, "Prefer": "return=representation,count=exact" },
+    });
+    results.directory = { status: r1b.status, deleted: r1b.headers.get("content-range") || "all" };
+
+    // 3. Cancella TUTTI i job
     const r2 = await fetch(`${SUPABASE_URL}/rest/v1/wca_jobs?id=gt.0`, {
       method: "DELETE", headers: { ...SB, "Prefer": "return=minimal" },
     });
     results.jobs = { status: r2.status };
 
-    // 3. Cancella la sessione cached
+    // 4. Cancella la sessione cached
     const r3 = await fetch(`${SUPABASE_URL}/rest/v1/wca_session?id=gt.0`, {
       method: "DELETE", headers: { ...SB, "Prefer": "return=minimal" },
     });

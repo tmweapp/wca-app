@@ -1,6 +1,6 @@
 /**
  * backfill.js — Ricalcola country_name, city, member_since, direct_phone
- * per tutti i record esistenti in wca_partners.
+ * per tutti i record esistenti in wca_profiles.
  *
  * GET /api/backfill         → esegue backfill completo
  * GET /api/backfill?dry=1   → mostra solo i cambiamenti senza scrivere
@@ -113,7 +113,7 @@ module.exports = async (req, res) => {
 
   try {
     // Fetch all partners
-    const r = await fetch(`${SUPABASE_URL}/rest/v1/wca_partners?select=wca_id,country_code,address,branch,branch_cities,enrolled_since,contacts,country_name,city,member_since&limit=5000`, {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/wca_profiles?select=wca_id,country_code,address,branch,branch_cities,enrolled_since,contacts,country_name,city,member_since&limit=5000`, {
       headers: HEADERS,
     });
     if (!r.ok) return res.status(500).json({ error: "Fetch partners failed: " + await r.text() });
@@ -184,7 +184,7 @@ module.exports = async (req, res) => {
 
       if (changed && !dry) {
         changes.updated_at = new Date().toISOString();
-        await fetch(`${SUPABASE_URL}/rest/v1/wca_partners?wca_id=eq.${p.wca_id}`, {
+        await fetch(`${SUPABASE_URL}/rest/v1/wca_profiles?wca_id=eq.${p.wca_id}`, {
           method: "PATCH",
           headers: { ...HEADERS, "Prefer": "return=minimal" },
           body: JSON.stringify(changes),

@@ -6,7 +6,7 @@ async function loadIdsByCountry(country) {
   let offset = 0;
   const LIMIT = 1000;
   while (true) {
-    let url = `${SUPABASE_URL}/rest/v1/wca_partners?select=wca_id&limit=${LIMIT}&offset=${offset}`;
+    let url = `${SUPABASE_URL}/rest/v1/wca_profiles?select=wca_id&limit=${LIMIT}&offset=${offset}`;
     if (country) url += `&country_code=eq.${country}`;
     const resp = await fetch(url, {
       headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` },

@@ -29,8 +29,8 @@ module.exports = async (req, res) => {
       }
       const cards = await r.json();
 
-      // Cross-reference with wca_partners — fetch all company names & contacts
-      const pr = await fetch(`${SUPABASE_URL}/rest/v1/wca_partners?select=wca_id,company_name,country_code,contacts,email,phone,website`, {
+      // Cross-reference with wca_profiles — fetch all company names & contacts
+      const pr = await fetch(`${SUPABASE_URL}/rest/v1/wca_profiles?select=wca_id,company_name,country_code,contacts,email,phone,website`, {
         headers: HEADERS,
       });
       const partners = pr.ok ? await pr.json() : [];

@@ -57,7 +57,7 @@ module.exports = async (req, res) => {
     const { countryCode, thresholdDays = 90, page = 1, limit = 500 } = req.method === "POST" ? (req.body || {}) : (req.query || {});
 
     // Carica partner con campo expires da Supabase
-    let url = `${SUPABASE_URL}/rest/v1/wca_partners?select=wca_id,company_name,country_code,expires,updated_at,blacklist_status&limit=${limit}&offset=${(parseInt(page) - 1) * parseInt(limit)}`;
+    let url = `${SUPABASE_URL}/rest/v1/wca_profiles?select=wca_id,company_name,country_code,expires,updated_at,blacklist_status&limit=${limit}&offset=${(parseInt(page) - 1) * parseInt(limit)}`;
     if (countryCode) url += `&country_code=eq.${countryCode.toUpperCase()}`;
 
     const dbResp = await fetch(url, {

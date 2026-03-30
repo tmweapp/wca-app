@@ -11,7 +11,7 @@ module.exports = async (req, res) => {
     while (true) {
       const cf = country ? "&country_code=eq." + country : "";
       const uf = force ? "" : "&or=(scrape_url.is.null,scrape_url.eq.)";
-      const resp = await fetch(SUPABASE_URL + "/rest/v1/wca_partners?select=id,wca_id,networks" + cf + uf + "&order=id.asc&limit=1000&offset=" + offset, {
+      const resp = await fetch(SUPABASE_URL + "/rest/v1/wca_directory?select=id,wca_id,networks" + cf + uf + "&order=id.asc&limit=1000&offset=" + offset, {
         headers: { "apikey": SUPABASE_KEY, "Authorization": "Bearer " + SUPABASE_KEY }
       });
       if (!resp.ok) return res.json({ success: false, error: "Supabase " + resp.status });
@@ -27,7 +27,7 @@ module.exports = async (req, res) => {
       const best = nets.length > 0 ? nets[0] : "wcaworld.com";
       if (nets.length === 0) noNet++;
       const base = D[best] || D["wcaworld.com"];
-      const resp = await fetch(SUPABASE_URL + "/rest/v1/wca_partners?id=eq." + row.id, {
+      const resp = await fetch(SUPABASE_URL + "/rest/v1/wca_directory?id=eq." + row.id, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", "apikey": SUPABASE_KEY, "Authorization": "Bearer " + SUPABASE_KEY, "Prefer": "return=minimal" },
         body: JSON.stringify({ scrape_url: base + "/directory/members/" + row.wca_id }),

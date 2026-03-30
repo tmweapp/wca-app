@@ -193,7 +193,7 @@ module.exports = async (req, res) => {
     };
 
     console.log(`[save] Saving wca_id=${profile.wca_id} company="${profile.company_name}" country="${countryName}" city="${city}" member_since="${memberSince}" contacts=${contacts.length}`);
-    const resp = await fetch(`${SUPABASE_URL}/rest/v1/wca_partners?on_conflict=wca_id`, {
+    const resp = await fetch(`${SUPABASE_URL}/rest/v1/wca_profiles?on_conflict=wca_id`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json", "apikey": SUPABASE_KEY,

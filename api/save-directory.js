@@ -1,9 +1,10 @@
 /**
  * api/save-directory.js — Salva i dati della directory in Supabase
  *
- * Riceve un batch di membri da un paese e li salva/aggiorna in wca_partners
+ * Riceve un batch di membri da un paese e li salva/aggiorna in wca_directory
  * con dati minimi (wca_id, company_name, country_code, networks).
  * Usa upsert: se il partner esiste già, aggiorna solo i campi directory.
+ * NON tocca wca_profiles.
  */
 const fetch = require("node-fetch");
 const { SUPABASE_URL, SUPABASE_KEY } = require("./utils/auth");
@@ -43,7 +44,7 @@ module.exports = async (req, res) => {
         directory_synced_at: new Date().toISOString(),
       }));
 
-      const resp = await fetch(`${SUPABASE_URL}/rest/v1/wca_partners?on_conflict=wca_id`, {
+      const resp = await fetch(`${SUPABASE_URL}/rest/v1/wca_directory?on_conflict=wca_id`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

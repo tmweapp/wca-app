@@ -36,7 +36,7 @@ async function loadAllPartners() {
   let offset = 0;
   const limit = 1000;
   while (true) {
-    const url = `${SUPABASE_URL}/rest/v1/wca_partners?select=wca_id,company_name,country_code,email,phone,contacts&order=wca_id.asc&offset=${offset}&limit=${limit}`;
+    const url = `${SUPABASE_URL}/rest/v1/wca_profiles?select=wca_id,company_name,country_code,email,phone,contacts&order=wca_id.asc&offset=${offset}&limit=${limit}`;
     const resp = await fetch(url, {
       headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` },
     });
@@ -79,7 +79,7 @@ module.exports = async (req, res) => {
       for (let i = 0; i < idsToDelete.length; i += 100) {
         const batch = idsToDelete.slice(i, i + 100);
         const filter = batch.map(id => `wca_id.eq.${id}`).join(",");
-        const delUrl = `${SUPABASE_URL}/rest/v1/wca_partners?or=(${filter})`;
+        const delUrl = `${SUPABASE_URL}/rest/v1/wca_profiles?or=(${filter})`;
         const delResp = await fetch(delUrl, {
           method: "DELETE",
           headers: {

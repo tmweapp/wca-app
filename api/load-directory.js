@@ -25,7 +25,7 @@ module.exports = async (req, res) => {
       const LIMIT = 1000;
       while (true) {
         const resp = await fetch(
-          `${SUPABASE_URL}/rest/v1/wca_partners?select=country_code,wca_id&order=wca_id.asc&limit=${LIMIT}&offset=${offset}`,
+          `${SUPABASE_URL}/rest/v1/wca_directory?select=country_code,wca_id&order=wca_id.asc&limit=${LIMIT}&offset=${offset}`,
           {
             headers: {
               "apikey": SUPABASE_KEY,
@@ -59,7 +59,7 @@ module.exports = async (req, res) => {
       const LIMIT = 1000;
       while (true) {
         const resp = await fetch(
-          `${SUPABASE_URL}/rest/v1/wca_partners?select=country_code&order=wca_id.asc&limit=${LIMIT}&offset=${offset}`,
+          `${SUPABASE_URL}/rest/v1/wca_directory?select=country_code&order=wca_id.asc&limit=${LIMIT}&offset=${offset}`,
           {
             headers: {
               "apikey": SUPABASE_KEY,
@@ -86,7 +86,7 @@ module.exports = async (req, res) => {
     let offset = 0;
     const LIMIT = 1000;
     while (true) {
-      const url = `${SUPABASE_URL}/rest/v1/wca_partners?${countryFilter}directory_synced_at=not.is.null&select=wca_id,company_name,country_code,networks,scrape_url,directory_synced_at&order=wca_id.asc&limit=${LIMIT}&offset=${offset}`;
+      const url = `${SUPABASE_URL}/rest/v1/wca_directory?${countryFilter}directory_synced_at=not.is.null&select=wca_id,company_name,country_code,networks,scrape_url,directory_synced_at&order=wca_id.asc&limit=${LIMIT}&offset=${offset}`;
       const resp = await fetch(url, {
         headers: {
           "apikey": SUPABASE_KEY,
