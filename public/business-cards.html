@@ -379,7 +379,8 @@ body{font-family:"SF Pro Display","Geist",'Inter',system-ui,sans-serif;backgroun
       <span class="stat-chip partial-stat" id="chipPartial" style="cursor:pointer" onclick="setMatchFilter('partial')" title="Filtra: solo match parziali">0 parziali</span>
       <span class="stat-chip unmatched" id="chipUnmatched" style="cursor:pointer" onclick="setMatchFilter('not-found')" title="Filtra: solo non trovati">0 non trovati</span>
       <span class="stat-chip" id="chipNotes" style="background:rgba(165,180,252,0.1);color:#a5b4fc;cursor:pointer" onclick="toggleNotesFilter()" title="Filtra contatti con note">📝 0 con note</span>
-      <span class="stat-chip" id="chipCountries" style="margin-left:auto;background:linear-gradient(135deg,rgba(99,102,241,0.15),rgba(165,180,252,0.1));color:#a5b4fc;font-weight:700;letter-spacing:.3px;border:1px solid rgba(165,180,252,0.2)">🌍 0 paesi</span>
+      <span class="stat-chip" id="chipAI" style="display:none;margin-left:auto;background:rgba(139,92,246,0.12);color:#c4b5fd;font-weight:600;border:1px solid rgba(139,92,246,0.25);cursor:default;white-space:nowrap">🤖 AI</span>
+      <span class="stat-chip" id="chipCountries" style="background:linear-gradient(135deg,rgba(99,102,241,0.15),rgba(165,180,252,0.1));color:#a5b4fc;font-weight:700;letter-spacing:.3px;border:1px solid rgba(165,180,252,0.2)">🌍 0 paesi</span>
     </div>
 
     <!-- FLAG CAROUSEL -->
@@ -765,10 +766,15 @@ async function aiMatchAll(){
 
   const BATCH=10;
   let improved=0, errors=0;
+  const chipAI=document.getElementById("chipAI");
+  chipAI.style.display="inline-flex";
 
   for(let i=0;i<cards.length;i+=BATCH){
     const batch=cards.slice(i,i+BATCH);
+    const pct=Math.round((i/cards.length)*100);
     btn.innerHTML=`⏳ AI ${i}/${cards.length}...`;
+    chipAI.textContent=`🤖 ${i}/${cards.length} (${pct}%) — ${improved} trovati`;
+    chipAI.style.background=`linear-gradient(90deg, rgba(139,92,246,0.25) ${pct}%, rgba(139,92,246,0.08) ${pct}%)`;
 
     const cardsBatch=batch.map(c=>({
       id:c.id, company:c.company_name, contact:c.contact_name,
@@ -882,15 +888,16 @@ Rispondi SOLO con il JSON array.`;
         }
       }
     }catch(e){ console.error("AI match batch error:",e); errors++; }
+    // Render parziale dopo ogni batch per aggiornare i risultati visivamente
+    renderPage(); updateStats();
   }
 
   btn.disabled=false;
   btn.innerHTML=origText;
+  chipAI.textContent=`🤖 Completato: ${improved} trovati su ${cards.length}`;
+  chipAI.style.background=improved>0?"rgba(16,185,129,0.15)":"rgba(139,92,246,0.12)";
+  if(improved>0) chipAI.style.color="#6ee7b7";
   renderAll();
-
-  const msg=`AI Match completato!\n${improved} contatti aggiornati su ${cards.length} analizzati.`;
-  if(errors) alert(msg+`\n${errors} errori durante l'analisi.`);
-  else alert(msg);
 }
 
 // ==================== DATA LOADING ====================
