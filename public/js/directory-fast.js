@@ -32,8 +32,6 @@ async function discoverFastDirectory(countryCode, countryName){
         page++;
         if(hasMore){
           setStatus(`📂 ${countryName}: ${allMembers.length} membri (p.${page})...`, true);
-          const nextDelay = getNextDirDelay();
-          await sleepWithActivity("📂", `Pausa ${Math.round(nextDelay/1000)}s — prossima pagina`, nextDelay);
         }
       } else {
         hasMore = false;

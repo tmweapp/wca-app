@@ -50,10 +50,6 @@ async function discoverFullDirectory(countryCode, countryName, forceRefresh = fa
       log(`   ⚠ ${network.name}: errore — ${e.message}`,"warn");
     }
 
-    if(ni + 1 < networksToScan.length && scraping){
-      const nextDelay = getNextDelay();
-      await sleepWithActivity("🔍", `Pausa ${Math.round(nextDelay/1000)}s — prossimo network`, nextDelay);
-    }
   }
 
   const members = Object.values(memberMap);

@@ -94,8 +94,6 @@ async function syncAllDirectories(forceResume){
       skipped++;
       saveDirSyncState({ lastIndex: i, lastCountry: c.name, lastCode: c.code, synced, skipped, total, ts: Date.now() });
       updateDirHeaderCounts();
-      // Pausa breve per non sovraccaricare
-      if(i + 1 < orderedCountries.length && scraping) await sleep(500);
       continue;
     }
 
@@ -112,8 +110,6 @@ async function syncAllDirectories(forceResume){
     // Aggiorna contatori header
     updateDirHeaderCounts();
 
-    // Pausa 3s tra paesi
-    if(i + 1 < orderedCountries.length && scraping) await sleep(3000);
   }
 
   const wasInterrupted = !scraping && (synced + skipped) < (total - startIdx);
@@ -153,7 +149,6 @@ async function syncAllDirectories(forceResume){
       saveDirSyncState({ lastIndex: total - 1, lastCountry: c.name, lastCode: c.code, synced, skipped, total, ts: Date.now() });
       updateDirHeaderCounts();
 
-      if(r + 1 < incomplete.length && scraping) await sleep(3000);
     }
 
     // Secondo controllo: quanti ancora incompleti?
@@ -256,7 +251,6 @@ async function retryIncompleteDirectories(){
     synced++;
 
     updateDirHeaderCounts();
-    if(i + 1 < toRetry.length && scraping) await sleep(3000);
   }
 
   dirSyncing = false;
@@ -329,7 +323,6 @@ async function updateNetworksForCountries(){
       const withNets = result.members.filter(m => m.networks && m.networks.length > 0).length;
       log(c.name + ": " + result.members.length + " partner, " + withNets + " con network, " + result.members.filter(m=>m.scrape_url).length + " con scrape_url","ok");
     }
-    if(ci + 1 < countries.length && scraping) await sleepWithActivity("", "Pausa 3s", 3000);
   }
 
   dirSyncing = false; scraping = false;
