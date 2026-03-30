@@ -117,17 +117,17 @@ body{font-family:"SF Pro Display","Geist",'Inter',system-ui,sans-serif;backgroun
 .bc-card:hover .card-del-btn{opacity:.7}
 .bc-card .card-del-btn:hover{opacity:1;color:#fff;background:rgba(239,68,68,0.6)}
 /* === GROUPED CARD TABS === */
-.bc-card.grouped{border-color:rgba(251,191,36,0.15)}
+.bc-card.grouped{border-color:rgba(251,191,36,0.15);position:relative}
 .bc-card.grouped:hover{border-color:rgba(251,191,36,0.3)}
-.group-tabs{display:flex;gap:0;margin:-14px -16px 10px -16px;padding:0;border-bottom:1px solid rgba(255,255,255,0.06);overflow-x:auto;scrollbar-width:none}
+.group-tabs{display:flex;gap:4px;position:absolute;top:-13px;left:12px;right:40px;z-index:3;overflow-x:auto;scrollbar-width:none;padding:0 2px}
 .group-tabs::-webkit-scrollbar{display:none}
-.group-tab{flex-shrink:0;display:flex;align-items:center;gap:5px;padding:8px 14px;font-size:.62rem;font-weight:600;color:#64748b;cursor:pointer;border-bottom:2px solid transparent;transition:all .25s;white-space:nowrap;background:transparent;border-top:none;border-left:none;border-right:none;font-family:'Inter',sans-serif}
-.group-tab:first-child{padding-left:16px}
-.group-tab:hover{color:#cbd5e1;background:rgba(255,255,255,0.02)}
-.group-tab.active{color:#fbbf24;border-bottom-color:#fbbf24;background:rgba(251,191,36,0.04)}
-.group-tab .tab-flag{font-size:.9rem;line-height:1}
-.group-tab .tab-name{max-width:100px;overflow:hidden;text-overflow:ellipsis}
-.group-count-badge{position:absolute;top:6px;left:16px;font-size:.5rem;font-family:'JetBrains Mono',monospace;padding:2px 6px;border-radius:2rem;background:rgba(251,191,36,0.12);color:#fbbf24;font-weight:700;pointer-events:none;z-index:2}
+.group-tab{flex-shrink:0;display:flex;align-items:center;gap:4px;padding:3px 10px;font-size:.58rem;font-weight:600;color:#94a3b8;cursor:pointer;transition:all .25s;white-space:nowrap;background:rgba(26,26,46,0.92);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.08);border-radius:2rem;font-family:'Inter',sans-serif}
+.group-tab:hover{color:#e2e8f0;background:rgba(251,191,36,0.08);border-color:rgba(251,191,36,0.2)}
+.group-tab.active{color:#fbbf24;background:rgba(251,191,36,0.12);border-color:rgba(251,191,36,0.35)}
+.group-tab .tab-flag{font-size:.75rem;line-height:1}
+.group-tab .tab-name{max-width:90px;overflow:hidden;text-overflow:ellipsis}
+.group-count-badge{position:absolute;top:-11px;right:12px;font-size:.5rem;font-family:'JetBrains Mono',monospace;padding:2px 8px;border-radius:2rem;background:rgba(251,191,36,0.15);border:1px solid rgba(251,191,36,0.3);color:#fbbf24;font-weight:700;pointer-events:none;z-index:3;backdrop-filter:blur(8px)}
+.bc-card.grouped .card-top{padding-top:6px}
 .bc-card .card-person{display:none}
 .bc-card .inferred{opacity:.7;font-style:italic}
 .bc-card .inferred::after{content:" ~";color:#a5b4fc;font-size:.5rem}
@@ -1422,12 +1422,46 @@ function renderPage(){
   let html="";
 
   if(groupByCompanyActive){
-    // Group cards by normalized company name
+    // Group cards by fuzzy company name matching
+    // Normalize: lowercase, strip punctuation, common suffixes, extra spaces
+    function normalizeCompany(name){
+      return (name||"").toLowerCase()
+        .replace(/[.,;:!?'"()\[\]{}&\/\\@#]+/g," ")   // strip punctuation
+        .replace(/\b(ltd|llc|inc|corp|co|gmbh|srl|sas|sa|bv|nv|ag|pty|pvt|plc|spa|s\.?p\.?a|s\.?r\.?l|s\.?a\.?s)\b\.?/gi," ") // strip legal suffixes
+        .replace(/\s+/g," ").trim();
+    }
     const groups=new Map();
+    const keyMap=new Map(); // normalized -> canonical key
     for(const c of cards){
-      const key=(c.company_name||"").trim().toLowerCase();
-      if(!groups.has(key)) groups.set(key,[]);
-      groups.get(key).push(c);
+      const norm=normalizeCompany(c.company_name);
+      if(!norm){ // empty name — standalone
+        const solo="__solo_"+Math.random();
+        groups.set(solo,[c]);
+        continue;
+      }
+      // Check if any existing key starts with this or vice versa (partial match)
+      let matched=false;
+      for(const [existingNorm, canonKey] of keyMap){
+        // Match if one contains the other, or if they share the first N significant chars
+        const shorter=existingNorm.length<=norm.length?existingNorm:norm;
+        const longer=existingNorm.length>norm.length?existingNorm:norm;
+        const minLen=Math.max(4, Math.floor(shorter.length*0.6));
+        if(longer.includes(shorter) || shorter.length>=minLen && longer.startsWith(shorter.substring(0,minLen))){
+          groups.get(canonKey).push(c);
+          matched=true;
+          // Update keyMap if this name is shorter (better canonical)
+          if(norm.length<existingNorm.length){
+            keyMap.delete(existingNorm);
+            keyMap.set(norm, canonKey);
+          }
+          break;
+        }
+      }
+      if(!matched){
+        const canonKey=norm;
+        keyMap.set(norm, canonKey);
+        groups.set(canonKey,[c]);
+      }
     }
     for(const [key, members] of groups){
       if(members.length===1){
