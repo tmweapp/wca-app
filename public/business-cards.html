@@ -116,6 +116,18 @@ body{font-family:"SF Pro Display","Geist",'Inter',system-ui,sans-serif;backgroun
 .bc-card .card-del-btn{position:absolute;top:6px;right:6px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);cursor:pointer;font-size:.75rem;color:#fca5a5;opacity:0;transition:all .15s;padding:3px 7px;border-radius:6px;z-index:5;line-height:1}
 .bc-card:hover .card-del-btn{opacity:.7}
 .bc-card .card-del-btn:hover{opacity:1;color:#fff;background:rgba(239,68,68,0.6)}
+/* === GROUPED CARD TABS === */
+.bc-card.grouped{border-color:rgba(251,191,36,0.15)}
+.bc-card.grouped:hover{border-color:rgba(251,191,36,0.3)}
+.group-tabs{display:flex;gap:0;margin:-14px -16px 10px -16px;padding:0;border-bottom:1px solid rgba(255,255,255,0.06);overflow-x:auto;scrollbar-width:none}
+.group-tabs::-webkit-scrollbar{display:none}
+.group-tab{flex-shrink:0;display:flex;align-items:center;gap:5px;padding:8px 14px;font-size:.62rem;font-weight:600;color:#64748b;cursor:pointer;border-bottom:2px solid transparent;transition:all .25s;white-space:nowrap;background:transparent;border-top:none;border-left:none;border-right:none;font-family:'Inter',sans-serif}
+.group-tab:first-child{padding-left:16px}
+.group-tab:hover{color:#cbd5e1;background:rgba(255,255,255,0.02)}
+.group-tab.active{color:#fbbf24;border-bottom-color:#fbbf24;background:rgba(251,191,36,0.04)}
+.group-tab .tab-flag{font-size:.9rem;line-height:1}
+.group-tab .tab-name{max-width:100px;overflow:hidden;text-overflow:ellipsis}
+.group-count-badge{position:absolute;top:6px;left:16px;font-size:.5rem;font-family:'JetBrains Mono',monospace;padding:2px 6px;border-radius:2rem;background:rgba(251,191,36,0.12);color:#fbbf24;font-weight:700;pointer-events:none;z-index:2}
 .bc-card .card-person{display:none}
 .bc-card .inferred{opacity:.7;font-style:italic}
 .bc-card .inferred::after{content:" ~";color:#a5b4fc;font-size:.5rem}
@@ -405,6 +417,7 @@ body{font-family:"SF Pro Display","Geist",'Inter',system-ui,sans-serif;backgroun
       <button class="sort-btn" onclick="setSort('match')" id="sortMatch">Match</button>
       <button class="sort-btn" onclick="toggleNotesFilter()" id="filterNotes" title="Mostra solo contatti con note">📝 Con note</button>
       <span style="margin-left:auto;display:flex;gap:4px;align-items:center">
+        <button class="sort-btn" onclick="toggleGroupByCompany()" id="btnGroupCompany" title="Raggruppa contatti della stessa azienda" style="color:#fbbf24;border-color:rgba(251,191,36,0.3)">🏢 Raggruppa</button>
         <button class="sort-btn" onclick="refreshData()" id="btnRefresh" title="Aggiorna dati da database" style="color:#6ee7b7;border-color:rgba(16,185,129,0.3)">🔄 Aggiorna</button>
         <button class="sort-btn" onclick="aiMatchAll()" id="btnAiMatch" style="display:none;color:#c4b5fd;border-color:rgba(165,140,252,0.3)" title="Screening AI: verifica corrispondenza con WCA">🤖 AI Screening</button>
         <span style="width:1px;height:16px;background:rgba(255,255,255,0.08);margin:0 2px"></span>
@@ -1037,6 +1050,16 @@ function renderEventTabs(){
 
 // ==================== RENDERING ====================
 let currentSort="company";
+let groupByCompanyActive=false;
+function toggleGroupByCompany(){
+  groupByCompanyActive=!groupByCompanyActive;
+  const btn=document.getElementById("btnGroupCompany");
+  if(btn){
+    btn.classList.toggle("active",groupByCompanyActive);
+    btn.style.background=groupByCompanyActive?"rgba(251,191,36,0.12)":"";
+  }
+  renderPage();
+}
 function setSort(key){
   currentSort=key;
   document.querySelectorAll(".sort-btn").forEach(b=>b.classList.remove("active"));
@@ -1119,6 +1142,18 @@ function setView(v){
   const lines=document.getElementById("cardLines");
   lines.classList.toggle("list-view",v==="list");
   renderPage();
+}
+function switchGroupTab(tabBtn, idx){
+  const card=tabBtn.closest(".bc-card");
+  if(!card) return;
+  // Deactivate all tabs
+  card.querySelectorAll(".group-tab").forEach(t=>t.classList.remove("active"));
+  tabBtn.classList.add("active");
+  // Show only selected panel
+  card.querySelectorAll(".group-panel").forEach(p=>{
+    const panelIdx=parseInt(p.getAttribute("data-group-panel"));
+    p.style.display=(panelIdx===idx)?"":"none";
+  });
 }
 function toggleCardInfo(btn){
   const fields=btn.closest(".bc-card").querySelector(".card-fields");
@@ -1318,14 +1353,13 @@ function renderPage(){
     lines.innerHTML='<div class="empty-page"><div style="font-size:3rem;opacity:.5">🔍</div><div>Nessun risultato</div></div>'; return;
   }
 
-  let html="";
-  for(let i=0;i<cards.length;i++){
-    const c=cards[i], m=c._match||{};
+  // === RENDER HELPER: single card HTML ===
+  function renderSingleCard(c, isGrouped, groupIdx){
+    const m=c._match||{};
     const cc=c.country_code||m.partner?.country_code||"";
-    const flag=ccFlag(cc);
+    const fl=ccFlag(cc);
     const countryName=c.country||(cc?cc.toUpperCase():"")||"";
     const isSel=selectedIds.has(c.id);
-
     const isAI=(m.reason||"").startsWith("🤖");
     let matchHtml="";
     if(m.type==="found"){
@@ -1337,31 +1371,29 @@ function renderPage(){
     } else {
       matchHtml=`<span class="match-badge not-found" onclick="event.stopPropagation();setMatchFilter('not-found')" title="Filtra: non trovati">—</span>`;
     }
-
     const isInferred=s=>(s||"").includes("[presunto]");
     const cleanInf=s=>(s||"").replace(" [presunto]","");
     const infCls=s=>isInferred(s)?' class="inferred"':"";
-
     const fields=[];
     if(c.email) fields.push(`<div class="card-field"><span class="f-icon">✉</span><a href="mailto:${esc(c.email)}" class="f-val">${esc(c.email)}</a></div>`);
     if(c.phone) fields.push(`<div class="card-field"><span class="f-icon">☏</span><a href="tel:${esc(c.phone)}" class="f-val">${esc(c.phone)}</a></div>`);
     if(c.website){const w=c.website;fields.push(`<div class="card-field"><span class="f-icon">◎</span><a href="${esc(w.startsWith('http')?w:'https://'+w)}" target="_blank" class="f-val">${esc(w.replace(/^https?:\/\/(www\.)?/,""))}</a></div>`);}
     if(c.address) fields.push(`<div class="card-field"><span class="f-icon">⌂</span><span class="f-val">${esc(c.address)}</span></div>`);
-
     const cityDisplay=c.city?esc(cleanInf(c.city)):"";
     const cityInf=isInferred(c.city);
-    // Filtra note reali: rimuovi [AI Match] e metadati di sistema
     const rawNotes=(c.notes||"");
     const userNotes=rawNotes.replace(/\[AI Match\][^|]*/g,"").replace(/Evento:\s*[^|]*/g,"").replace(/\|/g,"").trim();
     const hasUserNotes=!!userNotes;
     const notesBtnCls=hasUserNotes?"notes-btn has-notes":"notes-btn";
     const hasFields=fields.length>0;
     const cardId=c.id||"";
-
-    html+=`<div class="bc-card${isSel?" selected":""}${hasUserNotes?" has-notes-card":""}" data-id="${cardId}" data-letter="${(c.company_name||"#")[0].toUpperCase()}">
-      <div class="card-top">
+    // For grouped cards, wrap content in a tab-panel div
+    const panelStyle=isGrouped?` style="${groupIdx>0?"display:none":""}"`:"";;
+    const panelData=isGrouped?` data-group-panel="${groupIdx}"`:"";
+    let h=isGrouped?`<div class="group-panel"${panelData}${panelStyle}>`:"";;
+    h+=`<div class="card-top">
         <div class="card-flag-wrap" onclick="toggleSelect('${cardId}')" title="Seleziona">
-          <span class="card-flag">${flag}</span>
+          <span class="card-flag">${fl}</span>
         </div>
         <div class="card-body">
           <div class="card-company-name">${esc(c.company_name||"—")}</div>
@@ -1382,9 +1414,70 @@ function renderPage(){
       <div class="card-bottom">
         <span class="card-date">${fmtDate(c.created_at)}</span>
         <button class="${notesBtnCls}" onclick="openNotes('${cardId}')" title="${hasUserNotes?"Modifica note":"Aggiungi note"}">✎</button>
-      </div>${hasUserNotes?`<div class="notes-preview" onclick="openNotes('${cardId}')">${esc(userNotes.substring(0,120))}${userNotes.length>120?"…":""}</div>`:""}
-    </div>`;
+      </div>${hasUserNotes?`<div class="notes-preview" onclick="openNotes('${cardId}')">${esc(userNotes.substring(0,120))}${userNotes.length>120?"…":""}</div>`:""}`;
+    if(isGrouped) h+=`</div>`;
+    return h;
   }
+
+  let html="";
+
+  if(groupByCompanyActive){
+    // Group cards by normalized company name
+    const groups=new Map();
+    for(const c of cards){
+      const key=(c.company_name||"").trim().toLowerCase();
+      if(!groups.has(key)) groups.set(key,[]);
+      groups.get(key).push(c);
+    }
+    for(const [key, members] of groups){
+      if(members.length===1){
+        // Single card — render normally
+        const c=members[0];
+        const cardId=c.id||"";
+        const isSel=selectedIds.has(c.id);
+        const hasUserNotes=!!((c.notes||"").replace(/\[AI Match\][^|]*/g,"").replace(/Evento:\s*[^|]*/g,"").replace(/\|/g,"").trim());
+        html+=`<div class="bc-card${isSel?" selected":""}${hasUserNotes?" has-notes-card":""}" data-id="${cardId}" data-letter="${(c.company_name||"#")[0].toUpperCase()}">`;
+        html+=renderSingleCard(c, false, 0);
+        html+=`</div>`;
+      } else {
+        // Grouped card — multi-tab
+        const first=members[0];
+        const cardIds=members.map(c=>c.id).join(",");
+        html+=`<div class="bc-card grouped" data-id="${first.id}" data-group-ids="${cardIds}" data-letter="${(first.company_name||"#")[0].toUpperCase()}">`;
+        html+=`<span class="group-count-badge">${members.length} contatti</span>`;
+        // Tabs row
+        html+=`<div class="group-tabs">`;
+        for(let t=0;t<members.length;t++){
+          const mc=members[t];
+          const cc=mc.country_code||mc._match?.partner?.country_code||"";
+          const fl=ccFlag(cc);
+          const name=mc.contact_name||mc.position||"Contatto "+(t+1);
+          html+=`<button class="group-tab${t===0?" active":""}" data-group-tab="${t}" onclick="switchGroupTab(this,${t})">`
+            +`<span class="tab-flag">${fl}</span>`
+            +`<span class="tab-name" title="${esc(name)}">${esc(name.length>18?name.substring(0,16)+"…":name)}</span>`
+            +`</button>`;
+        }
+        html+=`</div>`;
+        // Panels for each member
+        for(let t=0;t<members.length;t++){
+          html+=renderSingleCard(members[t], true, t);
+        }
+        html+=`</div>`;
+      }
+    }
+  } else {
+    // Normal rendering — no grouping
+    for(let i=0;i<cards.length;i++){
+      const c=cards[i];
+      const cardId=c.id||"";
+      const isSel=selectedIds.has(c.id);
+      const hasUserNotes=!!((c.notes||"").replace(/\[AI Match\][^|]*/g,"").replace(/Evento:\s*[^|]*/g,"").replace(/\|/g,"").trim());
+      html+=`<div class="bc-card${isSel?" selected":""}${hasUserNotes?" has-notes-card":""}" data-id="${cardId}" data-letter="${(c.company_name||"#")[0].toUpperCase()}">`;
+      html+=renderSingleCard(c, false, 0);
+      html+=`</div>`;
+    }
+  }
+
   lines.innerHTML=html; lines.scrollTop=0; buildLetterIndex(); updateSelectionBar();
 }
 
