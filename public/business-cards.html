@@ -424,7 +424,8 @@ body{font-family:"SF Pro Display","Geist",'Inter',system-ui,sans-serif;backgroun
       <button class="sort-btn" onclick="setSort('match')" id="sortMatch">Match</button>
       <button class="sort-btn" onclick="toggleNotesFilter()" id="filterNotes" title="Mostra solo contatti con note">📝 Con note</button>
       <span style="margin-left:auto;display:flex;gap:4px;align-items:center">
-        <button class="sort-btn" onclick="toggleGroupByCompany()" id="btnGroupCompany" title="Raggruppa contatti della stessa azienda" style="color:#fbbf24;border-color:rgba(251,191,36,0.3)">🏢 Raggruppa</button>
+        <button class="sort-btn" onclick="handleGroupBtn()" id="btnGroupCompany" title="Raggruppa contatti della stessa azienda" style="color:#fbbf24;border-color:rgba(251,191,36,0.3)">🏢 Raggruppa</button>
+        <button class="sort-btn" onclick="aiGroupAll()" id="btnAiGroup" title="Ricalcola raggruppamento con AI" style="color:#fbbf24;border-color:rgba(251,191,36,0.3)">🤖 AI Raggruppa</button>
         <button class="sort-btn" onclick="refreshData()" id="btnRefresh" title="Aggiorna dati da database" style="color:#6ee7b7;border-color:rgba(16,185,129,0.3)">🔄 Aggiorna</button>
         <button class="sort-btn" onclick="aiMatchAll()" id="btnAiMatch" style="display:none;color:#c4b5fd;border-color:rgba(165,140,252,0.3)" title="Screening AI: verifica corrispondenza con WCA">🤖 AI Screening</button>
         <span style="width:1px;height:16px;background:rgba(255,255,255,0.08);margin:0 2px"></span>
@@ -1055,6 +1056,124 @@ function renderEventTabs(){
   document.getElementById("eventTabs").style.display="none";
 }
 
+// ==================== AI COMPANY GROUPING ====================
+async function aiGroupAll(){
+  if(!OPENAI_KEY||!OPENAI_KEY.startsWith("sk-")){
+    alert("Inserisci prima una chiave OpenAI valida"); return;
+  }
+  // Ensure migrate endpoint has run (adds column if needed)
+  try{ await fetch(API+"/api/partners?action=migrate_company_group"); }catch(e){}
+
+  const cards=allCards.filter(c=>c.id && c.company_name);
+  if(!cards.length){ alert("Nessun contatto da raggruppare."); return; }
+
+  // Skip cards that already have a company_group
+  const toProcess=cards.filter(c=>!c.company_group);
+  if(!toProcess.length && cards.some(c=>c.company_group)){
+    if(!confirm(`Tutti i ${cards.length} contatti hanno già un gruppo. Vuoi ricalcolare?`)) return;
+    toProcess.push(...cards); // ricalcola tutti
+  }
+
+  const btn=document.getElementById("btnGroupCompany");
+  const origText=btn.innerHTML;
+  btn.disabled=true;
+  btn.innerHTML="⏳ AI Grouping...";
+
+  const chipAI=document.getElementById("chipAI");
+  chipAI.style.display="inline-flex";
+
+  // Build compact list: id, company_name, country, city, email domain, website
+  const compactCards=toProcess.map(c=>({
+    id:c.id,
+    company:c.company_name||"",
+    contact:c.contact_name||"",
+    country:c.country_code||c.country||"",
+    city:c.city||"",
+    email:c.email||"",
+    web:c.website||""
+  }));
+
+  const BATCH=40; // Bigger batches since this is simpler than matching
+  let processed=0, errors=0, groups=0;
+
+  for(let i=0;i<compactCards.length;i+=BATCH){
+    const batch=compactCards.slice(i,i+BATCH);
+    const pct=Math.round((i/compactCards.length)*100);
+    btn.innerHTML=`⏳ ${i}/${compactCards.length}`;
+    chipAI.textContent=`🏢 Grouping ${i}/${compactCards.length} (${pct}%)`;
+    chipAI.style.background=`linear-gradient(90deg, rgba(251,191,36,0.25) ${pct}%, rgba(251,191,36,0.08) ${pct}%)`;
+
+    const prompt=`Sei un esperto di business intelligence. Analizza questi biglietti da visita e raggruppa quelli che appartengono alla STESSA AZIENDA.
+
+REGOLE DI RAGGRUPPAMENTO:
+- Stessa azienda = stesso gruppo, anche se: nomi leggermente diversi (Ltd vs Limited, Co. vs Corp), filiali in paesi diversi, varianti con/senza suffissi legali
+- Usa il dominio email come forte indicatore (stesso dominio = probabilmente stessa azienda)
+- Considera anche website, città e contesto settoriale
+- Il group_id deve essere un nome azienda normalizzato, breve, lowercase, senza suffissi legali (es: "techbridge japan", "3i logistics", "apex cargo")
+- Se un biglietto è chiaramente un'azienda unica, il suo group_id è comunque il nome normalizzato
+
+BIGLIETTI DA ANALIZZARE:
+${JSON.stringify(batch)}
+
+FORMATO RISPOSTA — JSON array:
+[{"id":"uuid","group_id":"nome-normalizzato"}]
+Rispondi SOLO con il JSON array, nient'altro.`;
+
+    try{
+      const r=await fetch("https://api.openai.com/v1/chat/completions",{
+        method:"POST",
+        headers:{"Content-Type":"application/json","Authorization":"Bearer "+OPENAI_KEY},
+        body:JSON.stringify({
+          model:"gpt-4o-mini", temperature:0,
+          messages:[{role:"user",content:prompt}],
+          response_format:{type:"json_object"}
+        })
+      });
+      if(!r.ok){ console.error("AI Group error:",await r.text()); errors++; continue; }
+      const data=await r.json();
+      const content=data.choices?.[0]?.message?.content||"";
+      let results=JSON.parse(content);
+      if(results&&!Array.isArray(results)){
+        const key=Object.keys(results).find(k=>Array.isArray(results[k]));
+        if(key) results=results[key]; else results=[];
+      }
+
+      const uniqueGroups=new Set();
+      for(const res of results){
+        if(!res.id||!res.group_id) continue;
+        const card=allCards.find(c=>c.id===res.id);
+        if(!card) continue;
+        const groupId=res.group_id.trim().toLowerCase();
+        card.company_group=groupId;
+        uniqueGroups.add(groupId);
+        processed++;
+
+        // Save to Supabase
+        try{
+          await fetch(`${SUPABASE_URL}/rest/v1/wca_business_cards?id=eq.${card.id}`,{
+            method:"PATCH",
+            headers:{...SB_HEADERS,"Content-Type":"application/json","Prefer":"return=minimal"},
+            body:JSON.stringify({company_group:groupId})
+          });
+        }catch(e){ console.error("PATCH group error:",e); }
+      }
+      groups+=uniqueGroups.size;
+    }catch(e){ console.error("AI group batch error:",e); errors++; }
+
+    renderPage(); updateStats();
+  }
+
+  const finalPct=100;
+  chipAI.textContent=`🏢 Grouping completato: ${processed} contatti, ${errors} errori`;
+  chipAI.style.background=`linear-gradient(90deg, rgba(16,185,129,0.25) 100%, rgba(16,185,129,0.08) 100%)`;
+  btn.disabled=false;
+  btn.innerHTML=origText;
+
+  // Auto-enable grouping view
+  if(!groupByCompanyActive) toggleGroupByCompany();
+  renderPage();
+}
+
 // ==================== RENDERING ====================
 let currentSort="company";
 let groupByCompanyActive=false;
@@ -1066,6 +1185,16 @@ function toggleGroupByCompany(){
     btn.style.background=groupByCompanyActive?"rgba(251,191,36,0.12)":"";
   }
   renderPage();
+}
+function handleGroupBtn(){
+  // If some cards already have company_group from DB, just toggle view
+  const hasGroups=allCards.some(c=>c.company_group);
+  if(hasGroups){
+    toggleGroupByCompany();
+  } else {
+    // No groups yet — run AI grouping
+    aiGroupAll();
+  }
 }
 function setSort(key){
   currentSort=key;
@@ -1429,46 +1558,12 @@ function renderPage(){
   let html="";
 
   if(groupByCompanyActive){
-    // Group cards by fuzzy company name matching
-    // Normalize: lowercase, strip punctuation, common suffixes, extra spaces
-    function normalizeCompany(name){
-      return (name||"").toLowerCase()
-        .replace(/[.,;:!?'"()\[\]{}&\/\\@#]+/g," ")   // strip punctuation
-        .replace(/\b(ltd|llc|inc|corp|co|gmbh|srl|sas|sa|bv|nv|ag|pty|pvt|plc|spa|s\.?p\.?a|s\.?r\.?l|s\.?a\.?s)\b\.?/gi," ") // strip legal suffixes
-        .replace(/\s+/g," ").trim();
-    }
+    // Group cards by company_group from DB (AI-assigned) or fallback to company_name
     const groups=new Map();
-    const keyMap=new Map(); // normalized -> canonical key
     for(const c of cards){
-      const norm=normalizeCompany(c.company_name);
-      if(!norm){ // empty name — standalone
-        const solo="__solo_"+Math.random();
-        groups.set(solo,[c]);
-        continue;
-      }
-      // Check if any existing key starts with this or vice versa (partial match)
-      let matched=false;
-      for(const [existingNorm, canonKey] of keyMap){
-        // Match if one contains the other, or if they share the first N significant chars
-        const shorter=existingNorm.length<=norm.length?existingNorm:norm;
-        const longer=existingNorm.length>norm.length?existingNorm:norm;
-        const minLen=Math.max(4, Math.floor(shorter.length*0.6));
-        if(longer.includes(shorter) || shorter.length>=minLen && longer.startsWith(shorter.substring(0,minLen))){
-          groups.get(canonKey).push(c);
-          matched=true;
-          // Update keyMap if this name is shorter (better canonical)
-          if(norm.length<existingNorm.length){
-            keyMap.delete(existingNorm);
-            keyMap.set(norm, canonKey);
-          }
-          break;
-        }
-      }
-      if(!matched){
-        const canonKey=norm;
-        keyMap.set(norm, canonKey);
-        groups.set(canonKey,[c]);
-      }
+      const key=c.company_group || (c.company_name||"").trim().toLowerCase() || "__solo_"+Math.random();
+      if(!groups.has(key)) groups.set(key,[]);
+      groups.get(key).push(c);
     }
     for(const [key, members] of groups){
       if(members.length===1){
