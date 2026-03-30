@@ -16,7 +16,7 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',sans-serif;background:
 /* ═══ TOP BAR ═══ */
 .topbar{
   position:fixed;top:0;left:0;right:0;z-index:100;height:48px;
-  background:rgba(8,8,26,0.85);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);
+  background:rgba(8,8,26,0.70);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid var(--border);
   display:flex;align-items:center;padding:0 20px;gap:12px;
 }
 .topbar-logo{width:32px;height:32px;filter:drop-shadow(0 2px 8px rgba(139,92,246,0.5))}
@@ -36,15 +36,20 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',sans-serif;background:
 }
 .stat-chip b{color:var(--text);font-size:.72rem}
 
+/* ═══ FULLSCREEN MATRIX CANVAS ═══ */
+#matrixCanvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0}
+
 /* ═══ MAIN LAYOUT — 3 COLUMNS ═══ */
 .main{
   position:fixed;top:48px;bottom:56px;left:0;right:0;
   display:grid;grid-template-columns:280px 1fr 280px;gap:0;
+  z-index:1;
 }
 
 /* ═══ LEFT PANEL — DIRECTORY ═══ */
 .panel-left,.panel-right{
-  background:var(--bg2);border-right:1px solid var(--border);
+  background:rgba(14,14,36,0.70);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  border-right:1px solid var(--border);
   display:flex;flex-direction:column;overflow:hidden;
 }
 .panel-right{border-right:none;border-left:1px solid var(--border)}
@@ -104,9 +109,8 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',sans-serif;background:
 .partner-nets img:hover{opacity:1}
 @keyframes partnerIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
 
-/* ═══ CENTER — MATRIX CANVAS ═══ */
-.center{position:relative;overflow:hidden;background:var(--bg)}
-#matrixCanvas{position:absolute;inset:0;width:100%;height:100%}
+/* ═══ CENTER — COCKPIT AREA ═══ */
+.center{position:relative;overflow:hidden;background:transparent}
 
 /* Center overlay cockpit */
 .cockpit{
@@ -177,7 +181,7 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',sans-serif;background:
 /* ═══ BOTTOM FLAGS BAR ═══ */
 .flags-bar{
   position:fixed;bottom:0;left:0;right:0;z-index:100;height:56px;
-  background:rgba(8,8,26,0.92);backdrop-filter:blur(16px);border-top:1px solid var(--border);
+  background:rgba(8,8,26,0.70);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid var(--border);
   display:flex;align-items:center;padding:0 12px;gap:0;
 }
 .flags-bar-label{
@@ -211,6 +215,8 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',sans-serif;background:
 </style>
 </head>
 <body>
+<!-- FULLSCREEN MATRIX CANVAS -->
+<canvas id="matrixCanvas"></canvas>
 
 <!-- ═══ TOP BAR ═══ -->
 <div class="topbar">
@@ -249,9 +255,8 @@ html,body{height:100%;overflow:hidden;font-family:'Inter',sans-serif;background:
     </div>
   </div>
 
-  <!-- CENTER: MATRIX CANVAS -->
+  <!-- CENTER: COCKPIT -->
   <div class="center">
-    <canvas id="matrixCanvas"></canvas>
     <div class="cockpit">
       <img src="logos/dragon.png" class="cockpit-logo" alt="" onerror="this.src='https://dlldkrzoxvjxpgkkttxu.supabase.co/storage/v1/object/public/icons/dragon.png'">
       <div class="cockpit-title"><span>WCA Network</span><br>Navigator</div>
@@ -336,47 +341,84 @@ const ALL_NETWORKS = [
 function flag(code){ if(!code||code.length!==2) return ""; return String.fromCodePoint(...[...code.toUpperCase()].map(c=>0x1F1E6+c.charCodeAt(0)-65)); }
 
 // ═══════════════════════════════════════════════════
-// MATRIX RAIN CANVAS
+// MATRIX RAIN — fullscreen, slow, dynamic colors
 // ═══════════════════════════════════════════════════
 const canvas = document.getElementById("matrixCanvas");
 const ctx = canvas.getContext("2d");
-let columns, drops;
+let columns, drops, dropSpeeds;
 const chars = "WCANETWORKPARTNERDIRECTORYGLOBALLOGISTICSFREIGHTSHIPPINGCARGOTRADEアウカエオ01";
+const FONT_SIZE = 14;
+let matrixFrame = 0;
+
+// Matrix color state: idle=cyan/purple, downloading=red, countryFlash=gold, done=green
+let matrixHueBase = 200;   // idle: 200 (cyan)
+let matrixHueTarget = 200;
+let matrixHueRange = 80;   // spread around base
+let matrixSat = 70;
+let matrixAlphaBase = 0.10;
+let matrixFadeAlpha = 0.04; // lower = longer trails = slower feel
 
 function initMatrix(){
-  canvas.width = canvas.parentElement.clientWidth;
-  canvas.height = canvas.parentElement.clientHeight;
-  const fontSize = 13;
-  columns = Math.floor(canvas.width / fontSize);
-  drops = Array(columns).fill(1);
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  columns = Math.floor(canvas.width / FONT_SIZE);
+  drops = Array(columns).fill(0).map(() => Math.random() * (canvas.height / FONT_SIZE));
+  dropSpeeds = Array(columns).fill(0).map(() => 0.3 + Math.random() * 0.5); // slow speeds
 }
 
 function drawMatrix(){
-  ctx.fillStyle = "rgba(8,8,26,0.06)";
-  ctx.fillRect(0,0,canvas.width,canvas.height);
-  ctx.font = "12px 'JetBrains Mono'";
+  matrixFrame++;
+  // Smooth color transition
+  matrixHueBase += (matrixHueTarget - matrixHueBase) * 0.02;
+
+  // Slow fade — long trails
+  ctx.fillStyle = `rgba(8,8,26,${matrixFadeAlpha})`;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.font = `${FONT_SIZE}px 'JetBrains Mono'`;
 
   for(let i = 0; i < drops.length; i++){
-    const char = chars[Math.floor(Math.random()*chars.length)];
-    const x = i * 13;
-    const y = drops[i] * 13;
+    // Only draw some columns each frame for extra slowness
+    if(matrixFrame % 3 !== i % 3) { drops[i] += dropSpeeds[i]; continue; }
 
-    // Colore variabile — mix cyan/purple/green
-    const hue = 200 + Math.random()*80; // 200-280 range (cyan to purple)
-    const alpha = 0.15 + Math.random()*0.15;
-    ctx.fillStyle = `hsla(${hue},70%,60%,${alpha})`;
+    const char = chars[Math.floor(Math.random() * chars.length)];
+    const x = i * FONT_SIZE;
+    const y = Math.floor(drops[i]) * FONT_SIZE;
+    const hue = matrixHueBase + Math.random() * matrixHueRange;
+    const alpha = matrixAlphaBase + Math.random() * 0.12;
+
+    ctx.fillStyle = `hsla(${hue},${matrixSat}%,55%,${alpha})`;
     ctx.fillText(char, x, y);
 
-    // Testa più luminosa
-    if(Math.random() > 0.97){
-      ctx.fillStyle = `hsla(${hue},90%,80%,0.7)`;
+    // Bright head char (rare)
+    if(Math.random() > 0.985){
+      ctx.fillStyle = `hsla(${hue},90%,80%,0.6)`;
       ctx.fillText(char, x, y);
     }
 
-    if(y > canvas.height && Math.random() > 0.975) drops[i] = 0;
-    drops[i]++;
+    drops[i] += dropSpeeds[i];
+    if(y > canvas.height && Math.random() > 0.99){
+      drops[i] = 0;
+      dropSpeeds[i] = 0.3 + Math.random() * 0.5;
+    }
   }
   requestAnimationFrame(drawMatrix);
+}
+
+// ═══ MATRIX COLOR MODES ═══
+function setMatrixIdle(){
+  matrixHueTarget = 200; matrixHueRange = 80; matrixSat = 70; matrixAlphaBase = 0.10; matrixFadeAlpha = 0.04;
+}
+function setMatrixDownloading(){
+  matrixHueTarget = 0; matrixHueRange = 30; matrixSat = 80; matrixAlphaBase = 0.14; matrixFadeAlpha = 0.035;
+}
+function setMatrixCountryFlash(){
+  // Brief gold flash — auto-returns to red after 800ms
+  const prevTarget = matrixHueTarget;
+  matrixHueTarget = 45; matrixHueRange = 20; matrixSat = 90; matrixAlphaBase = 0.18;
+  setTimeout(() => { matrixHueTarget = prevTarget; matrixHueRange = 30; matrixSat = 80; matrixAlphaBase = 0.14; }, 800);
+}
+function setMatrixDone(){
+  matrixHueTarget = 140; matrixHueRange = 20; matrixSat = 75; matrixAlphaBase = 0.12; matrixFadeAlpha = 0.03;
 }
 
 window.addEventListener("resize", initMatrix);
@@ -489,25 +531,46 @@ function showToast(msg, color){
 let downloading = false;
 let downloadType = null;
 
+// ═══ AUTO LOGIN WCA ═══
+let wcaSession = null;
+async function ensureWcaLogin(){
+  if(wcaSession) return true;
+  showToast("🔑 Login WCA in corso...","var(--cyan)");
+  try {
+    const resp = await fetch(API+"/api/login",{ method:"POST", headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({ username:"tmsrlmin", password:"G0u3v!VvCn" })
+    });
+    const data = await resp.json();
+    if(data.success && data.cookies){
+      wcaSession = data.cookies;
+      showToast("🔑 Login WCA riuscito!","var(--green)");
+      return true;
+    } else {
+      showToast("⚠️ Login fallito: "+(data.error||"unknown"),"var(--danger)");
+      return false;
+    }
+  } catch(e){ showToast("⚠️ Errore login: "+e.message,"var(--danger)"); return false; }
+}
+
 async function startDirectoryDownload(){
   if(downloading){ showToast("Download già in corso","var(--warning)"); return; }
   downloading = true;
   downloadType = "directory";
+  setMatrixDownloading();
   document.getElementById("btnDirStart").style.display = "none";
   document.getElementById("btnDirStop").style.display = "block";
   document.getElementById("activeDl").style.display = "flex";
 
   showToast("📂 Download directory avviato","var(--cyan)");
 
-  // Get all countries from Supabase or use a master list
   const countriesToScan = allCountries.length > 0 ? [...allCountries] : ["IT","US","GB","DE","FR","ES","CN","IN"];
   const total = countriesToScan.length;
 
   for(let i = 0; i < countriesToScan.length && downloading; i++){
     const code = countriesToScan[i];
+    setMatrixCountryFlash(); // gold flash per ogni paese
     updateActiveDl(code, `📂 Directory ${i+1}/${total}`, `Scaricando ${code}...`, ((i+1)/total)*100);
 
-    // Fetch directory via API
     let page = 1, hasMore = true, members = [];
     while(hasMore && downloading){
       try {
@@ -525,42 +588,75 @@ async function startDirectoryDownload(){
       } catch(e){ hasMore = false; }
     }
 
-    // Save to Supabase
     if(members.length > 0 && downloading){
       try {
         await fetch(API+"/api/save-directory",{
           method:"POST",headers:{"Content-Type":"application/json"},
           body:JSON.stringify({ countryCode: code, members })
         });
-        // Update local stats
         dirStats[code] = members.length;
         addMatrixFlash(code, members.length);
         highlightFlagChip(code);
       } catch(e){}
     }
 
-    // Re-render
     renderCountryList();
     renderFlagsBar();
     updateTopStats();
   }
 
+  setMatrixDone(); // verde statico a completamento
   stopDownload();
   showToast("📂 Directory completata!","var(--green)");
   loadStats();
 }
 
-// ═══════════════════════════════════════════════════
-// PROFILE DOWNLOAD (simplified — delegates to management)
-// ═══════════════════════════════════════════════════
+// ═══ PROFILE DOWNLOAD con auto-login ═══
 async function startProfileDownload(){
-  showToast("👤 Per scaricare i profili serve il login WCA — vai in Management","var(--purple)");
-  // Flash the management button
-  const btn = document.querySelector(".topbar-btn:not(.active)");
-  if(btn){
-    btn.style.animation = "pulse .5s ease-in-out 3";
-    setTimeout(() => btn.style.animation = "", 1600);
+  if(downloading){ showToast("Download già in corso","var(--warning)"); return; }
+  const loggedIn = await ensureWcaLogin();
+  if(!loggedIn) return;
+
+  downloading = true;
+  downloadType = "profiles";
+  setMatrixDownloading();
+  document.getElementById("btnProfStart").style.display = "none";
+  document.getElementById("btnProfStop").style.display = "block";
+  document.getElementById("activeDl").style.display = "flex";
+  showToast("👤 Download profili avviato","var(--purple)");
+
+  // Scarica profili per ogni paese in directory
+  const countriesToScan = allCountries.length > 0 ? [...allCountries] : Object.keys(dirStats);
+  const total = countriesToScan.length;
+
+  for(let i = 0; i < countriesToScan.length && downloading; i++){
+    const code = countriesToScan[i];
+    setMatrixCountryFlash();
+    updateActiveDl(code, `👤 Profili ${i+1}/${total}: ${code}`, `Scaricando profili...`, ((i+1)/total)*100);
+
+    try {
+      const resp = await fetch(API+"/api/scrape",{
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({ country: code, cookies: wcaSession, limit: 50 })
+      });
+      const data = await resp.json();
+      if(data.success){
+        const count = data.saved || data.processed || 0;
+        profStats[code] = (profStats[code]||0) + count;
+        addPartnerFeedItem(code, count, "profiles");
+        highlightFlagChip(code);
+      }
+    } catch(e){ console.warn("scrape error:", code, e.message); }
+
+    renderCountryList();
+    renderFlagsBar();
+    updateTopStats();
   }
+
+  setMatrixDone();
+  stopDownload();
+  showToast("👤 Profili completati!","var(--green)");
+  loadStats();
 }
 
 // ═══════════════════════════════════════════════════
@@ -579,6 +675,10 @@ function stopDownload(){
   document.getElementById("activeDl").style.display = "none";
   document.getElementById("btnDirStart").style.display = "block";
   document.getElementById("btnDirStop").style.display = "none";
+  document.getElementById("btnProfStart").style.display = "block";
+  document.getElementById("btnProfStop").style.display = "none";
+  // Matrix torna idle dopo 10s dal verde completamento
+  setTimeout(setMatrixIdle, 10000);
 }
 
 // ═══════════════════════════════════════════════════
@@ -591,14 +691,16 @@ function addMatrixFlash(code, count){
   addPartnerFeedItem(code, count);
 }
 
-function addPartnerFeedItem(code, count){
+function addPartnerFeedItem(code, count, type){
   const list = document.getElementById("partnerList");
   const item = document.createElement("div");
   item.className = "partner-item";
+  const icon = type === "profiles" ? "👤" : "📂";
+  const label = type === "profiles" ? "Profili salvati" : "Directory salvata";
   item.innerHTML = `
     <div class="partner-name">${flag(code)} ${code} — ${count} partner</div>
     <div class="partner-meta">
-      <span>📂 Directory salvata</span>
+      <span>${icon} ${label}</span>
       <span style="margin-left:auto;font-size:.5rem;color:var(--muted)">${new Date().toLocaleTimeString()}</span>
     </div>
   `;
