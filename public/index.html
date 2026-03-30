@@ -472,7 +472,7 @@ async function loadStats(){
     }
 
     // Profile stats
-    const profResp = await fetch(API+"/api/partners?mode=country_counts");
+    const profResp = await fetch(API+"/api/partners?action=country_counts");
     const profData = await profResp.json();
     if(profData.success){
       let total = 0;
