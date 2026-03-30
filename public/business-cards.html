@@ -113,9 +113,9 @@ body{font-family:"SF Pro Display","Geist",'Inter',system-ui,sans-serif;backgroun
 .bc-card .card-city::before{content:"·";margin-right:0;color:#475569}
 /* MATCH — top right */
 .bc-card .card-match{flex-shrink:0;margin-left:auto;padding-left:8px;display:flex;flex-direction:column;align-items:flex-end;gap:2px}
-.bc-card .card-del-btn{background:none;border:none;cursor:pointer;font-size:.7rem;color:#64748b;opacity:0;transition:all .15s;padding:2px 4px;border-radius:4px;margin-top:2px}
-.bc-card:hover .card-del-btn{opacity:.5}
-.bc-card .card-del-btn:hover{opacity:1;color:#ef4444;background:rgba(239,68,68,0.1)}
+.bc-card .card-del-btn{position:absolute;top:6px;right:6px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);cursor:pointer;font-size:.75rem;color:#fca5a5;opacity:0;transition:all .15s;padding:3px 7px;border-radius:6px;z-index:5;line-height:1}
+.bc-card:hover .card-del-btn{opacity:.7}
+.bc-card .card-del-btn:hover{opacity:1;color:#fff;background:rgba(239,68,68,0.6)}
 .bc-card .card-person{display:none}
 .bc-card .inferred{opacity:.7;font-style:italic}
 .bc-card .inferred::after{content:" ~";color:#a5b4fc;font-size:.5rem}
@@ -1265,6 +1265,13 @@ function closeFlagDropdown(){
 // Close dropdown on click outside
 document.addEventListener("click",e=>{
   if(!e.target.closest(".flag-search-wrap")) closeFlagDropdown();
+  // Delete button on card
+  const delBtn=e.target.closest(".card-del-btn");
+  if(delBtn){
+    e.stopPropagation();
+    const id=delBtn.dataset.del;
+    if(id) deleteSingleCard(id);
+  }
 });
 
 function renderPage(){
@@ -1356,9 +1363,8 @@ function renderPage(){
             ${cityDisplay?`<span class="card-city"${cityInf?' class="inferred"':''}>  ${cityDisplay}</span>`:''}
           </div>
         </div>
-        <div class="card-match">${matchHtml}
-          <button class="card-del-btn" onclick="event.stopPropagation();deleteSingleCard('${cardId}')" title="Elimina">✕</button>
-        </div>
+        <div class="card-match">${matchHtml}</div>
+        <button class="card-del-btn" data-del="${cardId}" title="Elimina">✕</button>
       </div>
       ${hasFields?`<div class="card-details-row">
         <button class="info-toggle" onclick="toggleCardInfo(this)"><span class="arrow">▸</span> Dettagli</button>
