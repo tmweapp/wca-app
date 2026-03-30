@@ -1499,14 +1499,28 @@ async function confirmImport(){
   });
   // Also skip if already in DB (but never skip cards with all-empty key fields)
   const dbKeys=new Set(allCards.map(c=>(c.company_name||"").toLowerCase().trim()+"||"+(c.contact_name||"").toLowerCase().trim()+"||"+(c.email||"").toLowerCase().trim()));
+  const beforeDedup=cards.length;
   cards=cards.filter(c=>{
     const cn=(c.company_name||"").toLowerCase().trim();
     const nm=(c.contact_name||"").toLowerCase().trim();
     const em=(c.email||"").toLowerCase().trim();
-    if(!cn&&!nm&&!em) return true; // don't dedup empty-key cards
+    if(!cn&&!nm&&!em) return true;
     return !dbKeys.has(cn+"||"+nm+"||"+em);
   });
-  if(!cards.length){ alert("Tutti i contatti sono già presenti nel database."); cancelImport(); return; }
+  const skipped=beforeDedup-cards.length;
+  if(skipped>0&&cards.length>0) console.log(`Import: ${cards.length} nuovi, ${skipped} duplicati saltati`);
+  if(!cards.length){
+    const totalParsed=mapRows(pendingRows, pendingFile?.name||"import").length;
+    if(confirm(`Tutti i ${totalParsed} contatti corrispondono a record già presenti nel database (stessi nome+azienda+email).\n\nVuoi importarli comunque come duplicati?`)){
+      // Force re-import: bypass dedup
+      cards=mapRows(pendingRows, pendingFile?.name||"import");
+      const seen2=new Set();
+      cards=cards.filter(c=>{
+        const key=(c.company_name||"").toLowerCase().trim()+"||"+(c.contact_name||"").toLowerCase().trim()+"||"+(c.email||"").toLowerCase().trim();
+        if(seen2.has(key)) return false; seen2.add(key); return true;
+      });
+    } else { cancelImport(); return; }
+  }
   // Store event info in notes (event_name/contact_date/upload_date don't exist in DB schema)
   for(const c of cards){
     const meta=[];
