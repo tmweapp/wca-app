@@ -95,35 +95,59 @@
         <div id="selectedCountriesPreview" style="display:none;align-items:center;gap:3px;flex:1;min-width:0;overflow-x:auto;overflow-y:hidden;white-space:nowrap;scrollbar-width:thin;scrollbar-color:rgba(99,102,241,0.3) transparent;padding:1px 0"></div>
       </div>
 
-      <!-- ROW B: Action buttons — bordati, uniformi, gap 6px -->
-      <div style="display:flex;align-items:center;gap:6px;width:100%;padding:6px 0;border-top:1px solid rgba(255,255,255,0.04);flex-wrap:wrap">
-        <button id="btnStart" onclick="startScraping()" disabled title="Avvia Scraping" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:30px;border:1px solid rgba(255,255,255,0.12);border-radius:6px;background:rgba(255,255,255,0.02);cursor:pointer;opacity:.5;transition:all .2s" onmouseover="if(!this.disabled)this.style.opacity='1';this.style.background='rgba(16,185,129,0.08)'" onmouseout="this.style.opacity=this.disabled?'.5':'.6';this.style.background='rgba(255,255,255,0.02)'">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="1.5"><polygon points="5 3 19 12 5 21 5 3" fill="#10b981" opacity=".15"/><polygon points="5 3 19 12 5 21 5 3"/></svg>
+      <!-- ROW B: Action buttons — centrati sul bordo superiore del container -->
+      <div class="action-pills-bar">
+
+        <button id="btnStart" onclick="startScraping()" disabled class="action-pill" style="--pill-color:#10b981">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          <span>Avvia</span>
         </button>
-        <button id="btnResume" onclick="resumeScraping()" style="display:none;align-items:center;justify-content:center;width:36px;height:30px;border:1px solid rgba(255,255,255,0.12);border-radius:6px;background:rgba(255,255,255,0.02);cursor:pointer;opacity:.7;transition:all .2s" title="Continua download" onmouseover="this.style.opacity='1';this.style.background='rgba(99,102,241,0.08)'" onmouseout="this.style.opacity='.7';this.style.background='rgba(255,255,255,0.02)'">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" stroke-width="1.5"><polygon points="5 3 19 12 5 21 5 3"/><line x1="19" y1="3" x2="19" y2="21"/></svg>
+
+        <button id="btnResume" onclick="resumeScraping()" class="action-pill" style="display:none;--pill-color:#a5b4fc">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/><line x1="19" y1="3" x2="19" y2="21"/></svg>
+          <span>Continua</span>
         </button>
-        <button id="btnStartBg" onclick="startBackgroundJob()" title="Background Job" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:30px;border:1px solid rgba(255,255,255,0.12);border-radius:6px;background:rgba(255,255,255,0.02);cursor:pointer;opacity:.5;transition:all .2s" onmouseover="this.style.opacity='1';this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.opacity='.5';this.style.background='rgba(255,255,255,0.02)'">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" stroke-width="1.5"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+
+        <button id="btnStop" onclick="stopScraping()" disabled class="action-pill" style="--pill-color:#ef4444">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+          <span>Stop</span>
         </button>
-        <button id="btnStop" onclick="stopScraping()" disabled title="Stop" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:30px;border:1px solid rgba(255,255,255,0.12);border-radius:6px;background:rgba(255,255,255,0.02);cursor:pointer;opacity:.3;transition:all .2s" onmouseover="if(!this.disabled){this.style.opacity='1';this.style.background='rgba(239,68,68,0.08)'}" onmouseout="this.style.opacity=this.disabled?'.3':'.5';this.style.background='rgba(255,255,255,0.02)'">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="1.5"><rect x="6" y="6" width="12" height="12" rx="2" fill="#ef4444" opacity=".1"/><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+
+        <button id="btnStartBg" onclick="startBackgroundJob()" class="action-pill" style="--pill-color:#8b5cf6">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+          <span>Background</span>
         </button>
-        <!-- TURBO RIMOSSO: usare sempre START -->
-        <div style="width:1px;height:22px;background:rgba(255,255,255,0.08);margin:0 4px"></div>
-        <button id="btnUpdateNet" onclick="updateNetworksForCountries()" title="Aggiorna Network" style="display:inline-flex;align-items:center;justify-content:center;height:30px;padding:0 10px;gap:4px;border:1px solid rgba(16,185,129,0.25);border-radius:6px;background:rgba(16,185,129,0.08);cursor:pointer;opacity:.7;transition:all .2s;font-size:.62rem;font-weight:700;color:#6ee7b7;font-family:'JetBrains Mono',monospace" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='.7'"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6ee7b7" stroke-width="2"><path d="M1 4v6h6"/><path d="M23 20v-6h-6"/><path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/></svg>NET</button>
-        <button id="btnSyncDir" onclick="toggleDirSync()" title="Scarica Directory Globale (tutti i paesi) — clicca per avviare/fermare" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:30px;border:1px solid rgba(255,255,255,0.12);border-radius:6px;background:rgba(255,255,255,0.02);cursor:pointer;opacity:.5;transition:all .2s" onmouseover="this.style.opacity='1';this.style.background='rgba(14,165,233,0.08)'" onmouseout="this.style.opacity=dirSyncing?'1':'.5';this.style.background=dirSyncing?'rgba(14,165,233,0.06)':'rgba(255,255,255,0.02)'">
-          <svg id="syncDirIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0ea5e9" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+
+        <div style="width:1px;height:20px;background:rgba(255,255,255,0.08)"></div>
+
+        <button id="btnUpdateNet" onclick="updateNetworksForCountries()" class="action-pill" style="--pill-color:#6ee7b7">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6"/><path d="M23 20v-6h-6"/><path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/></svg>
+          <span>Network</span>
         </button>
-        <button id="btnBell" onclick="toggleNotifications()" style="position:relative;display:inline-flex;align-items:center;justify-content:center;width:36px;height:30px;border:1px solid rgba(255,255,255,0.12);border-radius:6px;background:rgba(255,255,255,0.02);cursor:pointer;opacity:.4;transition:all .2s" title="Notifiche" onmouseover="this.style.opacity='.9';this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.opacity='.4';this.style.background='rgba(255,255,255,0.02)'">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" stroke-width="1.5"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
-          <span id="bellBadge" style="position:absolute;top:-2px;right:-2px;font-size:.48rem;min-width:11px;height:11px;line-height:11px;text-align:center;padding:0 2px;border-radius:6px;background:#ef4444;color:white;font-weight:700;display:none"></span>
+
+        <button id="btnSyncDir" onclick="toggleDirSync()" class="action-pill" style="--pill-color:#0ea5e9">
+          <svg id="syncDirIcon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <span>Directory</span>
         </button>
-        <div style="width:1px;height:22px;background:rgba(255,255,255,0.08);margin:0 4px"></div>
-        <label style="display:inline-flex;align-items:center;gap:4px;cursor:pointer;white-space:nowrap;font-size:.62rem;color:var(--text-muted);padding:4px 10px;border:1px solid rgba(255,255,255,0.12);border-radius:6px;background:rgba(255,255,255,0.02);height:30px" title="Aggiorna indirizzo partner esistenti">
-          <input type="checkbox" id="chkUpdateAddress" style="accent-color:var(--accent);width:13px;height:13px"> Aggiorna
+
+        <button id="btnBell" onclick="toggleNotifications()" class="action-pill" style="position:relative;--pill-color:#f59e0b">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+          <span>Notifiche</span>
+          <span id="bellBadge" style="position:absolute;top:-4px;right:-4px;font-size:.48rem;min-width:13px;height:13px;line-height:13px;text-align:center;padding:0 2px;border-radius:7px;background:#ef4444;color:white;font-weight:700;display:none"></span>
+        </button>
+
+        <div style="width:1px;height:20px;background:rgba(255,255,255,0.08)"></div>
+
+        <label class="action-pill" style="--pill-color:#94a3b8;cursor:pointer">
+          <input type="checkbox" id="chkUpdateAddress" style="accent-color:var(--accent);width:12px;height:12px;margin:0">
+          <span>Aggiorna</span>
         </label>
-        <button class="btn btn-sm" onclick="resetCountryAndRestart()" style="font-size:.62rem;padding:4px 12px;height:30px;line-height:1;border:1px solid rgba(239,68,68,0.2);border-radius:6px;background:rgba(239,68,68,0.06);color:#fca5a5;cursor:pointer;transition:all .2s" onmouseover="this.style.background='rgba(239,68,68,0.12)'" onmouseout="this.style.background='rgba(239,68,68,0.06)'" title="Reset dati locali paesi selezionati">Reset</button>
+
+        <button onclick="resetCountryAndRestart()" class="action-pill" style="--pill-color:#f87171">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
+          <span>Reset</span>
+        </button>
+
       </div>
 
       <!-- ROW C: Download attivo — logo paese grande + info + network completati -->

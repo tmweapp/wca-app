@@ -157,14 +157,68 @@ body {
 
 /* === COMMAND BAR (full width, stacked rows) === */
 .cmd-bar {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 8px;
   padding: 10px 16px;
+  padding-top: 28px;
   background: rgba(255,255,255,0.025);
   border-radius: 10px;
   border: 1px solid rgba(255,255,255,0.06);
   margin-bottom: 14px;
+  margin-top: 18px;
+}
+
+/* === ACTION PILLS — centrati sul bordo superiore === */
+.action-pills-bar {
+  position: absolute;
+  top: -16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  z-index: 10;
+  flex-wrap: wrap;
+  justify-content: center;
+  padding: 0 8px;
+}
+
+.action-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  height: 28px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--pill-color, #a5b4fc) 30%, transparent);
+  background: color-mix(in srgb, var(--pill-color, #a5b4fc) 8%, var(--bg-card, #1a1a2e));
+  color: var(--pill-color, #a5b4fc);
+  font-size: .62rem;
+  font-weight: 600;
+  font-family: 'JetBrains Mono', monospace;
+  cursor: pointer;
+  transition: all .2s;
+  white-space: nowrap;
+  letter-spacing: 0.2px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+}
+
+.action-pill:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--pill-color, #a5b4fc) 18%, var(--bg-card, #1a1a2e));
+  border-color: color-mix(in srgb, var(--pill-color, #a5b4fc) 50%, transparent);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.action-pill:disabled {
+  opacity: .35;
+  cursor: not-allowed;
+}
+
+.action-pill svg {
+  flex-shrink: 0;
 }
 .cmd-btn {
   display: inline-flex; align-items: center; gap: 6px;
@@ -1233,7 +1287,10 @@ tr:hover td {
   .container { padding: 10px; }
   .card { padding: 12px; margin-bottom: 10px; }
   /* CMD BAR */
-  .cmd-bar { padding: 8px 10px !important; }
+  .cmd-bar { padding: 8px 10px !important; padding-top: 24px !important; }
+  .action-pills-bar { gap: 4px; top: -14px; }
+  .action-pill { padding: 3px 7px; font-size: .55rem; height: 24px; }
+  .action-pill svg { width: 11px; height: 11px; }
   .cmd-btn { padding: 7px 12px; font-size: .72rem; }
   .cmd-btn svg { width: 13px; height: 13px; }
   /* Pinpoint icon smaller on mobile */
