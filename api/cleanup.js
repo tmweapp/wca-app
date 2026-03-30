@@ -69,8 +69,37 @@ module.exports = async (req, res) => {
       }
     }
 
+    // GET/POST ?confirm=yes: delete — MUST be checked BEFORE stats
+    if (req.query.confirm === "yes") {
+      const idsToDelete = incomplete.map(p => p.wca_id);
+      if (idsToDelete.length === 0) {
+        return res.json({ success: true, deleted: 0, message: "Nessun partner incompleto trovato." });
+      }
+      let totalDeleted = 0;
+      for (let i = 0; i < idsToDelete.length; i += 100) {
+        const batch = idsToDelete.slice(i, i + 100);
+        const filter = batch.map(id => `wca_id.eq.${id}`).join(",");
+        const delUrl = `${SUPABASE_URL}/rest/v1/wca_partners?or=(${filter})`;
+        const delResp = await fetch(delUrl, {
+          method: "DELETE",
+          headers: {
+            "apikey": SUPABASE_KEY,
+            "Authorization": `Bearer ${SUPABASE_KEY}`,
+            "Prefer": "return=minimal",
+          },
+        });
+        if (delResp.ok) totalDeleted += batch.length;
+      }
+      return res.json({
+        success: true,
+        deleted: totalDeleted,
+        remaining: complete.length,
+        message: `Cancellati ${totalDeleted} partner incompleti. Rimasti ${complete.length} con email/telefono.`,
+      });
+    }
+
     // GET: show stats
-    if (req.method === "GET" && !req.query.preview) {
+    if (!req.query.preview) {
       // Country breakdown of incomplete
       const byCountry = {};
       for (const p of incomplete) {
@@ -103,39 +132,7 @@ module.exports = async (req, res) => {
       });
     }
 
-    // GET/POST ?confirm=yes: delete (GET supportato perché web_fetch non fa POST)
-    if (req.query.confirm === "yes") {
-      const idsToDelete = incomplete.map(p => p.wca_id);
-      if (idsToDelete.length === 0) {
-        return res.json({ success: true, deleted: 0, message: "Nessun partner incompleto trovato." });
-      }
-
-      // Delete in batches of 100
-      let totalDeleted = 0;
-      for (let i = 0; i < idsToDelete.length; i += 100) {
-        const batch = idsToDelete.slice(i, i + 100);
-        const filter = batch.map(id => `wca_id.eq.${id}`).join(",");
-        const delUrl = `${SUPABASE_URL}/rest/v1/wca_partners?or=(${filter})`;
-        const delResp = await fetch(delUrl, {
-          method: "DELETE",
-          headers: {
-            "apikey": SUPABASE_KEY,
-            "Authorization": `Bearer ${SUPABASE_KEY}`,
-            "Prefer": "return=minimal",
-          },
-        });
-        if (delResp.ok) totalDeleted += batch.length;
-      }
-
-      return res.json({
-        success: true,
-        deleted: totalDeleted,
-        remaining: complete.length,
-        message: `Cancellati ${totalDeleted} partner incompleti. Rimasti ${complete.length} con email/telefono.`,
-      });
-    }
-
-    return res.status(400).json({ error: "Usa GET per stats, GET ?preview=1 per lista, POST ?confirm=yes per cancellare." });
+    return res.status(400).json({ error: "Usa GET per stats, GET ?preview=1 per lista, ?confirm=yes per cancellare." });
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message });
   }
