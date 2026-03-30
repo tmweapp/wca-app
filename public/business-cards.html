@@ -424,7 +424,8 @@ body{font-family:"SF Pro Display","Geist",'Inter',system-ui,sans-serif;backgroun
       <button class="sort-btn" onclick="setSort('match')" id="sortMatch">Match</button>
       <button class="sort-btn" onclick="toggleNotesFilter()" id="filterNotes" title="Mostra solo contatti con note">📝 Con note</button>
       <span style="margin-left:auto;display:flex;gap:4px;align-items:center">
-        <button class="sort-btn" onclick="handleGroupBtn()" id="btnGroupCompany" title="Raggruppa contatti della stessa azienda (AI)" style="color:#fbbf24;border-color:rgba(251,191,36,0.3)">🤖 AI Raggruppa</button>
+        <button class="sort-btn" onclick="toggleGroupByCompany()" id="btnGroupCompany" title="Mostra/nascondi raggruppamento per azienda" style="color:#fbbf24;border-color:rgba(251,191,36,0.3)">🏢 Raggruppa</button>
+        <button class="sort-btn" onclick="aiGroupAll()" id="btnAiGroup" title="Analizza con AI e assegna i gruppi aziendali" style="color:#c4b5fd;border-color:rgba(165,140,252,0.3)">🤖 AI Gruppi</button>
         <button class="sort-btn" onclick="refreshData()" id="btnRefresh" title="Aggiorna dati da database" style="color:#6ee7b7;border-color:rgba(16,185,129,0.3)">🔄 Aggiorna</button>
         <button class="sort-btn" onclick="aiMatchAll()" id="btnAiMatch" style="display:none;color:#c4b5fd;border-color:rgba(165,140,252,0.3)" title="Screening AI: verifica corrispondenza con WCA">🤖 AI Screening</button>
         <span style="width:1px;height:16px;background:rgba(255,255,255,0.08);margin:0 2px"></span>
