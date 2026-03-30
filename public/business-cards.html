@@ -113,6 +113,9 @@ body{font-family:"SF Pro Display","Geist",'Inter',system-ui,sans-serif;backgroun
 .bc-card .card-city::before{content:"·";margin-right:0;color:#475569}
 /* MATCH — top right */
 .bc-card .card-match{flex-shrink:0;margin-left:auto;padding-left:8px;display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+.bc-card .card-del-btn{background:none;border:none;cursor:pointer;font-size:.7rem;color:#64748b;opacity:0;transition:all .15s;padding:2px 4px;border-radius:4px;margin-top:2px}
+.bc-card:hover .card-del-btn{opacity:.5}
+.bc-card .card-del-btn:hover{opacity:1;color:#ef4444;background:rgba(239,68,68,0.1)}
 .bc-card .card-person{display:none}
 .bc-card .inferred{opacity:.7;font-style:italic}
 .bc-card .inferred::after{content:" ~";color:#a5b4fc;font-size:.5rem}
@@ -1137,6 +1140,23 @@ function updateSelectionBar(){
     document.getElementById("selCount").textContent=selectedIds.size+" selezionati";
   } else { bar.classList.remove("visible"); }
 }
+async function deleteSingleCard(id){
+  if(!id) return;
+  const card=allCards.find(c=>String(c.id)===String(id));
+  const label=card?(card.company_name||card.contact_name||id):id;
+  if(!confirm(`Eliminare "${label}"?`)) return;
+  try{
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/wca_business_cards?id=eq.${id}`,{
+      method:"DELETE",headers:{...SB_HEADERS,"Prefer":"return=minimal"}
+    });
+    if(r.ok){
+      allCards=allCards.filter(c=>String(c.id)!==String(id));
+      selectedIds.delete(id);
+      renderAll();
+    } else { alert("Errore eliminazione: "+await r.text()); }
+  }catch(e){ alert("Errore: "+e.message); }
+}
+
 async function deleteSelected(){
   if(!selectedIds.size) return;
   if(!confirm("Cancellare "+selectedIds.size+" contatti selezionati?")) return;
@@ -1332,7 +1352,9 @@ function renderPage(){
             ${cityDisplay?`<span class="card-city"${cityInf?' class="inferred"':''}>  ${cityDisplay}</span>`:''}
           </div>
         </div>
-        <div class="card-match">${matchHtml}</div>
+        <div class="card-match">${matchHtml}
+          <button class="card-del-btn" onclick="event.stopPropagation();deleteSingleCard('${cardId}')" title="Elimina">✕</button>
+        </div>
       </div>
       ${hasFields?`<div class="card-details-row">
         <button class="info-toggle" onclick="toggleCardInfo(this)"><span class="arrow">▸</span> Dettagli</button>
