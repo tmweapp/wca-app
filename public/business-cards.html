@@ -1326,7 +1326,7 @@ function renderPage(){
       matchHtml=`<span class="match-badge partial" onclick="event.stopPropagation();setMatchFilter('partial')" title="Filtra: match parziali">${isAI?"🤖":"~"} PARZIALE</span>
         <div class="match-sub" title="${esc(m.reason)}">${esc(m.partner?.company_name||"")}</div>`;
     } else {
-      matchHtml=`<span class="match-badge not-found" onclick="event.stopPropagation();setMatchFilter('not-found')" title="Filtra: non trovati">✗</span>`;
+      matchHtml=`<span class="match-badge not-found" onclick="event.stopPropagation();setMatchFilter('not-found')" title="Filtra: non trovati">—</span>`;
     }
 
     const isInferred=s=>(s||"").includes("[presunto]");
