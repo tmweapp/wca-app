@@ -1435,25 +1435,19 @@ async function onFileSelected(file){
     console.log("Rows parsed:",rows.length,"Sample:",JSON.stringify(rows[0]).substring(0,200));
     pendingFile=file; pendingRows=rows;
 
-    // Populate modal with file info
-    document.getElementById("importFileName").textContent=file.name+" ("+rows.length+" righe)";
+    // Show import form
+    document.getElementById("importForm").style.display="flex";
+    document.getElementById("importFileName").textContent=file.name+" ("+rows.length+" righe — AI parsed)";
     document.getElementById("txtContactDate").value=new Date().toISOString().split("T")[0];
-
-    // Populate event dropdown in modal
+    // Populate event dropdown
     const sel=document.getElementById("selEvent");
     sel.innerHTML='<option value="">-- Nuovo evento --</option>';
     const evNames=new Set();
     for(const e of allEvents) if(e.event_name) evNames.add(e.event_name);
-    // Extract event names from notes field (format: "Evento: xxx | ...")
     for(const c of allCards){ const m=(c.notes||"").match(/Evento:\s*([^|]+)/); if(m) evNames.add(m[1].trim()); }
     for(const name of [...evNames].sort()) sel.innerHTML+=`<option value="${esc(name)}">${esc(name)}</option>`;
     document.getElementById("txtEventName").value="";
-    document.getElementById("txtEventName").style.display="none";
-
-    // Show modal
-    const modal=document.getElementById("importModal");
-    modal.style.display="flex";
-    sel.focus();
+    document.getElementById("txtEventName").style.display="block";
   }catch(e){ console.error("onFileSelected error:",e); alert("Errore: "+e.message); }
 }
 
@@ -1465,7 +1459,7 @@ function onEventSelect(){
 }
 
 function cancelImport(){
-  document.getElementById("importModal").style.display="none";
+  document.getElementById("importForm").style.display="none";
   pendingFile=null; pendingRows=[];
   document.getElementById("fileInput").value="";
 }
@@ -1960,43 +1954,5 @@ init().then(()=>{
   document.getElementById("pageSubtitle").textContent="⚠️ Errore caricamento: "+e.message;
 });
 </script>
-
-<!-- IMPORT MODAL POPUP -->
-<div id="importModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center" onclick="if(event.target===this)cancelImport()">
-  <div style="background:var(--bg-card);border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:24px;width:420px;max-width:90vw;box-shadow:0 20px 60px rgba(0,0,0,0.5)" onclick="event.stopPropagation()">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
-      <h2 style="margin:0;font-size:1.1rem;color:var(--text-primary)">📥 Importa Biglietti</h2>
-      <button onclick="cancelImport()" style="background:none;border:none;cursor:pointer;font-size:1.4rem;color:var(--text-muted)">&times;</button>
-    </div>
-
-    <div style="display:flex;flex-direction:column;gap:14px">
-      <label style="display:flex;flex-direction:column;gap:6px;font-size:.8rem;color:var(--text-secondary);font-weight:600">
-        Nome Evento
-        <div style="display:flex;gap:6px">
-          <select id="selEvent" onchange="onEventSelect()" style="flex:1;min-width:100px;padding:8px 12px;border-radius:8px;border:1px solid var(--border-color);background:var(--bg-input);color:var(--text-primary);font-size:.8rem;outline:none">
-            <option value="">-- Nuovo evento --</option>
-          </select>
-          <input type="text" id="txtEventName" placeholder="es. Transport 2025" style="flex:1;min-width:100px;padding:8px 12px;border-radius:8px;border:1px solid var(--border-color);background:var(--bg-input);color:var(--text-primary);font-size:.8rem;outline:none;display:none">
-        </div>
-      </label>
-
-      <label style="display:flex;flex-direction:column;gap:6px;font-size:.8rem;color:var(--text-secondary);font-weight:600">
-        Data Contatto
-        <input type="date" id="txtContactDate" value="" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border-color);background:var(--bg-input);color:var(--text-primary);font-size:.8rem;outline:none">
-      </label>
-
-      <label style="display:flex;flex-direction:column;gap:6px;font-size:.8rem;color:var(--text-secondary);font-weight:600">
-        File selezionato
-        <span id="importFileName" style="font-size:.8rem;color:var(--text-primary);padding:8px 12px;background:rgba(255,255,255,0.03);border-radius:8px;border:1px solid rgba(255,255,255,0.05)">—</span>
-      </label>
-
-      <div style="display:flex;gap:8px;margin-top:8px">
-        <button class="btn btn-accent" onclick="confirmImport()" style="flex:1">Importa</button>
-        <button class="btn btn-back" onclick="cancelImport()" style="flex:1">Annulla</button>
-      </div>
-    </div>
-  </div>
-</div>
-
 </body>
 </html>
