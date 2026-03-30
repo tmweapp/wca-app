@@ -256,7 +256,7 @@ async function resumeScraping(jobCode){
   document.getElementById("tabsSection").style.display = "block";
 
   for(const m of members){
-    if(!pendingSet.has(String(m.id))) updateResultRow(m.id, "in_db");
+    if(!pendingIds.has(String(m.id))) updateResultRow(m.id, "in_db");
   }
 
   log(`📂 ${countryName}: ${done} già fatti, ${toDownload.length} da scaricare — RIPRESA IMMEDIATA`,"ok");
@@ -277,7 +277,7 @@ async function resumeScraping(jobCode){
   setStatus(`${countryName}: ripresa ${toDownload.length} profili...`, true);
 
   // Riprendi la Fase 2
-  log(`═══ RIPRESA DOWNLOAD — ${toDownload.length} profili restanti ═══`);
+  log(`═══ RIPRESA DOWNLOAD — ${toDownload.length} profili restanti ═══`,"ok");
   const total = toDownload.length;
   const MAX_TABS = 50;
   let consecutiveFailures = 0;
@@ -286,7 +286,7 @@ async function resumeScraping(jobCode){
   for(let i=0; i<total && scraping; i++){
     const member = toDownload[i];
 
-    const memberNets = networkMap[member.id]?.networks || [];
+    const memberNets = networkMap[member.id] || [];
     const bestNetwork = memberNets.find(d => d !== "wcaworld.com") || memberNets[0] || null;
     const netLabel = bestNetwork ? bestNetwork.replace("www.","") : "wcaworld.com";
     setActiveNetwork(bestNetwork || "wcaworld.com", netLabel);

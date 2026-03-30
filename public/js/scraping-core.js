@@ -122,10 +122,11 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
     log(`📂 ${countryName}: ${fullDir.members.length} totali → ${targetMembers.length} nei network selezionati`,"ok");
   }
 
-  // Popola memberNetworkMap dalla directory
+  // Popola memberNetworkMap dalla directory e sincronizza con globale
   for(const m of targetMembers){
     memberNetworkMap[m.id] = m.networks || [];
   }
+  currentNetworkMap = memberNetworkMap;
 
   // Aggiorna tabella risultati
   for(const m of targetMembers){
@@ -246,7 +247,7 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
   const activeNets = ALL_NETWORKS.filter(n => selSiteIds.has(n.siteId));
   const availableNetworks = activeNets.length > 0 ? activeNets.map(n => n.name) : ALL_NETWORKS.map(n => n.name);
 
-  log(`═══ FASE 3: ARRICCHIMENTO — ${limitedProfiles.length} profili limitati, ${availableNetworks.length} network disponibili ═══`);
+  log(`═══ FASE 3: ARRICCHIMENTO — ${limitedProfiles.length} profili limitati, ${availableNetworks.length} network disponibili ═══`,"ok");
   setStatus(`FASE 3: Arricchimento ${limitedProfiles.length} profili limitati...`, true);
 
   // Mappa nomi network → domini — generata dinamicamente da ALL_NETWORKS + NETWORKS
@@ -294,7 +295,7 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
       const domain = NETWORK_DOMAIN_MAP[netName];
       if(!domain) continue;
 
-      log(`Arricchimento ${lp.company_name} via ${netName} (${domain})...`);
+      log(`Arricchimento ${lp.company_name} via ${netName} (${domain})...`,"info");
       try {
         // Usa /api/scrape con networkDomain — fa SSO sul dominio specifico
         const resp = await fetch(API+"/api/scrape",{
@@ -413,11 +414,17 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
   let noNetDownloaded = 0;
   let noNetSkipped = 0;
 
-  for(let i = 0; i < noNetworkMembers.length && scraping; i++){
-    const member = noNetworkMembers[i];
-    setStatus(`${countryName} [NO NETWORK] ${i+1}/${noNetworkMembers.length} — ${member.name||member.id}`, true);
-    setProgress(i, noNetworkMembers.length);
-    showActivity("📥", `NO NETWORK ${i+1}/${noNetworkMembers.length} — ${member.name||member.id}`);
+  // Filtra i no-network già scaricati
+  const noNetToDownload = noNetworkMembers.filter(m => !doneIds.has(m.id));
+  if(noNetToDownload.length < noNetworkMembers.length){
+    log(`📂 NO NETWORK: ${noNetworkMembers.length - noNetToDownload.length} già scaricati, ${noNetToDownload.length} da fare`,"ok");
+  }
+
+  for(let i = 0; i < noNetToDownload.length && scraping; i++){
+    const member = noNetToDownload[i];
+    setStatus(`${countryName} [NO NETWORK] ${i+1}/${noNetToDownload.length} — ${member.name||member.id}`, true);
+    setProgress(i, noNetToDownload.length);
+    showActivity("📥", `NO NETWORK ${i+1}/${noNetToDownload.length} — ${member.name||member.id}`);
 
     try {
       const resp = await fetch(API+"/api/scrape",{
@@ -462,7 +469,7 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
       noNetSkipped++;
     }
 
-    if(i + 1 < noNetworkMembers.length && scraping){
+    if(i + 1 < noNetToDownload.length && scraping){
       const nextDelay = getNextDelay();
       await sleepWithActivity("⏳", `Pausa ${Math.round(nextDelay/1000)}s`, nextDelay);
     }

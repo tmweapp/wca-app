@@ -103,6 +103,19 @@ async function scrapeByNetwork(){
       if(doneIds.size > 0) log(`📂 ${c.name}: ${doneIds.size} profili già completati in directory locale`,"ok");
     }
 
+    // ═══ CHECK SUPABASE — carica wca_id già presenti in wca_profiles ═══
+    try {
+      const dbResp = await fetch(API+"/api/partners?action=existing_ids&country="+encodeURIComponent(c.code));
+      const dbData = await dbResp.json();
+      if(dbData.success && dbData.ids){
+        let newFromDb = 0;
+        for(const id of dbData.ids){
+          if(!doneIds.has(id)){ doneIds.add(id); newFromDb++; }
+        }
+        if(newFromDb > 0) log(`🗄️ ${c.name}: +${newFromDb} profili già in Supabase (totale skip: ${doneIds.size})`,"ok");
+      }
+    } catch(e){ log(`⚠ Check Supabase: ${e.message}`,"warn"); }
+
     // Pausa tra paesi (tranne il primo)
     if(ci > 0 && scraping){
       const delay = getNextDelay();

@@ -63,8 +63,6 @@ async function loadHeaderCounts(){
   } catch(e){ console.warn("loadHeaderCounts error:", e.message); }
 }
 
-function setTheme(t) { /* no-op */ }
-
 // Se c'era un sync interrotto, mostra badge sul tasto
 function checkPendingDirSync(){
   const saved = getDirSyncState();
