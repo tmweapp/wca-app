@@ -150,13 +150,23 @@ CREATE INDEX IF NOT EXISTS idx_profiles_country ON wca_profiles(country_code);
       // Profile rows (solo quelli con dati)
       const profBatch = batch.filter(p => p.email || p.phone || (Array.isArray(p.contacts) && p.contacts.length > 0));
       if (profBatch.length > 0) {
-        const profRows = profBatch.map(p => {
-          const row = { ...p };
-          // Rimuovi campi che sono solo nella directory
-          delete row.directory_synced_at;
-          delete row.scrape_url;
-          return row;
-        });
+        const profRows = profBatch.map(p => ({
+          wca_id: p.wca_id, company_name: p.company_name || "", logo_url: p.logo_url || null,
+          branch: p.branch || "", gm_coverage: p.gm_coverage ?? null, gm_status_text: p.gm_status_text || "",
+          enrolled_offices: p.enrolled_offices || [], enrolled_since: p.enrolled_since || "",
+          expires: p.expires || "", profile_text: p.profile_text || "",
+          address: p.address || "", mailing: p.mailing || "", phone: p.phone || "",
+          fax: p.fax || "", emergency_call: p.emergency_call || "",
+          website: p.website || "", email: p.email || "",
+          contacts: p.contacts || [], services: p.services || [],
+          certifications: p.certifications || [], branch_cities: p.branch_cities || [],
+          country_code: p.country_code || "", country_name: p.country_name || "",
+          city: p.city || "", member_since: p.member_since || null,
+          networks: p.networks || [], raw_data: p.raw_data || null,
+          access_limited: p.access_limited || false,
+          blacklist_status: p.blacklist_status || null,
+          updated_at: p.updated_at || new Date().toISOString(),
+        }));
 
         const profResp = await fetch(`${SUPABASE_URL}/rest/v1/wca_profiles?on_conflict=wca_id`, {
           method: "POST",
