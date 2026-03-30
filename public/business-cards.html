@@ -74,8 +74,7 @@ body{font-family:"SF Pro Display","Geist",'Inter',system-ui,sans-serif;backgroun
 /* DROPZONE */
 .dropzone{border:2px dashed rgba(99,102,241,0.3);border-radius:14px;padding:32px 20px;text-align:center;color:var(--text-muted);font-size:.85rem;cursor:pointer;transition:all .3s;background:rgba(99,102,241,0.03);margin:20px 24px}
 .dropzone:hover,.dropzone.dragover{border-color:#6366f1;background:rgba(99,102,241,0.08);color:var(--text-primary)}
-.dropzone-mini{display:flex;align-items:center;gap:8px;padding:8px 24px;cursor:pointer;font-size:.78rem;font-weight:600;color:#a5b4fc;background:rgba(99,102,241,0.06);border-bottom:1px solid rgba(99,102,241,0.12);transition:all .2s;user-select:none}
-.dropzone-mini:hover{background:rgba(99,102,241,0.12);color:#c7d2fe}
+.dropzone-toggle.active{background:rgba(99,102,241,0.25);box-shadow:0 0 8px rgba(99,102,241,0.3)}
 
 /* IMPORT FORM */
 .import-form{padding:16px 24px;background:rgba(99,102,241,0.04);border-bottom:1px solid rgba(99,102,241,0.12);display:none;gap:12px;flex-wrap:wrap;align-items:end}
@@ -331,7 +330,11 @@ body{font-family:"SF Pro Display","Geist",'Inter',system-ui,sans-serif;backgroun
         <div class="page-title" id="pageTitle">Business Cards</div>
         <div class="page-subtitle" id="pageSubtitle">Importa contatti e confronta con i partner WCA</div>
       </div>
-      <div style="margin-left:auto;display:flex;gap:6px">
+      <div style="margin-left:auto;display:flex;gap:6px;align-items:center">
+        <button class="btn btn-accent dropzone-toggle" id="btnDropzoneToggle" onclick="toggleDropzone()" title="Apri area Drag & Drop" style="display:none;padding:6px 10px;font-size:1.1rem;line-height:1;border-radius:10px;position:relative"
+          ondragover="event.preventDefault();this.style.background='rgba(99,102,241,0.3)'"
+          ondragleave="this.style.background=''"
+          ondrop="handleDrop(event);this.style.background=''">📂</button>
         <label class="btn btn-accent" style="cursor:pointer" id="btnImportLabel">
           <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4m4-5 5-5 5 5m-5-5v12"/></svg>
           Importa File <input type="file" accept=".csv,.xlsx,.xls,.tsv" id="fileInput" onchange="onFileSelected(this.files[0])" style="display:none">
@@ -414,23 +417,15 @@ body{font-family:"SF Pro Display","Geist",'Inter',system-ui,sans-serif;backgroun
       <button class="btn btn-danger" onclick="deleteSelected()" style="font-size:.7rem">🗑 Cancella selezionati</button>
     </div>
 
-    <!-- DROPZONE: compact toggle when cards exist, full when empty -->
-    <div id="dropzoneWrap">
-      <div class="dropzone-mini" id="dropzoneMini" onclick="toggleDropzone()" style="display:none"
-           ondragover="event.preventDefault();this.style.background='rgba(99,102,241,0.2)'"
-           ondragleave="this.style.background=''"
-           ondrop="handleDrop(event);this.style.background=''">
-        <span>📂</span> <span>Importa / Drag & Drop</span> <span id="dropzoneArrow" style="transition:transform .2s">▼</span>
-      </div>
-      <div class="dropzone" id="dropzone"
-           ondragover="event.preventDefault();this.classList.add('dragover')"
-           ondragleave="this.classList.remove('dragover')"
-           ondrop="handleDrop(event)"
-           onclick="document.getElementById('fileInput').click()">
-        <div style="font-size:3rem;margin-bottom:8px">📂</div>
-        <div style="font-size:1rem;font-weight:600;margin-bottom:4px">Trascina qui un file CSV o Excel</div>
-        <div style="font-size:.78rem">oppure clicca per sfogliare</div>
-      </div>
+    <!-- DROPZONE: hidden by default when cards exist, toggled by icon in header -->
+    <div class="dropzone" id="dropzone"
+         ondragover="event.preventDefault();this.classList.add('dragover')"
+         ondragleave="this.classList.remove('dragover')"
+         ondrop="handleDrop(event)"
+         onclick="document.getElementById('fileInput').click()">
+      <div style="font-size:3rem;margin-bottom:8px">📂</div>
+      <div style="font-size:1rem;font-weight:600;margin-bottom:4px">Trascina qui un file CSV o Excel</div>
+      <div style="font-size:.78rem">oppure clicca per sfogliare</div>
     </div>
 
     <div class="card-lines" id="cardLines"></div>
@@ -1255,12 +1250,12 @@ function renderPage(){
   const statsBar=document.getElementById("statsBar");
   const btnClear=document.getElementById("btnClear");
   const sortBar=document.getElementById("sortBar");
-  const dzMini=document.getElementById("dropzoneMini");
+  const dzToggle=document.getElementById("btnDropzoneToggle");
   if(allCards.length===0){
-    dropzone.style.display="block"; dzMini.style.display="none"; lines.innerHTML=""; statsBar.style.display="none"; btnClear.style.display="none"; sortBar.style.display="none"; document.getElementById("flagCarousel").style.display="none"; return;
+    dropzone.style.display="block"; dzToggle.style.display="none"; lines.innerHTML=""; statsBar.style.display="none"; btnClear.style.display="none"; sortBar.style.display="none"; document.getElementById("flagCarousel").style.display="none"; return;
   }
-  // Cards exist: show mini toggle, hide full dropzone (user can expand it)
-  dzMini.style.display="flex"; dropzone.style.display="none";
+  // Cards exist: show icon toggle in header, hide dropzone (user can expand it)
+  dzToggle.style.display="inline-flex"; dropzone.style.display="none"; dzToggle.classList.remove("active");
   statsBar.style.display="flex"; btnClear.style.display="inline-flex"; sortBar.style.display="flex";
   document.getElementById("btnAiMatch").style.display=OPENAI_KEY?"inline-flex":"none";
   lines.classList.toggle("list-view",currentView==="list");
@@ -1408,11 +1403,11 @@ function highlightActiveChip(){
 // ==================== FILE IMPORT ====================
 function toggleDropzone(){
   const dz=document.getElementById("dropzone");
-  const arrow=document.getElementById("dropzoneArrow");
+  const btn=document.getElementById("btnDropzoneToggle");
   if(dz.style.display==="none"){
-    dz.style.display="block"; arrow.style.transform="rotate(180deg)";
+    dz.style.display="block"; btn.classList.add("active");
   } else {
-    dz.style.display="none"; arrow.style.transform="rotate(0)";
+    dz.style.display="none"; btn.classList.remove("active");
   }
 }
 
