@@ -450,6 +450,44 @@ body {
   font-size: 2rem;
   line-height: 1;
 }
+.flag-chip .flag-counts {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+.flag-chip .flag-count-top {
+  font-size: 0.62rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 5px;
+  line-height: 1.3;
+  min-width: 20px;
+  text-align: center;
+  background: rgba(16,185,129,0.15);
+  color: #6ee7b7;
+}
+.flag-chip .flag-count-bottom {
+  font-size: 0.52rem;
+  font-weight: 600;
+  padding: 0px 5px;
+  border-radius: 4px;
+  line-height: 1.3;
+  min-width: 20px;
+  text-align: center;
+  background: rgba(239,68,68,0.15);
+  color: #fca5a5;
+}
+.flag-chip .flag-count-ok {
+  font-size: 0.52rem;
+  font-weight: 600;
+  padding: 0px 5px;
+  border-radius: 4px;
+  line-height: 1.3;
+  color: #6ee7b7;
+  opacity: .7;
+}
+/* legacy compat */
 .flag-chip .flag-count {
   font-size: 0.65rem;
   font-weight: 700;

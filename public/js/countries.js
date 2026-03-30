@@ -175,23 +175,16 @@ function renderFlagChips(){
     const dir = getDirectory(code);
     const dirTotal = dir ? Object.keys(dir.ids).length : 0;
     const doneCount = dir ? Object.values(dir.ids).filter(s => s === "done").length : 0;
-    const completed = dir ? (Object.values(dir.ids).filter(s => s === "pending").length === 0) : false;
-    let countClass, countLabel;
-    if(!dir || dirTotal === 0){
-      countClass = "neutral";
-      countLabel = cnt;
-    } else if(completed){
-      countClass = "complete";
-      countLabel = cnt;
-    } else {
-      const missing = dirTotal - doneCount;
-      countClass = "incomplete";
-      countLabel = "-" + missing;
-      hasIncomplete = true;
-    }
-    return `<div class="flag-chip ${isSelected?'selected':''}" onclick="selectFlagCountry('${code}','${nameMap[code]||code}')" title="${nameMap[code]||code}: ${cnt} partner${dir ? ' | '+doneCount+'/'+dirTotal+' scaricati' : ''}">
+    const pending = dir ? Object.values(dir.ids).filter(s => s === "pending").length : 0;
+    const completed = dir ? (pending === 0) : false;
+    const missing = dirTotal - cnt;
+    if(pending > 0) hasIncomplete = true;
+    return `<div class="flag-chip ${isSelected?'selected':''}" onclick="selectFlagCountry('${code}','${nameMap[code]||code}')" title="${nameMap[code]||code}: ${cnt} profili scaricati${dirTotal > 0 ? ', '+missing+' mancanti su '+dirTotal+' in directory' : ''}">
       <span class="flag-emoji">${countryFlag(code)}</span>
-      <span class="flag-count ${countClass}">${countLabel}</span>
+      <span class="flag-counts">
+        <span class="flag-count-top">${cnt}</span>
+        ${dirTotal > 0 && missing > 0 ? '<span class="flag-count-bottom">-'+missing+'</span>' : (dirTotal > 0 ? '<span class="flag-count-ok">✓</span>' : '')}
+      </span>
     </div>`;
   });
   // Tasto retry DIRECTORY — riscarica IDs mancanti per paesi con directory incompleta
