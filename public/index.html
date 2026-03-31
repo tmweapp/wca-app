@@ -855,8 +855,8 @@ async function startDirectoryDownload(){
     addExecStep(code, "running", `pag. 1...`);
     addLiveFeedItem(flag(code), `Scaricando directory ${code}...`, null, `${i+1}/${total}`);
 
-    let page=1, hasMore=true, members=[];
-    while(hasMore&&downloading){
+    let page=1, hasMore=true, members=[], MAX_PAGES=60, prevCount=0, stuckCount=0;
+    while(hasMore&&downloading&&page<=MAX_PAGES){
       try{
         addExecStep(code, "running", `pag. ${page} · ${members.length} trovati`);
         const resp=await fetch(API+"/api/discover-global",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({country:code,page})});
@@ -864,6 +864,9 @@ async function startDirectoryDownload(){
         if(data.success&&data.members&&data.members.length>0){
           members.push(...data.members);
           hasMore=data.hasNext;page++;
+          // Stuck detection: if member count didn't grow, we're getting duplicates
+          if(members.length===prevCount){stuckCount++;if(stuckCount>=2){console.warn(`[${code}] stuck at ${members.length}, breaking`);hasMore=false;}}
+          else{stuckCount=0;prevCount=members.length;}
           // Show first member name as active
           if(data.members[0]){
             const m=data.members[0];
@@ -871,8 +874,9 @@ async function startDirectoryDownload(){
           }
         }
         else{hasMore=false;}
-      }catch(e){hasMore=false;}
+      }catch(e){console.error(`[${code}] page ${page} error:`,e);hasMore=false;}
     }
+    if(page>MAX_PAGES) console.warn(`[${code}] hit max pages limit (${MAX_PAGES})`);
 
     if(members.length>0&&downloading){
       try{

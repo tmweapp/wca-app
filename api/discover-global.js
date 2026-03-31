@@ -53,9 +53,13 @@ module.exports = async (req, res) => {
 
     const html = await resp.text();
     const { members, totalResults } = extractMembersFromHtml(html);
-    const hasNext = members.length >= 50;
+    // Calculate hasNext properly using totalResults when available
+    const fetched = (page - 1) * pageSize + members.length;
+    const hasNext = totalResults > 0
+      ? fetched < totalResults && members.length > 0
+      : members.length >= pageSize;
 
-    console.log(`[discover-global] ${country} p${page}: ${members.length} members, total=${totalResults}`);
+    console.log(`[discover-global] ${country} p${page}: ${members.length} members, fetched=${fetched}, total=${totalResults}, hasNext=${hasNext}`);
 
     return res.json({
       success: true,

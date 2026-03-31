@@ -10,8 +10,10 @@ async function discoverFastDirectory(countryCode, countryName){
   let hasMore = true;
   let retries = 0;
   const MAX_RETRIES = 3;
+  const MAX_PAGES = 60;
+  let prevSize = 0, stuckCount = 0;
 
-  while(hasMore && scraping){
+  while(hasMore && scraping && page <= MAX_PAGES){
     try {
       const resp = await fetch(API+"/api/discover-global",{
         method:"POST",headers:{"Content-Type":"application/json"},
@@ -30,6 +32,9 @@ async function discoverFastDirectory(countryCode, countryName){
         }
         hasMore = data.hasNext;
         page++;
+        // Stuck detection: no new unique members = duplicates loop
+        if(allMembers.length === prevSize){ stuckCount++; if(stuckCount >= 2){ log(`⚠ ${countryName}: stuck at ${allMembers.length}, breaking`,"warn"); hasMore = false; } }
+        else { stuckCount = 0; prevSize = allMembers.length; }
         if(hasMore){
           setStatus(`📂 ${countryName}: ${allMembers.length} membri (p.${page})...`, true);
         }
