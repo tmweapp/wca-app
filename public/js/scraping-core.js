@@ -11,30 +11,19 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
   const MAX_TABS = 50;
   const MAX_RETRIES = 2;
   let consecutiveFailures = 0;
-  const doneIds = new Set(); // ID già scaricati con successo in questa sessione
+  const doneIds = new Set(); // ID già scaricati — unica fonte: Supabase wca_profiles
   const memberNetworkMap = {}; // id → [domain1, domain2...] — network dove il membro è stato trovato
 
-  // Carica ID già fatti dalla directory locale
-  const existingDir = getDirectory(country);
-  if(existingDir && !updateAddress){
-    Object.entries(existingDir.ids).forEach(([id, status]) => { if(status === "done") doneIds.add(parseInt(id)); });
-    if(doneIds.size > 0) log(`📂 ${countryName}: ${doneIds.size} profili già completati in directory locale`,"ok");
-  }
-
-  // ═══ CHECK SUPABASE — carica wca_id già presenti in wca_profiles ═══
+  // ═══ UNICA FONTE: Supabase wca_profiles — carica wca_id già presenti ═══
   if(!updateAddress){
     try {
       const dbResp = await fetch(API+"/api/partners?action=existing_ids&country="+encodeURIComponent(country));
       const dbData = await dbResp.json();
       if(dbData.success && dbData.ids){
-        let newFromDb = 0;
-        for(const id of dbData.ids){
-          if(!doneIds.has(id)){ doneIds.add(id); newFromDb++; }
-        }
-        if(newFromDb > 0) log(`🗄️ ${countryName}: +${newFromDb} profili già in Supabase (totale skip: ${doneIds.size})`,"ok");
-        else if(dbData.count > 0) log(`🗄️ ${countryName}: ${dbData.count} profili in Supabase (già noti dal locale)`,"ok");
+        for(const id of dbData.ids) doneIds.add(id);
+        if(doneIds.size > 0) log(`🗄️ ${countryName}: ${doneIds.size} profili già in Supabase — saranno saltati`,"ok");
       }
-    } catch(e){ log(`⚠ Check Supabase fallito: ${e.message} — uso solo directory locale`,"warn"); }
+    } catch(e){ log(`⚠ Check Supabase fallito: ${e.message}`,"warn"); }
   }
 
   // === HELPER: estrai dominio reale da scrape_url ===
@@ -94,19 +83,16 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
   }
 
   // ═══════════════════════════════════════════════════════════════
-  // FASE 1: DIRECTORY — usa full directory per-network
-  // Loop su tutti i network per trovare dove è presente ogni membro
+  // FASE 1: DIRECTORY — carica da Supabase (fonte unica)
+  // Se non presente, esegui discovery live
   // ═══════════════════════════════════════════════════════════════
-  let cached = getFullDirectory(country);
-  let cacheAge = getFullDirAge(country);
-  // Se non in localStorage, prova Supabase
-  if(!cached || cacheAge >= 24){
-    const fromDb = await loadDirectoryFromSupabase(country);
-    if(fromDb){ cached = fromDb; cacheAge = 0; }
+  let fullDir = await loadDirectoryFromSupabase(country);
+  if(!fullDir || !fullDir.members || fullDir.members.length === 0){
+    log(`📂 ${countryName}: directory non in Supabase, lancio discovery...`,"warn");
+    fullDir = await discoverFullDirectory(country, countryName);
+  } else {
+    log(`📂 ${countryName}: ${fullDir.members.length} membri caricati da Supabase`,"ok");
   }
-  const cacheHasNetworks = cached && cached.members && cached.members.some(m => m.networks && m.networks.length > 0);
-  const cacheHasScrapeUrl = cached && cached.members && cached.members.some(m => m.scrape_url);
-  const fullDir = (cached && cacheAge < 24 && (cacheHasNetworks || cacheHasScrapeUrl)) ? cached : await discoverFullDirectory(country, countryName);
   if(!fullDir || fullDir.members.length === 0){
     log(`⚠ ${countryName}: nessun membro trovato nella directory`,"warn");
     return { ok:false, error:"no_members" };
