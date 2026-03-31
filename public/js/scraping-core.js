@@ -99,13 +99,15 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
   }
 
   // Filtra per network se richiesto
+  // Network virtuali WCA (wca-first ecc.) sono su wcaworld.com — includerli sempre
+  const VIRTUAL_WCA_NETS = new Set(["wca-first","wca-advanced","wca-chinaglobal","wca-interglobal","wca-vendors"]);
   let targetMembers = fullDir.members;
   if(networkFilter && networkFilter.length > 0){
     targetMembers = fullDir.members.filter(m => {
       if(!m.networks || m.networks.length === 0) return false;
-      return m.networks.some(n => networkFilter.includes(n));
+      return m.networks.some(n => networkFilter.includes(n) || VIRTUAL_WCA_NETS.has(n));
     });
-    log(`📂 ${countryName}: ${fullDir.members.length} totali → ${targetMembers.length} nei network selezionati`,"ok");
+    log(`📂 ${countryName}: ${fullDir.members.length} totali → ${targetMembers.length} nei network selezionati (incl. WCA virtuali)`,"ok");
   }
 
   // Popola memberNetworkMap dalla directory e sincronizza con globale
@@ -142,13 +144,25 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
     log(`📥 ${countryName}: ${toDownload.length} da scaricare (${totalMembers - toDownload.length} già fatti)`,"ok");
 
     // Raggruppa per DOMINIO REALE (da scrape_url) per login ottimizzato
+    // Network virtuali WCA (wca-first, wca-advanced, etc.) → wcaworld.com
+    const VIRTUAL_WCA = new Set(["wca-first","wca-advanced","wca-chinaglobal","wca-interglobal","wca-vendors"]);
+    const BADGE_ONLY = new Set(["allworldshipping","cass","qs","iata"]); // non-scaricabili
+    function resolveNetDomain(networks){
+      if(!networks || !networks.length) return "wcaworld.com";
+      // Cerca il primo network con dominio REALE (non virtuale, non badge)
+      for(const n of networks){
+        if(!VIRTUAL_WCA.has(n) && !BADGE_ONLY.has(n) && n.includes(".")) return n;
+      }
+      // Se solo network virtuali WCA o badge, usa wcaworld.com
+      return "wcaworld.com";
+    }
     const byNetwork = {};
     for(const m of toDownload){
       let bestNet = "wcaworld.com";
       if(m.scrape_url){
         try { bestNet = new URL(m.scrape_url).hostname.replace(/^www\./, ""); } catch(e){}
       } else {
-        bestNet = m.networks?.[0] || "wcaworld.com";
+        bestNet = resolveNetDomain(m.networks);
       }
       if(!byNetwork[bestNet]) byNetwork[bestNet] = [];
       byNetwork[bestNet].push(m);
