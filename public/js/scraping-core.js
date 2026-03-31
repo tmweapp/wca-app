@@ -169,6 +169,7 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
     }
 
     let globalIdx = 0;
+    let totalSkippedCountry = 0; // track total skips for the whole country
     const networkDomains = Object.keys(byNetwork);
     for(let ni = 0; ni < networkDomains.length && scraping; ni++){
       const netDomain = networkDomains[ni];
@@ -191,39 +192,42 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
         const result = await downloadProfile(member, netDomain, netName);
         if(result.ok){
           doneIds.add(member.id);
+          consecutiveFailures = 0;
         } else {
-          // Prova un network alternativo
-          const altNets = (member.networks || []).filter(d => d !== netDomain);
+          // Prova un network alternativo (max 2 per non perdere tempo)
+          const altNets = (member.networks || []).filter(d => d !== netDomain).slice(0, 2);
           let rescued = false;
           for(const altDomain of altNets){
             if(!scraping) break;
             const altName = ALL_NETWORKS.find(n => n.domain === altDomain)?.name || altDomain;
             const altResult = await downloadProfile(member, altDomain, altName);
-            if(altResult.ok){ doneIds.add(member.id); rescued = true; break; }
+            if(altResult.ok){ doneIds.add(member.id); rescued = true; consecutiveFailures = 0; break; }
           }
           if(!rescued){
-            if(result.state === "not_found" || result.state === "not_in_network"){
-              updateScrapeStats({ skipped: scrapeStats.skipped + 1 });
-            } else {
-              consecutiveFailures++;
-              updateScrapeStats({ skipped: scrapeStats.skipped + 1 });
-            }
+            consecutiveFailures++;
+            totalSkippedCountry++;
+            updateScrapeStats({ skipped: scrapeStats.skipped + 1 });
+            // Skip delay on failures — no need to wait if download failed
           }
         }
 
         if(consecutiveFailures >= 5){
-          log(`⛔ Troppi fallimenti su ${netName} — passo al prossimo`,"err");
+          log(`⛔ ${consecutiveFailures} fallimenti consecutivi su ${netName} — passo al prossimo network`,"err");
           consecutiveFailures = 0;
           break;
         }
 
-        if(i + 1 < netMembers.length && scraping){
+        // Only pause between SUCCESSFUL downloads or if we haven't had too many skips
+        if(i + 1 < netMembers.length && scraping && consecutiveFailures === 0){
           const nextDelay = getNextDelay();
           await sleepWithActivity("⏳", `Pausa ${Math.round(nextDelay/1000)}s — ${netName}`, nextDelay);
+        } else if(i + 1 < netMembers.length && scraping && consecutiveFailures > 0){
+          // Short 1s pause on failures — just enough to not hammer the server
+          await sleep(1000);
         }
       }
 
-      log(`✅ ${netName} completato per ${countryName}`,"ok");
+      log(`✅ ${netName} completato per ${countryName} (skipped: ${totalSkippedCountry})`,"ok");
       addCompletedNetworkLogo(netDomain, netName);
     }
   }
@@ -432,8 +436,13 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
     }
 
     if(i + 1 < noNetToDownload.length && scraping){
-      const nextDelay = getNextDelay();
-      await sleepWithActivity("⏳", `Pausa ${Math.round(nextDelay/1000)}s`, nextDelay);
+      // Full delay only after success; short delay after failures
+      if(noNetDownloaded > 0 && (noNetDownloaded + noNetSkipped) > 0 && noNetSkipped < 3){
+        const nextDelay = getNextDelay();
+        await sleepWithActivity("⏳", `Pausa ${Math.round(nextDelay/1000)}s`, nextDelay);
+      } else {
+        await sleep(1000);
+      }
     }
   }
 
