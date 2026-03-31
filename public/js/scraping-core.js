@@ -374,78 +374,100 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
   // ═══════════════════════════════════════════════════════════════════════════════
   // FASE 5: DOWNLOAD NO NETWORK — scarica i partner da wcaworld.com
   // ═══════════════════════════════════════════════════════════════════════════════
-  log(`═══ FASE 5: DOWNLOAD NO NETWORK — ${noNetworkMembers.length} partner ═══`,"info");
-  setStatus(`FASE 5: Download ${noNetworkMembers.length} partner da wcaworld.com...`, true);
 
-  let noNetDownloaded = 0;
-  let noNetSkipped = 0;
+  // Filtra: solo quelli con href valido e non già scaricati
+  const noNetWithHref = noNetworkMembers.filter(m => m.href && m.href.includes("/directory/members/"));
+  const noNetToDownload = noNetWithHref.filter(m => !doneIds.has(m.id));
+  const noNetNoHref = noNetworkMembers.length - noNetWithHref.length;
 
-  // Filtra i no-network già scaricati
-  const noNetToDownload = noNetworkMembers.filter(m => !doneIds.has(m.id));
-  if(noNetToDownload.length < noNetworkMembers.length){
-    log(`📂 NO NETWORK: ${noNetworkMembers.length - noNetToDownload.length} già scaricati, ${noNetToDownload.length} da fare`,"ok");
+  if(noNetNoHref > 0) log(`📂 NO NETWORK: ${noNetNoHref} senza href valido — saltati`,"warn");
+  if(noNetWithHref.length > noNetToDownload.length){
+    log(`📂 NO NETWORK: ${noNetWithHref.length - noNetToDownload.length} già scaricati`,"ok");
   }
 
-  for(let i = 0; i < noNetToDownload.length && scraping; i++){
-    const member = noNetToDownload[i];
-    setStatus(`${countryName} [NO NETWORK] ${i+1}/${noNetToDownload.length} — ${member.name||member.id}`, true);
-    setProgress(i, noNetToDownload.length);
-    showActivity("📥", `NO NETWORK ${i+1}/${noNetToDownload.length} — ${member.name||member.id}`);
+  if(noNetToDownload.length === 0){
+    log(`✅ NO NETWORK: nessun profilo da scaricare`,"ok");
+  } else {
+    log(`═══ FASE 5: DOWNLOAD NO NETWORK — ${noNetToDownload.length} partner ═══`,"info");
+    setStatus(`FASE 5: Download ${noNetToDownload.length} partner da wcaworld.com...`, true);
 
-    try {
-      const resp = await fetch(API+"/api/scrape",{
-        method:"POST",headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({
-          wcaIds:[member.id],
-          members: member.href ? [{id:member.id, href:member.href}] : [],
-          networkDomain: "wcaworld.com"
-        })
-      });
+    let noNetDownloaded = 0;
+    let noNetSkipped = 0;
+    let noNetConsecFails = 0;
+    const MAX_CONSEC_FAILS_NONET = 10;
 
-      const data = await resp.json();
-      if(!data.success){
-        log(`⚠ ${member.id}: ${data.error}`,"warn");
-        noNetSkipped++;
-        continue;
+    for(let i = 0; i < noNetToDownload.length && scraping; i++){
+      const member = noNetToDownload[i];
+      setStatus(`${countryName} [NO NETWORK] ${i+1}/${noNetToDownload.length} — ${member.name||member.id}`, true);
+      setProgress(i, noNetToDownload.length);
+      showActivity("📥", `NO NETWORK ${i+1}/${noNetToDownload.length} — ${member.name||member.id}`);
+
+      try {
+        const resp = await fetch(API+"/api/scrape",{
+          method:"POST",headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({
+            wcaIds:[member.id],
+            members: [{id:member.id, href:member.href}],
+            networkDomain: "wcaworld.com"
+          })
+        });
+
+        const data = await resp.json();
+        if(!data.success){
+          noNetSkipped++; noNetConsecFails++;
+          if(noNetConsecFails >= MAX_CONSEC_FAILS_NONET){
+            log(`⛔ ${MAX_CONSEC_FAILS_NONET} fallimenti consecutivi NO NETWORK — interrompo fase 5`,"err");
+            break;
+          }
+          continue;
+        }
+
+        const profile = data.results?.[0];
+        if(!profile || profile.state !== "ok"){
+          noNetSkipped++; noNetConsecFails++;
+          if(noNetConsecFails >= MAX_CONSEC_FAILS_NONET){
+            log(`⛔ ${MAX_CONSEC_FAILS_NONET} fallimenti consecutivi NO NETWORK — interrompo fase 5`,"err");
+            break;
+          }
+          continue;
+        }
+
+        // Success!
+        noNetConsecFails = 0;
+        scrapedProfiles.unshift(profile);
+        if(scrapedProfiles.length > 50) scrapedProfiles.pop();
+        addScrapedTab(profile, 0);
+        trimScrapedTabs(50);
+
+        const limited = profile.access_limited ? " [LIMITED]" : "";
+        log(`✓ ${profile.company_name} (${profile.wca_id}) contatti:${profile.contacts?.length||0}${limited} [NO NETWORK]`,"ok");
+        saveToSupabase(profile);
+        markIdDone(country, profile.wca_id);
+        updateResultRow(profile.wca_id, "ok");
+        totalScraped++;
+        noNetDownloaded++;
+        updateScrapeStats({ downloaded: scrapeStats.downloaded + 1 });
+
+      } catch(e){
+        noNetSkipped++; noNetConsecFails++;
+        if(noNetConsecFails >= MAX_CONSEC_FAILS_NONET){
+          log(`⛔ ${MAX_CONSEC_FAILS_NONET} errori consecutivi NO NETWORK — interrompo fase 5`,"err");
+          break;
+        }
       }
 
-      const profile = data.results?.[0];
-      if(!profile || profile.state !== "ok"){
-        log(`⚠ ${member.id}: ${profile?.state || "no_result"}`,"warn");
-        noNetSkipped++;
-        continue;
+      if(i + 1 < noNetToDownload.length && scraping){
+        // Full delay only after success
+        if(noNetConsecFails === 0){
+          const nextDelay = getNextDelay();
+          await sleepWithActivity("⏳", `Pausa ${Math.round(nextDelay/1000)}s`, nextDelay);
+        } else {
+          await sleep(500); // Minimal delay on failures
+        }
       }
-
-      scrapedProfiles.unshift(profile);
-      if(scrapedProfiles.length > 50) scrapedProfiles.pop();
-      addScrapedTab(profile, 0);
-      trimScrapedTabs(50);
-
-      const limited = profile.access_limited ? " [LIMITED]" : "";
-      log(`✓ ${profile.company_name} (${profile.wca_id}) contatti:${profile.contacts?.length||0}${limited} [NO NETWORK]`,"ok");
-      saveToSupabase(profile);
-      markIdDone(country, profile.wca_id);
-      updateResultRow(profile.wca_id, "ok");
-      totalScraped++;
-      noNetDownloaded++;
-      updateScrapeStats({ downloaded: scrapeStats.downloaded + 1 });
-
-    } catch(e){
-      log(`⚠ Errore ${member.id}: ${e.message}`,"warn");
-      noNetSkipped++;
     }
 
-    if(i + 1 < noNetToDownload.length && scraping){
-      // Full delay only after success; short delay after failures
-      if(noNetDownloaded > 0 && (noNetDownloaded + noNetSkipped) > 0 && noNetSkipped < 3){
-        const nextDelay = getNextDelay();
-        await sleepWithActivity("⏳", `Pausa ${Math.round(nextDelay/1000)}s`, nextDelay);
-      } else {
-        await sleep(1000);
-      }
-    }
+    hideActivity();
+    log(`═══ FASE 5 COMPLETATA: ${noNetDownloaded} scaricati, ${noNetSkipped} saltati ═══`,"ok");
   }
-
-  hideActivity();
-  log(`═══ FASE 5 COMPLETATA: ${noNetDownloaded} scaricati, ${noNetSkipped} saltati ═══`,"ok");
 }
