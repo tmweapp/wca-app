@@ -366,6 +366,7 @@ const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 function flag(code){ return countryFlag(code); }
 
 let dirStats={}, profStats={}, dashCountries=[], downloading=false, downloadType=null, _dashStatsInterval=null;
+let _baseDir=0, _baseProf=0; // baseline counters from DB before download starts
 
 // ═══════════════════════════════════════════════════
 // MATRIX RAIN — fullscreen background
@@ -843,6 +844,8 @@ async function startDirectoryDownload(){
   const countriesToScan=dashCountries.length>0?[...dashCountries]:["IT","US","GB","DE","FR","ES","CN","IN"];
   const total=countriesToScan.length;
   let totalMembers=0;
+  // Save baseline from existing dirStats so live counters add to DB total
+  _baseDir=0; for(const v of Object.values(dirStats)) _baseDir+=v;
   setCockpitSubtitle(`📂 Download directory · ${total} paesi da scansionare`);
 
   for(let i=0;i<countriesToScan.length&&downloading;i++){
@@ -887,8 +890,6 @@ async function startDirectoryDownload(){
         highlightFlagChip(code);
         addExecStep(code, "done", `${members.length} partner`);
         addLiveFeedItem(flag(code), `${code}: ${members.length} partner salvati`, null, "✅");
-        // Update live counter
-        document.getElementById("ckDir").textContent = totalMembers.toLocaleString();
       }catch(e){}
     } else {
       addExecStep(code, "done", "0");
@@ -943,8 +944,9 @@ function hookManagementFunctions(){
         setCockpitProgress(pct, `${cur}/${tot} profili · ${pct}%`);
         setCockpitSubtitle(`👤 Download profili — ${cur}/${tot} (${pct}%)`);
         addExecStep("Profili", "running", `${cur}/${tot}`);
-        // Update live cockpit stat
-        document.getElementById("ckProf").textContent = cur.toLocaleString();
+        // Update live cockpit stat — add to baseline (existing DB profiles)
+        document.getElementById("ckProf").textContent = (_baseProf + cur).toLocaleString();
+        document.getElementById("statProfiles").textContent = (_baseProf + cur).toLocaleString();
       }
     };
     setProgress._hooked=true; hooked++;
@@ -1025,6 +1027,8 @@ async function startProfileDownload(){
   if(countries.length===0){showToast("⚠️ Scarica prima la directory","var(--warning)");return;}
   selectedCountries=countries.map(code=>({code,name:code}));
 
+  // Save baseline profile count so live counter shows DB total + session progress
+  _baseProf=0; for(const v of Object.values(profStats)) _baseProf+=v;
   setMatrixDownloading(); startCinema(); startRealtimePolling();
   document.getElementById("btnProfStart").style.display="none";
   document.getElementById("btnProfStop").style.display="block";
