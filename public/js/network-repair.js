@@ -1,6 +1,7 @@
-// WCA — Network Repair
-// Trova record in wca_directory con networks vuoti, riesegue il discover full
-// per paese, aggiorna la directory, poi ri-scarica i profili mancanti/da aggiornare
+// WCA — Network Repair v2
+// Trova profili mancanti (in directory ma non in profiles) e record senza network
+// Per i senza network: riesegue full discover
+// Per i mancanti: scarica i profili con pause standard
 
 let networkRepairRunning = false;
 
@@ -14,112 +15,99 @@ async function repairNetworkOrphans(){
   if(btn){ btn.disabled = true; btn.style.opacity = "0.5"; }
 
   try {
-    // ═══ STEP 1: Trova orfani di network dalla directory DB ═══
-    log("🔍 REPAIR: Cerco record directory senza network...","ok");
-    setStatus("Repair: caricamento orfani network...", true);
+    // ═══ STEP 1: Chiedi al server la lista profili mancanti ═══
+    log("🔍 REPAIR: Cerco profili mancanti (directory vs profiles)...","ok");
+    setStatus("Repair: analisi gap directory ↔ profiles...", true);
 
     const resp = await fetch(API+"/api/partners?action=network_orphans");
     const data = await resp.json();
-    if(!data.success || data.total === 0){
-      log("✅ REPAIR: Nessun orfano di network trovato — directory OK","ok");
-      setStatus("Nessun orfano di network", true);
+    if(!data.success){
+      log("❌ REPAIR: errore API — " + (data.error||"unknown"),"err");
       return;
     }
 
     const byCountry = data.byCountry;
     const countries = Object.keys(byCountry).filter(cc => cc.length === 2 && /^[A-Z]{2}$/.test(cc));
-    const totalOrphans = data.total;
+
+    if(data.totalMissing === 0 && data.totalNoNetwork === 0){
+      log("✅ REPAIR: Nessun profilo mancante e nessun orfano di network — tutto OK","ok");
+      setStatus("Nessun profilo da riparare", true);
+      return;
+    }
+
     // Mappa codice → nome paese
     const countryList = getAllCountryList();
     const ccNameMap = {};
     for(const c of countryList) ccNameMap[c.code] = c.name;
 
-    log(`📊 REPAIR: ${totalOrphans} record senza network in ${countries.length} paesi`,"warn");
+    log(`📊 REPAIR: ${data.totalMissing} profili mancanti, ${data.totalNoNetwork} senza network, ${data.totalProfiles} già scaricati`,"warn");
 
-    // ═══ STEP 2: Per ogni paese, riesegui full directory per ottenere i network ═══
-    let totalFixed = 0;
-    let totalProfilesUpdated = 0;
+    let totalDownloaded = 0;
+    let totalFailed = 0;
+    let totalNetworkFixed = 0;
 
     for(let ci = 0; ci < countries.length; ci++){
       const cc = countries[ci];
-      const orphanIds = new Set(byCountry[cc].map(o => o.wca_id));
+      const info = byCountry[cc];
+      const missingList = info.missing || [];
+      const noNetCount = info.noNetwork || 0;
       const countryName = ccNameMap[cc] || cc;
 
-      log(`═══ REPAIR ${ci+1}/${countries.length}: ${countryFlag(cc)} ${countryName} — ${orphanIds.size} orfani ═══`,"ok");
-      setStatus(`Repair ${ci+1}/${countries.length}: ${countryName} (${orphanIds.size} orfani)`, true);
+      if(missingList.length === 0 && noNetCount === 0) continue;
+
+      log(`═══ REPAIR ${ci+1}/${countries.length}: ${countryFlag(cc)} ${countryName} — ${missingList.length} mancanti, ${noNetCount} senza network ═══`,"ok");
+      setStatus(`Repair ${ci+1}/${countries.length}: ${countryName}`, true);
       showActivity("🔧", `${countryName} ${ci+1}/${countries.length}`);
 
-      // 2a: Esegui full directory discovery (per-network) — forza refresh
-      let fullDir;
-      try {
-        fullDir = await discoverFullDirectory(cc, countryName, true); // forceRefresh=true
-      } catch(e){
-        log(`❌ REPAIR ${countryName}: errore directory — ${e.message}`,"err");
-        continue;
-      }
-
-      if(!fullDir || !fullDir.members || fullDir.members.length === 0){
-        log(`⚠ REPAIR ${countryName}: nessun membro nella full directory`,"warn");
-        continue;
-      }
-
-      // 2b: Conta quanti orfani ora hanno network dopo il refresh
-      let fixedThisCountry = 0;
-      const stillOrphan = [];
-      for(const m of fullDir.members){
-        if(orphanIds.has(m.id)){
-          if(m.networks && m.networks.length > 0){
-            fixedThisCountry++;
-          } else {
-            stillOrphan.push(m);
+      // ═══ STEP 2a: Se ci sono record senza network, riesegui full discover ═══
+      if(noNetCount > 0){
+        log(`🔍 ${countryName}: ${noNetCount} record senza network — lancio full discover...`,"warn");
+        try {
+          const fullDir = await discoverFullDirectory(cc, countryName, true);
+          if(fullDir && fullDir.members){
+            const withNet = fullDir.members.filter(m => m.networks && m.networks.length > 0).length;
+            log(`📂 ${countryName}: full discover completato — ${withNet}/${fullDir.members.length} con network`,"ok");
+            totalNetworkFixed += Math.min(noNetCount, withNet);
           }
+        } catch(e){
+          log(`⚠ ${countryName}: errore full discover — ${e.message}`,"warn");
         }
       }
-      totalFixed += fixedThisCountry;
-      log(`📊 ${countryName}: ${fixedThisCountry} orfani ora hanno network, ${stillOrphan.length} ancora senza`,"ok");
 
-      // ═══ STEP 3: Ri-scarica profili degli orfani che ora hanno un network ═══
-      // Filtra solo quelli che avevano network vuoti e ora li hanno
-      const toRedownload = fullDir.members.filter(m => orphanIds.has(m.id) && m.networks && m.networks.length > 0);
-
-      if(toRedownload.length === 0){
-        log(`⏭ ${countryName}: nessun profilo da ri-scaricare`,"ok");
-        // Pausa tra paesi
-        if(ci + 1 < countries.length){
-          await sleepWithActivity("⏳", `Pausa 3s — prossimo paese`, 3000);
-        }
+      // ═══ STEP 2b: Scarica profili mancanti ═══
+      if(missingList.length === 0){
+        if(ci + 1 < countries.length) await sleepWithActivity("⏳", "Pausa 3s", 3000);
         continue;
       }
 
-      // Carica ID già in wca_profiles per capire chi va aggiornato
-      let existingIds = new Set();
+      // Carica directory aggiornata da Supabase per avere scrape_url e network
+      let dirMembers = [];
       try {
-        const idResp = await fetch(API+"/api/partners?action=existing_ids");
-        const idData = await idResp.json();
-        if(idData.success && idData.ids) existingIds = new Set(idData.ids);
-      } catch(e){ log(`⚠ existing_ids error: ${e.message}`,"warn"); }
+        const dirData = await loadDirectoryFromSupabase(cc);
+        if(dirData && dirData.members) dirMembers = dirData.members;
+      } catch(e){}
 
-      // Separa: nuovi (non in profiles) vs esistenti (da aggiornare con network info)
-      const newProfiles = toRedownload.filter(m => !existingIds.has(m.id));
-      const updateProfiles = toRedownload.filter(m => existingIds.has(m.id));
+      // Mappa id → membro directory per avere href/scrape_url/networks
+      const dirMap = {};
+      for(const m of dirMembers) dirMap[m.id] = m;
 
-      log(`📥 ${countryName}: ${newProfiles.length} nuovi da scaricare, ${updateProfiles.length} da aggiornare`,"ok");
-
-      // Scarica i nuovi profili con pause standard
-      const allToProcess = [...newProfiles, ...updateProfiles];
       let downloaded = 0;
       let failed = 0;
       let consecutiveFails = 0;
 
-      for(let i = 0; i < allToProcess.length; i++){
-        const member = allToProcess[i];
+      log(`📥 ${countryName}: scarico ${missingList.length} profili mancanti...`,"ok");
+
+      for(let i = 0; i < missingList.length; i++){
+        const item = missingList[i];
+        const member = dirMap[item.wca_id] || { id: item.wca_id, name: item.company_name, networks: [], href: `/directory/members/${item.wca_id}` };
+
         const bestNet = (member.networks && member.networks.length > 0) ? member.networks[0] : "wcaworld.com";
         const netInfo = ALL_NETWORKS.find(n => n.domain === bestNet);
         const netName = netInfo?.name || bestNet;
 
-        setStatus(`Repair ${countryName} ${i+1}/${allToProcess.length} — ${member.name||member.id}`, true);
-        setProgress(i, allToProcess.length);
-        showActivity("📥", `${netName} ${i+1}/${allToProcess.length}`);
+        setStatus(`Repair ${countryName} ${i+1}/${missingList.length} — ${member.name||item.company_name||item.wca_id}`, true);
+        setProgress(i, missingList.length);
+        showActivity("📥", `${netName} ${i+1}/${missingList.length}`);
 
         // Determina dominio login
         let loginDomain = bestNet;
@@ -137,8 +125,8 @@ async function repairNetworkOrphans(){
             const scrapeResp = await fetch(API+"/api/scrape",{
               method:"POST",headers:{"Content-Type":"application/json"},
               body:JSON.stringify({
-                wcaIds:[member.id],
-                members: profileHref ? [{id:member.id, href:profileHref}] : [],
+                wcaIds:[member.id || item.wca_id],
+                members: profileHref ? [{id: member.id || item.wca_id, href: profileHref}] : [],
                 networkDomain: loginDomain
               }),
               signal: controller.signal
@@ -178,20 +166,21 @@ async function repairNetworkOrphans(){
         }
 
         // Pausa standard tra download
-        if(i + 1 < allToProcess.length && consecutiveFails === 0){
+        if(i + 1 < missingList.length && consecutiveFails === 0){
           const nextDelay = getNextDelay();
           await sleepWithActivity("⏳", `Pausa ${Math.round(nextDelay/1000)}s`, nextDelay);
-        } else if(i + 1 < allToProcess.length && consecutiveFails > 0){
+        } else if(i + 1 < missingList.length && consecutiveFails > 0){
           await sleep(1000);
         }
       }
 
-      totalProfilesUpdated += downloaded;
+      totalDownloaded += downloaded;
+      totalFailed += failed;
       log(`✅ REPAIR ${countryName}: ${downloaded} scaricati, ${failed} falliti`,"ok");
 
       // Pausa tra paesi
       if(ci + 1 < countries.length){
-        await sleepWithActivity("⏳", `Pausa 5s — prossimo paese`, 5000);
+        await sleepWithActivity("⏳", "Pausa 5s — prossimo paese", 5000);
       }
     }
 
@@ -199,11 +188,9 @@ async function repairNetworkOrphans(){
     hideActivity();
     setProgress(1,1);
     log(`═══ REPAIR COMPLETATO ═══`,"ok");
-    log(`📊 Directory aggiornata: ${totalFixed} record ora hanno network`,"ok");
-    log(`📥 Profili scaricati/aggiornati: ${totalProfilesUpdated}`,"ok");
-    setStatus(`Repair completato: ${totalFixed} network trovati, ${totalProfilesUpdated} profili aggiornati`, true);
+    log(`📊 Network fixati: ${totalNetworkFixed} | Profili scaricati: ${totalDownloaded} | Falliti: ${totalFailed}`,"ok");
+    setStatus(`Repair: ${totalDownloaded} scaricati, ${totalNetworkFixed} network fixati`, true);
 
-    // Refresh contatori
     loadHeaderCounts();
 
   } catch(e){

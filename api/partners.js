@@ -193,36 +193,67 @@ module.exports = async (req, res) => {
       return res.json({ success: true, total: orphans.length, fixed, deleted, failed });
     }
 
-    // Trova record in wca_directory con networks vuoti (orfani di network)
+    // Trova profili mancanti: in wca_directory ma NON in wca_profiles
+    // + record directory con networks vuoti
     if (action === "network_orphans") {
-      const orphans = [];
-      let offset = 0;
-      const batchSize = 1000;
-      // Carica tutti i record e filtra lato server (PostgREST non filtra bene array vuoti JSON)
+      // 1. Carica tutti gli wca_id da wca_profiles
+      const profileIds = new Set();
+      let off1 = 0;
       while (true) {
-        const url = `${SUPABASE_URL}/rest/v1/wca_directory?select=wca_id,company_name,country_code,networks&order=country_code.asc,wca_id.asc&offset=${offset}&limit=${batchSize}`;
-        const r = await fetch(url, {
-          headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` },
-        });
+        const url = `${SUPABASE_URL}/rest/v1/wca_profiles?select=wca_id&order=wca_id.asc&offset=${off1}&limit=1000`;
+        const r = await fetch(url, { headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` } });
+        if (!r.ok) break;
+        const rows = await r.json();
+        if (!rows || rows.length === 0) break;
+        for (const row of rows) profileIds.add(row.wca_id);
+        if (rows.length < 1000) break;
+        off1 += 1000;
+      }
+
+      // 2. Carica wca_directory e trova: mancanti (non in profiles) + senza network
+      const missing = [];   // in directory, non in profiles
+      const noNetwork = []; // in directory, networks vuoto
+      let off2 = 0;
+      while (true) {
+        const url = `${SUPABASE_URL}/rest/v1/wca_directory?select=wca_id,company_name,country_code,networks&order=country_code.asc,wca_id.asc&offset=${off2}&limit=1000`;
+        const r = await fetch(url, { headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` } });
         if (!r.ok) break;
         const rows = await r.json();
         if (!rows || rows.length === 0) break;
         for (const row of rows) {
-          if (!row.networks || !Array.isArray(row.networks) || row.networks.length === 0) {
-            orphans.push({ wca_id: row.wca_id, company_name: row.company_name, country_code: row.country_code });
+          const hasNet = row.networks && Array.isArray(row.networks) && row.networks.length > 0;
+          if (!profileIds.has(row.wca_id)) {
+            missing.push({ wca_id: row.wca_id, company_name: row.company_name, country_code: row.country_code, hasNetwork: hasNet });
+          }
+          if (!hasNet) {
+            noNetwork.push({ wca_id: row.wca_id, company_name: row.company_name, country_code: row.country_code });
           }
         }
-        if (rows.length < batchSize) break;
-        offset += batchSize;
+        if (rows.length < 1000) break;
+        off2 += 1000;
       }
-      // Raggruppa per paese
+
+      // 3. Raggruppa mancanti per paese
       const byCountry = {};
-      for (const o of orphans) {
-        const cc = o.country_code || "??";
-        if (!byCountry[cc]) byCountry[cc] = [];
-        byCountry[cc].push({ wca_id: o.wca_id, company_name: o.company_name });
+      for (const m of missing) {
+        const cc = m.country_code || "??";
+        if (!byCountry[cc]) byCountry[cc] = { missing: [], noNetwork: 0 };
+        byCountry[cc].missing.push({ wca_id: m.wca_id, company_name: m.company_name, hasNetwork: m.hasNetwork });
       }
-      return res.json({ success: true, total: orphans.length, byCountry });
+      // Conta anche no-network per paese
+      for (const n of noNetwork) {
+        const cc = n.country_code || "??";
+        if (!byCountry[cc]) byCountry[cc] = { missing: [], noNetwork: 0 };
+        byCountry[cc].noNetwork++;
+      }
+
+      return res.json({
+        success: true,
+        totalMissing: missing.length,
+        totalNoNetwork: noNetwork.length,
+        totalProfiles: profileIds.size,
+        byCountry
+      });
     }
 
     // Conteggio DIRECTORY per paese (wca_directory)
