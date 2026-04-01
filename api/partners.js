@@ -11,12 +11,16 @@ module.exports = async (req, res) => {
     const { country, search, page = 1, limit = 100, select, action } = req.query || {};
 
     // Lista wca_id già presenti per un paese (per evitare re-download)
-    if (action === "existing_ids" && country) {
+    if (action === "existing_ids") {
+      // Carica TUTTI gli wca_id presenti in wca_profiles (senza filtro country)
+      // La directory sa già quali ID servono per il paese — qui serve solo sapere
+      // cosa esiste GIÀ nel DB, indipendentemente dal country_code salvato
+      // (evita ri-download di profili orfani con country_code sbagliato)
       const ids = [];
       let offset = 0;
       const batchSize = 1000;
       while (true) {
-        const url = `${SUPABASE_URL}/rest/v1/wca_profiles?select=wca_id&country_code=ilike.${encodeURIComponent(country)}&order=wca_id.asc&offset=${offset}&limit=${batchSize}`;
+        const url = `${SUPABASE_URL}/rest/v1/wca_profiles?select=wca_id&order=wca_id.asc&offset=${offset}&limit=${batchSize}`;
         const r = await fetch(url, {
           headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` },
         });
