@@ -133,7 +133,7 @@ async function scrapeByNetwork(){
       const fromDb = await loadDirectoryFromSupabase(c.code);
       if(fromDb){ cachedDir = fromDb; dirAge = 0; }
     }
-    const fullDir = (cachedDir && dirAge < 24) ? cachedDir : await discoverFastDirectory(c.code, c.name);
+    const fullDir = (cachedDir && dirAge < 24) ? cachedDir : await discoverFullDirectory(c.code, c.name);
 
     if(!fullDir || fullDir.members.length === 0){
       log(`⚠ ${c.name}: nessun membro in directory — saltato`,"warn");

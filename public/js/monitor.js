@@ -172,7 +172,7 @@ async function checkNewMembers(countryCode){
   updateMonitorStatus("directory", "checking", `Aggiornamento ${cName}...`);
 
   scraping = true;
-  const newDir = await discoverFastDirectory(countryCode, cName); // fast: una chiamata sola
+  const newDir = await discoverFullDirectory(countryCode, cName, true); // full con network
   scraping = false;
   hideActivity();
 

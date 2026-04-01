@@ -102,7 +102,7 @@ async function syncAllDirectories(forceResume){
     setStatus(`📂 Directory ${i+1}/${total}: ${c.name}${selectedCodes.has(c.code) ? ' ★' : ''}`, true);
     setProgress(i+1, total);
 
-    await discoverFastDirectory(c.code, c.name);
+    await discoverFullDirectory(c.code, c.name);
     synced++;
 
     // Salva stato dopo ogni paese (per resume)
@@ -145,7 +145,7 @@ async function syncAllDirectories(forceResume){
       setStatus(`🔄 Retry ${r+1}/${incomplete.length}: ${c.name}`, true);
       setProgress(r+1, incomplete.length);
 
-      await discoverFastDirectory(c.code, c.name);
+      await discoverFullDirectory(c.code, c.name);
       synced++;
 
       saveDirSyncState({ lastIndex: total - 1, lastCountry: c.name, lastCode: c.code, synced, skipped, total, ts: Date.now() });
