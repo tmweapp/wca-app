@@ -360,11 +360,9 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
 
   log(`═══ FASE 4: IDENTIFICA NO NETWORK (da directory già caricata) ═══`,"ok");
 
-  // fullDir.members contiene TUTTI i membri del paese (caricati in Fase 1)
-  // targetMembers è il sottoinsieme filtrato per network selezionati
-  // I "no network" sono quelli in fullDir ma NON in targetMembers
-  const networkMemberIds = new Set(targetMembers.map(m => m.id));
-  const noNetworkMembers = fullDir.members.filter(m => !networkMemberIds.has(m.id));
+  // "No network" = membri che NON hanno NESSUN network (array vuoto o assente)
+  // NON include membri con network diversi da quelli selezionati — quelli vanno saltati
+  const noNetworkMembers = fullDir.members.filter(m => !m.networks || m.networks.length === 0);
 
   log(`📊 ${countryName}: ${fullDir.members.length} totali, ${networkMemberIds.size} con network, ${noNetworkMembers.length} senza network`,"ok");
 
