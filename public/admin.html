@@ -11,7 +11,7 @@
 
 <div class="header">
   <span id="dbFlash" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9999;background:linear-gradient(135deg,rgba(16,185,129,0.95),rgba(6,95,70,0.95));color:#fff;padding:14px 24px;font-size:1.1rem;font-weight:700;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,0.4);transition:opacity .4s;letter-spacing:0.5px;backdrop-filter:blur(8px)"></span>
-  <span id="appVersion" style="position:fixed;top:6px;right:12px;z-index:10000;font-size:0.7rem;color:#ffffff;font-family:'JetBrains Mono',monospace;opacity:0.9">v59</span>
+  <span id="appVersion" style="position:fixed;top:6px;right:12px;z-index:10000;font-size:0.7rem;color:#ffffff;font-family:'JetBrains Mono',monospace;opacity:0.9">v61</span>
   <div class="header-top" style="display:flex;align-items:center;gap:12px">
     <!-- Logo + Titolo a sinistra -->
     <img id="headerDragonLogo" src="logos/dragon.png" alt="Logo" style="width:42px;height:42px;object-fit:contain;filter:drop-shadow(0 3px 12px rgba(167,139,250,0.5))" onerror="this.src='https://dlldkrzoxvjxpgkkttxu.supabase.co/storage/v1/object/public/icons/dragon.png';this.onerror=function(){this.style.display='none'}">
@@ -111,10 +111,6 @@
         <button id="btnSyncDir" onclick="toggleDirSync()" class="action-pill" style="--pill-color:#0ea5e9">
           <svg id="syncDirIcon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           <span>Directory</span>
-        </button>
-        <button id="btnUpdateNet" onclick="updateNetworksForCountries()" class="action-pill" style="--pill-color:#6ee7b7">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6"/><path d="M23 20v-6h-6"/><path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/></svg>
-          <span>Network</span>
         </button>
         <button id="btnRepairNet" onclick="repairNetworkOrphans()" class="action-pill" style="--pill-color:#f472b6" title="Trova record directory senza network, riesegui discover full e ri-scarica">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>

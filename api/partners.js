@@ -193,49 +193,28 @@ module.exports = async (req, res) => {
       return res.json({ success: true, total: orphans.length, fixed, deleted, failed });
     }
 
-    // Trova e ELIMINA record in wca_directory con networks vuoti
-    if (action === "network_orphans") {
-      // 1. Trova tutti i record con networks vuoto
-      const orphanIds = [];
-      let offset = 0;
-      while (true) {
-        const url = `${SUPABASE_URL}/rest/v1/wca_directory?select=wca_id,company_name,country_code,networks&order=country_code.asc,wca_id.asc&offset=${offset}&limit=1000`;
-        const r = await fetch(url, { headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` } });
-        if (!r.ok) break;
-        const rows = await r.json();
-        if (!rows || rows.length === 0) break;
-        for (const row of rows) {
-          if (!row.networks || !Array.isArray(row.networks) || row.networks.length === 0) {
-            orphanIds.push({ wca_id: row.wca_id, company_name: row.company_name, country_code: row.country_code });
-          }
-        }
-        if (rows.length < 1000) break;
-        offset += 1000;
-      }
-      return res.json({ success: true, total: orphanIds.length, orphans: orphanIds });
-    }
-
-    // Elimina record specifici da wca_directory (per ID)
-    if (action === "delete_directory_ids") {
-      if (req.method !== "GET") return res.status(405).json({ error: "GET only" });
-      const idsParam = req.query.ids;
-      if (!idsParam) return res.status(400).json({ error: "ids parameter required" });
-      const ids = idsParam.split(",").map(Number).filter(n => n > 0);
-      if (ids.length === 0) return res.status(400).json({ error: "no valid ids" });
-
-      let deleted = 0;
-      // Batch delete max 100 alla volta
-      for (let i = 0; i < ids.length; i += 100) {
-        const batch = ids.slice(i, i + 100);
-        const filter = batch.map(id => `wca_id.eq.${id}`).join(",");
-        const url = `${SUPABASE_URL}/rest/v1/wca_directory?or=(${filter})`;
+    // Elimina record wca_directory con networks vuoti — DELETE diretto via RPC SQL
+    if (action === "repair_network") {
+      try {
+        // DELETE diretto: elimina tutti i record con networks = '[]' o NULL
+        const url = `${SUPABASE_URL}/rest/v1/wca_directory?or=(networks.is.null,networks.eq.%5B%5D)`;
         const r = await fetch(url, {
           method: "DELETE",
-          headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` },
+          headers: {
+            "apikey": SUPABASE_KEY,
+            "Authorization": `Bearer ${SUPABASE_KEY}`,
+            "Prefer": "return=representation",
+          },
         });
-        if (r.ok) deleted += batch.length;
+        if (!r.ok) {
+          const err = await r.text();
+          return res.json({ success: false, error: `Supabase ${r.status}: ${err.substring(0, 200)}` });
+        }
+        const deleted = await r.json();
+        return res.json({ success: true, deleted: deleted.length });
+      } catch (e) {
+        return res.json({ success: false, error: e.message });
       }
-      return res.json({ success: true, deleted });
     }
 
     // Conteggio DIRECTORY per paese (wca_directory)
