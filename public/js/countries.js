@@ -196,7 +196,7 @@ function renderFlagChips(){
   if(!flagsDiv) return;
   const nameMap = {};
   ALL_COUNTRIES.forEach(g => g.items.forEach(([code, name]) => { nameMap[code] = name; }));
-  const sorted = Object.entries(countryPartnerCounts).filter(([,v]) => v > 0).sort((a,b) => b[1] - a[1]);
+  const sorted = Object.entries(countryPartnerCounts).filter(([code,v]) => v > 0 && code.length === 2 && /^[A-Z]{2}$/.test(code)).sort((a,b) => b[1] - a[1]);
   let hasIncomplete = false;
   const chips = sorted.map(([code, cnt]) => {
     const isSelected = selectedCountries.some(c => c.code === code);

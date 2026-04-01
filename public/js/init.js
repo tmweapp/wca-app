@@ -59,6 +59,16 @@ async function loadHeaderCounts(){
       countryPartnerCounts = cData.counts;
       // Popola flags bar con nuovi chip
       renderFlagChips();
+      // Mostra badge orfani se presenti
+      if(cData.orphans > 0){
+        const ob = document.getElementById("orphanBadge");
+        const oh = document.getElementById("headerOrphans");
+        if(ob){ ob.style.display = "inline-flex"; }
+        if(oh){ oh.textContent = cData.orphans; }
+      } else {
+        const ob = document.getElementById("orphanBadge");
+        if(ob) ob.style.display = "none";
+      }
     }
   } catch(e){ console.warn("loadHeaderCounts error:", e.message); }
 }
@@ -114,3 +124,25 @@ if("Notification" in window && Notification.permission === "default"){
 loadHeaderCounts();
 // Aggiorna ogni 30s durante lo scraping
 setInterval(()=>{ if(scraping || bgJobId) loadHeaderCounts(); }, 30000);
+
+// Fix profili orfani (senza country_code valido)
+async function fixOrphanProfiles(){
+  const ob = document.getElementById("orphanBadge");
+  if(ob) ob.style.opacity = "0.5";
+  log("🔧 Correzione profili orfani in corso...", "warn");
+  try {
+    const resp = await fetch(API+"/api/partners?action=fix_orphans");
+    const data = await resp.json();
+    if(data.success){
+      log(`✅ Orfani corretti: ${data.fixed} aggiornati, ${data.deleted} rimossi, ${data.failed} errori (su ${data.total} totali)`, "ok");
+      if(ob){ ob.style.display = "none"; ob.style.opacity = "1"; }
+      loadHeaderCounts();
+    } else {
+      log("❌ Errore fix orfani: " + (data.error || "unknown"), "err");
+      if(ob) ob.style.opacity = "1";
+    }
+  } catch(e){
+    log("❌ Fix orfani exception: " + e.message, "err");
+    if(ob) ob.style.opacity = "1";
+  }
+}

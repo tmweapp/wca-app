@@ -139,7 +139,9 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
     : targetMembers.filter(m => !doneIds.has(m.id));
 
   if(toDownload.length === 0){
-    log(`✅ ${countryName}: tutti i ${totalMembers} membri già scaricati`,"ok");
+    log(`✅ ${countryName}: tutti i ${totalMembers} membri già scaricati — skip completo`,"ok");
+    markCountryCompleted(country, doneIds.size);
+    return { ok:true, skipped:true };
   } else {
     log(`📥 ${countryName}: ${toDownload.length} da scaricare (${totalMembers - toDownload.length} già fatti)`,"ok");
 

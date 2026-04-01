@@ -35,29 +35,13 @@ async function startScraping(){
     for(let ci = 0; ci < countries.length && scraping; ci++){
       const c = countries[ci];
 
-      // === CHECK RAPIDO: country già completata? Popup immediato ===
-      if(c.code && isCountryCompleted(c.code)){
+      // === CHECK RAPIDO: country già completata? Skip automatico ===
+      if(c.code && isCountryCompleted(c.code) && !updateAddress){
         const info = completedCountries[c.code];
-        const ageH = Math.round((Date.now() - info.ts) / 3600000);
-        const ageStr = ageH < 1 ? "meno di 1 ora fa" : ageH < 24 ? `${ageH} ore fa` : `${Math.round(ageH/24)} giorni fa`;
-
-        if(updateAddress){
-          if(!confirm(`${countryFlag(c.code)} ${c.name}: già completato (${info.count} partner, ${ageStr}).\n\nVuoi AGGIORNARE gli address di tutti i ${info.count} partner?`)){
-            log(`⏭ ${c.name}: aggiornamento annullato dall'utente`,"warn");
-            skippedAll++;
-            continue;
-          }
-        } else {
-          // Popup informativo: country completa, chiedi se vuole verificare o saltare
-          const action = confirm(`${countryFlag(c.code)} ${c.name}: GIÀ COMPLETATO\n\n${info.count} partner scaricati (${ageStr}).\nTutti gli address sono già nel database.\n\nPremi OK per verificare comunque, Annulla per saltare.`);
-          if(!action){
-            log(`⏭ ${c.name} (${c.code}): completato (${info.count} partner) — saltato`,"ok");
-            setStatus(`${c.name}: già completo — saltato`, true);
-            skippedAll++;
-            continue;
-          }
-          log(`🔄 ${c.name}: verifica richiesta dall'utente nonostante già completato`,"warn");
-        }
+        log(`⏭ ${c.name} (${c.code}): già completato (${info.count} partner) — skip`,"ok");
+        setStatus(`${c.name}: già completo — skip`, true);
+        skippedAll++;
+        continue;
       }
 
       if(countries.length > 1) log(`═══ PAESE ${ci+1}/${countries.length}: ${c.name} (${c.code}) ═══`,"ok");
