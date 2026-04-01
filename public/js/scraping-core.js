@@ -396,31 +396,36 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
     let noNetDownloaded = 0;
     let noNetSkipped = 0;
     let noNetConsecFails = 0;
-    const MAX_CONSEC_FAILS_NONET = 10;
+    const MAX_CONSEC_FAILS_NONET = 3; // Aggressivo: 3 fail consecutivi → skip tutto
 
     for(let i = 0; i < noNetToDownload.length && scraping; i++){
       const member = noNetToDownload[i];
-      setStatus(`${countryName} [NO NETWORK] ${i+1}/${noNetToDownload.length} — ${member.name||member.id}`, true);
+      setStatus(`${countryName} [NO NET] ${i+1}/${noNetToDownload.length} — ${member.name||member.id}`, true);
       setProgress(i, noNetToDownload.length);
-      showActivity("📥", `NO NETWORK ${i+1}/${noNetToDownload.length} — ${member.name||member.id}`);
 
       try {
+        // Timeout aggressivo: 8s max per NO NETWORK
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 8000);
         const resp = await fetch(API+"/api/scrape",{
           method:"POST",headers:{"Content-Type":"application/json"},
           body:JSON.stringify({
             wcaIds:[member.id],
             members: [{id:member.id, href:member.href}],
             networkDomain: "wcaworld.com"
-          })
+          }),
+          signal: controller.signal
         });
+        clearTimeout(timeout);
 
         const data = await resp.json();
         if(!data.success){
           noNetSkipped++; noNetConsecFails++;
           if(noNetConsecFails >= MAX_CONSEC_FAILS_NONET){
-            log(`⛔ ${MAX_CONSEC_FAILS_NONET} fallimenti consecutivi NO NETWORK — interrompo fase 5`,"err");
+            log(`⛔ ${noNetConsecFails} fail consecutivi NO NETWORK — skip fase 5`,"err");
             break;
           }
+          await sleep(200);
           continue;
         }
 
@@ -428,9 +433,10 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
         if(!profile || profile.state !== "ok"){
           noNetSkipped++; noNetConsecFails++;
           if(noNetConsecFails >= MAX_CONSEC_FAILS_NONET){
-            log(`⛔ ${MAX_CONSEC_FAILS_NONET} fallimenti consecutivi NO NETWORK — interrompo fase 5`,"err");
+            log(`⛔ ${noNetConsecFails} fail consecutivi NO NETWORK — skip fase 5`,"err");
             break;
           }
+          await sleep(200);
           continue;
         }
 
@@ -442,7 +448,7 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
         trimScrapedTabs(50);
 
         const limited = profile.access_limited ? " [LIMITED]" : "";
-        log(`✓ ${profile.company_name} (${profile.wca_id}) contatti:${profile.contacts?.length||0}${limited} [NO NETWORK]`,"ok");
+        log(`✓ ${profile.company_name} (${profile.wca_id}) contatti:${profile.contacts?.length||0}${limited} [NO NET]`,"ok");
         saveToSupabase(profile);
         markIdDone(country, profile.wca_id);
         updateResultRow(profile.wca_id, "ok");
@@ -450,22 +456,19 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
         noNetDownloaded++;
         updateScrapeStats({ downloaded: scrapeStats.downloaded + 1 });
 
+        // Pausa solo dopo successo
+        if(i + 1 < noNetToDownload.length && scraping){
+          const nextDelay = getNextDelay();
+          await sleepWithActivity("⏳", `Pausa ${Math.round(nextDelay/1000)}s`, nextDelay);
+        }
+
       } catch(e){
         noNetSkipped++; noNetConsecFails++;
         if(noNetConsecFails >= MAX_CONSEC_FAILS_NONET){
-          log(`⛔ ${MAX_CONSEC_FAILS_NONET} errori consecutivi NO NETWORK — interrompo fase 5`,"err");
+          log(`⛔ ${noNetConsecFails} errori consecutivi NO NETWORK — skip fase 5`,"err");
           break;
         }
-      }
-
-      if(i + 1 < noNetToDownload.length && scraping){
-        // Full delay only after success
-        if(noNetConsecFails === 0){
-          const nextDelay = getNextDelay();
-          await sleepWithActivity("⏳", `Pausa ${Math.round(nextDelay/1000)}s`, nextDelay);
-        } else {
-          await sleep(500); // Minimal delay on failures
-        }
+        await sleep(200);
       }
     }
 
