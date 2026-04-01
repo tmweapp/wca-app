@@ -193,67 +193,49 @@ module.exports = async (req, res) => {
       return res.json({ success: true, total: orphans.length, fixed, deleted, failed });
     }
 
-    // Trova profili mancanti: in wca_directory ma NON in wca_profiles
-    // + record directory con networks vuoti
+    // Trova e ELIMINA record in wca_directory con networks vuoti
     if (action === "network_orphans") {
-      // 1. Carica tutti gli wca_id da wca_profiles
-      const profileIds = new Set();
-      let off1 = 0;
+      // 1. Trova tutti i record con networks vuoto
+      const orphanIds = [];
+      let offset = 0;
       while (true) {
-        const url = `${SUPABASE_URL}/rest/v1/wca_profiles?select=wca_id&order=wca_id.asc&offset=${off1}&limit=1000`;
-        const r = await fetch(url, { headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` } });
-        if (!r.ok) break;
-        const rows = await r.json();
-        if (!rows || rows.length === 0) break;
-        for (const row of rows) profileIds.add(row.wca_id);
-        if (rows.length < 1000) break;
-        off1 += 1000;
-      }
-
-      // 2. Carica wca_directory e trova: mancanti (non in profiles) + senza network
-      const missing = [];   // in directory, non in profiles
-      const noNetwork = []; // in directory, networks vuoto
-      let off2 = 0;
-      while (true) {
-        const url = `${SUPABASE_URL}/rest/v1/wca_directory?select=wca_id,company_name,country_code,networks&order=country_code.asc,wca_id.asc&offset=${off2}&limit=1000`;
+        const url = `${SUPABASE_URL}/rest/v1/wca_directory?select=wca_id,company_name,country_code,networks&order=country_code.asc,wca_id.asc&offset=${offset}&limit=1000`;
         const r = await fetch(url, { headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` } });
         if (!r.ok) break;
         const rows = await r.json();
         if (!rows || rows.length === 0) break;
         for (const row of rows) {
-          const hasNet = row.networks && Array.isArray(row.networks) && row.networks.length > 0;
-          if (!profileIds.has(row.wca_id)) {
-            missing.push({ wca_id: row.wca_id, company_name: row.company_name, country_code: row.country_code, hasNetwork: hasNet });
-          }
-          if (!hasNet) {
-            noNetwork.push({ wca_id: row.wca_id, company_name: row.company_name, country_code: row.country_code });
+          if (!row.networks || !Array.isArray(row.networks) || row.networks.length === 0) {
+            orphanIds.push({ wca_id: row.wca_id, company_name: row.company_name, country_code: row.country_code });
           }
         }
         if (rows.length < 1000) break;
-        off2 += 1000;
+        offset += 1000;
       }
+      return res.json({ success: true, total: orphanIds.length, orphans: orphanIds });
+    }
 
-      // 3. Raggruppa mancanti per paese
-      const byCountry = {};
-      for (const m of missing) {
-        const cc = m.country_code || "??";
-        if (!byCountry[cc]) byCountry[cc] = { missing: [], noNetwork: 0 };
-        byCountry[cc].missing.push({ wca_id: m.wca_id, company_name: m.company_name, hasNetwork: m.hasNetwork });
-      }
-      // Conta anche no-network per paese
-      for (const n of noNetwork) {
-        const cc = n.country_code || "??";
-        if (!byCountry[cc]) byCountry[cc] = { missing: [], noNetwork: 0 };
-        byCountry[cc].noNetwork++;
-      }
+    // Elimina record specifici da wca_directory (per ID)
+    if (action === "delete_directory_ids") {
+      if (req.method !== "GET") return res.status(405).json({ error: "GET only" });
+      const idsParam = req.query.ids;
+      if (!idsParam) return res.status(400).json({ error: "ids parameter required" });
+      const ids = idsParam.split(",").map(Number).filter(n => n > 0);
+      if (ids.length === 0) return res.status(400).json({ error: "no valid ids" });
 
-      return res.json({
-        success: true,
-        totalMissing: missing.length,
-        totalNoNetwork: noNetwork.length,
-        totalProfiles: profileIds.size,
-        byCountry
-      });
+      let deleted = 0;
+      // Batch delete max 100 alla volta
+      for (let i = 0; i < ids.length; i += 100) {
+        const batch = ids.slice(i, i + 100);
+        const filter = batch.map(id => `wca_id.eq.${id}`).join(",");
+        const url = `${SUPABASE_URL}/rest/v1/wca_directory?or=(${filter})`;
+        const r = await fetch(url, {
+          method: "DELETE",
+          headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` },
+        });
+        if (r.ok) deleted += batch.length;
+      }
+      return res.json({ success: true, deleted });
     }
 
     // Conteggio DIRECTORY per paese (wca_directory)
