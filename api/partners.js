@@ -193,6 +193,52 @@ module.exports = async (req, res) => {
       return res.json({ success: true, total: orphans.length, fixed, deleted, failed });
     }
 
+    // Trova record in wca_directory con networks vuoti (orfani di network)
+    if (action === "network_orphans") {
+      const orphans = [];
+      let offset = 0;
+      const batchSize = 1000;
+      while (true) {
+        const url = `${SUPABASE_URL}/rest/v1/wca_directory?select=wca_id,company_name,country_code,networks&networks=eq.%7B%7D&order=country_code.asc,wca_id.asc&offset=${offset}&limit=${batchSize}`;
+        const r = await fetch(url, {
+          headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` },
+        });
+        if (!r.ok) {
+          // Fallback: carica tutto e filtra lato server
+          const url2 = `${SUPABASE_URL}/rest/v1/wca_directory?select=wca_id,company_name,country_code,networks&order=country_code.asc,wca_id.asc&offset=${offset}&limit=${batchSize}`;
+          const r2 = await fetch(url2, {
+            headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` },
+          });
+          if (!r2.ok) break;
+          const rows2 = await r2.json();
+          if (!rows2 || rows2.length === 0) break;
+          for (const row of rows2) {
+            if (!row.networks || !Array.isArray(row.networks) || row.networks.length === 0) {
+              orphans.push({ wca_id: row.wca_id, company_name: row.company_name, country_code: row.country_code });
+            }
+          }
+          if (rows2.length < batchSize) break;
+          offset += batchSize;
+          continue;
+        }
+        const rows = await r.json();
+        if (!rows || rows.length === 0) break;
+        for (const row of rows) {
+          orphans.push({ wca_id: row.wca_id, company_name: row.company_name, country_code: row.country_code });
+        }
+        if (rows.length < batchSize) break;
+        offset += batchSize;
+      }
+      // Raggruppa per paese
+      const byCountry = {};
+      for (const o of orphans) {
+        const cc = o.country_code || "??";
+        if (!byCountry[cc]) byCountry[cc] = [];
+        byCountry[cc].push({ wca_id: o.wca_id, company_name: o.company_name });
+      }
+      return res.json({ success: true, total: orphans.length, byCountry });
+    }
+
     // Conteggio DIRECTORY per paese (wca_directory)
     // Migrate: add company_group column if not exists
     if (action === "migrate_company_group") {
