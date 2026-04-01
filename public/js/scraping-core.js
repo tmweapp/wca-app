@@ -39,15 +39,20 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
     let retries = 0;
     while(retries <= MAX_RETRIES && scraping){
       try {
+        // Timeout 12s per evitare fetch appesi
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 12000);
         const resp = await fetch(API+"/api/scrape",{
           method:"POST",headers:{"Content-Type":"application/json"},
-          body:JSON.stringify({wcaIds:[member.id], members: profileHref ? [{id:member.id, href:profileHref}] : [], networkDomain: loginDomain})
+          body:JSON.stringify({wcaIds:[member.id], members: profileHref ? [{id:member.id, href:profileHref}] : [], networkDomain: loginDomain}),
+          signal: controller.signal
         });
+        clearTimeout(timeout);
         const data = await resp.json();
         if(!data.success){
           if(data.error && data.error.includes("SSO") && retries < MAX_RETRIES){
             retries++;
-            await sleepWithActivity("🔄", `SSO retry ${retries}/${MAX_RETRIES}`, 15000);
+            await sleepWithActivity("🔄", `SSO retry ${retries}/${MAX_RETRIES}`, 5000);
             continue;
           }
           return { ok:false, error: data.error };
@@ -70,12 +75,12 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
           return { ok:true, profile };
         } else if(profile.state === "login_redirect" && retries < MAX_RETRIES){
           retries++;
-          await sleepWithActivity("🔑", `Sessione scaduta — retry ${retries}/${MAX_RETRIES}`, 15000);
+          await sleepWithActivity("🔑", `Sessione scaduta — retry ${retries}/${MAX_RETRIES}`, 5000);
           continue;
         }
         return { ok:false, state: profile.state };
       } catch(e){
-        if(retries < MAX_RETRIES){ retries++; await sleepWithActivity("⚠️", `Errore rete — retry`, 10000); continue; }
+        if(retries < MAX_RETRIES){ retries++; await sleepWithActivity("⚠️", `Errore rete — retry`, 3000); continue; }
         return { ok:false, error: e.message };
       }
     }
