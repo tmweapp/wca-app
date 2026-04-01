@@ -150,7 +150,7 @@ async function repairNetworkOrphans(){
               if(profile && profile.state === "ok"){
                 const limited = profile.access_limited ? " [LIMITATO]" : "";
                 log(`✓ ${profile.company_name} (${profile.wca_id}) contatti:${profile.contacts?.length||0}${limited} [REPAIR/${netName}]`,"ok");
-                saveToSupabase(profile);
+                await saveToSupabase(profile);
                 downloaded++;
                 consecutiveFails = 0;
                 ok = true;

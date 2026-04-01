@@ -67,8 +67,21 @@ function getDoneCount(code){
 function isCountryCompleted(code){
   const dir = getDirectory(code);
   if(!dir) return false;
-  const pending = Object.values(dir.ids).filter(s => s === "pending").length;
-  return pending === 0;
+  const statuses = Object.values(dir.ids);
+  const pending = statuses.filter(s => s === "pending").length;
+  const failed = statuses.filter(s => s === "failed").length;
+  // Completato solo se nessun pending E nessun failed
+  return pending === 0 && failed === 0;
+}
+
+// Completato con tolleranza: accetta fino a N falliti
+function isCountryCompletedSoft(code, maxFailed = 5){
+  const dir = getDirectory(code);
+  if(!dir) return false;
+  const statuses = Object.values(dir.ids);
+  const pending = statuses.filter(s => s === "pending").length;
+  const failed = statuses.filter(s => s === "failed").length;
+  return pending === 0 && failed <= maxFailed;
 }
 
 function markCountryCompleted(code, count){

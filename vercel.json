@@ -8,7 +8,13 @@
     "api/worker.js": { "maxDuration": 30 },
     "api/fetch-contacts.js": { "maxDuration": 60 },
     "api/test-auth.js": { "maxDuration": 30 },
-    "api/cleanup.js": { "maxDuration": 60 }
+    "api/cleanup.js": { "maxDuration": 60 },
+    "api/partners.js": { "maxDuration": 30 },
+    "api/save.js": { "maxDuration": 15 },
+    "api/save-directory.js": { "maxDuration": 30 },
+    "api/load-directory.js": { "maxDuration": 30 },
+    "api/discover-global.js": { "maxDuration": 30 },
+    "api/discover-network.js": { "maxDuration": 30 }
   },
   "crons": [
     {

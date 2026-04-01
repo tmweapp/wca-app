@@ -37,7 +37,7 @@ async function scrapeOne(wcaId, memberInfo){
         addScrapedTab(profile, 0);
         const dbg = profile._debug ? ` [loginLinks=${profile._debug.loginLinks} membersOnly=${profile._debug.membersOnly} contacts=${profile._debug.contactSection} cookieLen=${profile._debug.cookieLen} keys=${profile._debug.cookieKeys}]` : "";
         log(`OK: ${profile.company_name} (${wcaId}) contatti:${profile.contacts?.length||0}${dbg}`,"ok");
-        saveToSupabase(profile);
+        await saveToSupabase(profile);
         updateResultRow(wcaId, "ok");
       } else if(profile.state==="not_found"){
         log(`Non trovato: ${wcaId} → aggiunto alla lista verifica`,"warn");

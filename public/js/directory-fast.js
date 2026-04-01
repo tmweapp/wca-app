@@ -60,8 +60,17 @@ async function discoverFastDirectory(countryCode, countryName){
   if(existing && existing.members){
     for(const m of existing.members) mergedMap[m.id] = m;
   }
-  // Poi: aggiungi/aggiorna con i nuovi (i nuovi vincono se presenti)
-  for(const m of allMembers) mergedMap[m.id] = m;
+  // Poi: aggiungi nuovi, ma NON sovrascrivere network esistenti con array vuoto
+  for(const m of allMembers){
+    const prev = mergedMap[m.id];
+    if(prev && prev.networks && prev.networks.length > 0 && (!m.networks || m.networks.length === 0)){
+      // Mantieni i dati esistenti, aggiorna solo nome/href se nuovi
+      if(m.name && m.name !== prev.name) prev.name = m.name;
+      if(m.href && !prev.href) prev.href = m.href;
+    } else {
+      mergedMap[m.id] = m;
+    }
+  }
   const mergedMembers = Object.values(mergedMap);
 
   // Calcola conteggi network dai dati mergiati

@@ -66,7 +66,7 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
           trimScrapedTabs(MAX_TABS);
           const limited = profile.access_limited ? " [LIMITATO]" : "";
           log(`✓ ${profile.company_name} (${profile.wca_id}) contatti:${profile.contacts?.length||0}${limited} [${networkLabel}]`,"ok");
-          saveToSupabase(profile);
+          await saveToSupabase(profile);
           markIdDone(country, profile.wca_id);
           updateResultRow(profile.wca_id, "ok");
           totalScraped++;
@@ -331,7 +331,7 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
             scrapedProfiles[idx] = profile;
             refreshScrapedTab(idx, profile);
             log(`✓ ARRICCHITO: ${profile.company_name} via ${netName} — ${profile.contacts?.length||0} contatti, email=${!!profile.email}`,"ok");
-            saveToSupabase(profile);
+            await saveToSupabase(profile);
             enriched++;
             success = true;
           }
@@ -452,7 +452,7 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
 
         const limited = profile.access_limited ? " [LIMITED]" : "";
         log(`✓ ${profile.company_name} (${profile.wca_id}) contatti:${profile.contacts?.length||0}${limited} [NO NET]`,"ok");
-        saveToSupabase(profile);
+        await saveToSupabase(profile);
         markIdDone(country, profile.wca_id);
         updateResultRow(profile.wca_id, "ok");
         totalScraped++;
@@ -467,6 +467,7 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
 
       } catch(e){
         noNetSkipped++; noNetConsecFails++;
+        log(`⚠ NO NET ${member.name||member.id} (${member.id}): ${e.message}`,"warn");
         if(noNetConsecFails >= MAX_CONSEC_FAILS_NONET){
           log(`⛔ ${noNetConsecFails} errori consecutivi NO NETWORK — skip fase 5`,"err");
           break;

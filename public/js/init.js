@@ -45,14 +45,14 @@ function openAgenda(){
 async function loadHeaderCounts(){
   try {
     const [respAll, respCounts] = await Promise.all([
-      fetch(API+"/api/partners?select=wca_id,access_limited&limit=10000"),
+      fetch(API+"/api/partners?select=wca_id,access_limited&limit=100000"),
       fetch(API+"/api/partners?action=country_counts")
     ]);
     const data = await respAll.json();
     if(data.success && data.partners){
-      document.getElementById("headerTotalPartners").textContent = data.partners.length;
+      document.getElementById("headerTotalPartners").textContent = data.partners.length.toLocaleString();
       const limited = data.partners.filter(p => p.access_limited).length;
-      document.getElementById("headerLimitedPartners").textContent = limited;
+      document.getElementById("headerLimitedPartners").textContent = limited.toLocaleString();
     }
     const cData = await respCounts.json();
     if(cData.success && cData.counts){

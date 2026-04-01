@@ -290,7 +290,7 @@ async function resumeScraping(jobCode){
         if(!data.success){
           if(data.error?.includes("SSO") && retries < MAX_RETRIES){ retries++; log(`SSO fallito, retry ${retries}...`,"warn"); await sleepWithActivity("🔄", `SSO fallito — retry ${retries}`, 15000); continue; }
           addFailedProfile(member.id); updateResultRow(member.id, "sso_failed");
-          saveToSupabase({wca_id: member.id, company_name: "[SSO FAILED]", state: "sso_failed", country_code: currentScrapingCountry});
+          await saveToSupabase({wca_id: member.id, company_name: "[SSO FAILED]", state: "sso_failed", country_code: currentScrapingCountry});
           markIdFailed(currentScrapingCountry, member.id);
           consecutiveFailures++; done = true; break;
         }
@@ -301,15 +301,15 @@ async function resumeScraping(jobCode){
           addScrapedTab(profile, 0); trimScrapedTabs(MAX_TABS);
           showActivity("✅", `Salvato: ${profile.company_name} — ${profile.contacts?.length||0} contatti`);
           log(`✓ ${profile.company_name} (${profile.wca_id}) contatti:${profile.contacts?.length||0}`,"ok");
-          saveToSupabase(profile); updateResultRow(profile.wca_id, "ok"); totalScraped++; consecutiveFailures = 0; done = true;
+          await saveToSupabase(profile); updateResultRow(profile.wca_id, "ok"); totalScraped++; consecutiveFailures = 0; done = true;
         } else if(profile?.state==="login_redirect"){
           if(retries < MAX_RETRIES){ retries++; log(`Sessione scaduta, retry ${retries}...`,"warn"); await sleepWithActivity("🔑", `Sessione scaduta — retry ${retries}`, 15000); continue; }
           addFailedProfile(member.id); updateResultRow(member.id, "login_redirect");
-          saveToSupabase({wca_id: member.id, company_name: "[LOGIN FAILED]", state: "login_redirect", country_code: currentScrapingCountry});
+          await saveToSupabase({wca_id: member.id, company_name: "[LOGIN FAILED]", state: "login_redirect", country_code: currentScrapingCountry});
           consecutiveFailures++; done = true;
         } else {
           if(profile?.state==="not_found") addFailedProfile(member.id);
-          saveToSupabase({wca_id: member.id, company_name: "["+((profile?.state)||"ERROR")+"]", state: profile?.state||"error", country_code: currentScrapingCountry});
+          await saveToSupabase({wca_id: member.id, company_name: "["+((profile?.state)||"ERROR")+"]", state: profile?.state||"error", country_code: currentScrapingCountry});
           updateResultRow(member.id, profile?.state||"error"); consecutiveFailures = 0; done = true;
         }
       } catch(e){ if(retries < MAX_RETRIES){ retries++; await sleepWithActivity("⚠️", "Errore rete — retry tra 10s", 10000); continue; } consecutiveFailures++; done = true; }

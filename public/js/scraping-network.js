@@ -61,7 +61,7 @@ async function scrapeByNetwork(){
           trimScrapedTabs(MAX_TABS);
           const limited = profile.access_limited ? " [LIMITATO]" : "";
           log(`✓ ${profile.company_name} (${profile.wca_id}) contatti:${profile.contacts?.length||0}${limited} [${networkLabel}]`,"ok");
-          saveToSupabase(profile);
+          await saveToSupabase(profile);
           markIdDone(countryCode, profile.wca_id);
           updateResultRow(profile.wca_id, "ok");
           totalScraped++;
@@ -300,7 +300,7 @@ async function scrapeByNetwork(){
                 scrapedProfiles[idx] = profile;
                 refreshScrapedTab(idx, profile);
                 log(`✓ ARRICCHITO: ${profile.company_name} via ${netName} — ${profile.contacts?.length||0} contatti, email=${!!profile.email}`,"ok");
-                saveToSupabase(profile);
+                await saveToSupabase(profile);
                 enriched++;
                 success = true;
               }
