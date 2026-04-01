@@ -193,25 +193,40 @@ module.exports = async (req, res) => {
       return res.json({ success: true, total: orphans.length, fixed, deleted, failed });
     }
 
-    // Elimina record wca_directory con networks vuoti — DELETE diretto via RPC SQL
+    // Elimina record wca_directory con networks vuoti
     if (action === "repair_network") {
       try {
-        // DELETE diretto: elimina tutti i record con networks = '[]' o NULL
-        const url = `${SUPABASE_URL}/rest/v1/wca_directory?or=(networks.is.null,networks.eq.%5B%5D)`;
-        const r = await fetch(url, {
-          method: "DELETE",
-          headers: {
-            "apikey": SUPABASE_KEY,
-            "Authorization": `Bearer ${SUPABASE_KEY}`,
-            "Prefer": "return=representation",
-          },
-        });
-        if (!r.ok) {
-          const err = await r.text();
-          return res.json({ success: false, error: `Supabase ${r.status}: ${err.substring(0, 200)}` });
+        // 1. Trova IDs con networks vuoto (query leggera, solo wca_id)
+        const ids = [];
+        let offset = 0;
+        while (true) {
+          const url = `${SUPABASE_URL}/rest/v1/wca_directory?select=wca_id,networks&offset=${offset}&limit=1000`;
+          const r = await fetch(url, { headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` } });
+          if (!r.ok) break;
+          const rows = await r.json();
+          if (!rows || rows.length === 0) break;
+          for (const row of rows) {
+            if (!row.networks || !Array.isArray(row.networks) || row.networks.length === 0) {
+              ids.push(row.wca_id);
+            }
+          }
+          if (rows.length < 1000) break;
+          offset += 1000;
         }
-        const deleted = await r.json();
-        return res.json({ success: true, deleted: deleted.length });
+        if (ids.length === 0) return res.json({ success: true, deleted: 0 });
+
+        // 2. DELETE per ID in batch da 200
+        let deleted = 0;
+        for (let i = 0; i < ids.length; i += 200) {
+          const batch = ids.slice(i, i + 200);
+          const filter = batch.map(id => `wca_id.eq.${id}`).join(",");
+          const r = await fetch(`${SUPABASE_URL}/rest/v1/wca_directory?or=(${filter})`, {
+            method: "DELETE",
+            headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` },
+          });
+          if (r.ok) deleted += batch.length;
+        }
+        return res.json({ success: true, deleted });
       } catch (e) {
         return res.json({ success: false, error: e.message });
       }
