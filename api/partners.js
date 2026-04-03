@@ -268,10 +268,11 @@ module.exports = async (req, res) => {
       }
     }
 
-    // Conta profili senza email E senza contatti, per paese
+    // Conta profili senza email personale nei contatti, per paese
+    // Un profilo è "senza email personale" se: nessun contact ha c.email valorizzato
     if (action === "no_email_counts") {
       const counts = {};
-      const ids = {};
+      let total = 0;
       let offset = 0;
       const batchSize = 1000;
       while (true) {
@@ -283,24 +284,23 @@ module.exports = async (req, res) => {
         const rows = await r.json();
         if (!rows || rows.length === 0) break;
         for (const row of rows) {
-          const noEmail = !row.email || row.email.trim() === "";
-          const noContacts = !row.contacts || (Array.isArray(row.contacts) && row.contacts.length === 0);
-          if (noEmail && noContacts) {
+          // Nessuna email nel campo top-level E nessun contatto con email
+          const noTopEmail = !row.email || row.email.trim() === "";
+          const noContactEmail = !Array.isArray(row.contacts) || !row.contacts.some(c => c.email && c.email.trim() !== "");
+          if (noTopEmail && noContactEmail) {
             const cc = (row.country_code || "??").toUpperCase().trim();
             counts[cc] = (counts[cc] || 0) + 1;
-            if (!ids[cc]) ids[cc] = [];
-            ids[cc].push(row.wca_id);
+            total++;
           }
         }
         if (rows.length < batchSize) break;
         offset += batchSize;
       }
-      // Ordina per count desc
       const sorted = Object.entries(counts).sort((a,b) => b[1] - a[1]).map(([cc, count]) => ({ country_code: cc, count }));
-      return res.json({ success: true, counts: sorted, total: sorted.reduce((s,r) => s + r.count, 0) });
+      return res.json({ success: true, counts: sorted, total });
     }
 
-    // Elimina profili senza email E senza contatti
+    // Elimina profili senza email personale nei contatti
     if (action === "delete_no_email") {
       const toDelete = [];
       let offset = 0;
@@ -314,9 +314,9 @@ module.exports = async (req, res) => {
         const rows = await r.json();
         if (!rows || rows.length === 0) break;
         for (const row of rows) {
-          const noEmail = !row.email || row.email.trim() === "";
-          const noContacts = !row.contacts || (Array.isArray(row.contacts) && row.contacts.length === 0);
-          if (noEmail && noContacts) toDelete.push(row.wca_id);
+          const noTopEmail = !row.email || row.email.trim() === "";
+          const noContactEmail = !Array.isArray(row.contacts) || !row.contacts.some(c => c.email && c.email.trim() !== "");
+          if (noTopEmail && noContactEmail) toDelete.push(row.wca_id);
         }
         if (rows.length < batchSize) break;
         offset += batchSize;
