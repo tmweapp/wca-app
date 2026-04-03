@@ -159,7 +159,7 @@ function updateCountryDisplay(){
     const b = document.getElementById(id);
     if(b){ if(cnt > 0){ b.textContent = cnt; b.style.display = "block"; } else { b.style.display = "none"; } }
   });
-  // Update selected countries preview with flags
+  // Update selected countries preview — carosello orizzontale
   const preview = document.getElementById("selectedCountriesPreview");
   if(preview){
     if(cnt === 0){
@@ -167,13 +167,23 @@ function updateCountryDisplay(){
       preview.innerHTML = "";
     } else {
       preview.style.display = "flex";
+      preview.style.flexWrap = "nowrap";
+      preview.style.overflowX = "auto";
+      preview.style.overflowY = "hidden";
+      preview.style.gap = "4px";
+      preview.style.padding = "2px 0";
       preview.innerHTML = selectedCountries.map(c => {
         const pCnt = countryPartnerCounts[c.code] || 0;
-        const done = isCountryCompleted(c.code);
-        const bg = done ? "rgba(16,185,129,0.12)" : "rgba(99,102,241,0.1)";
-        const border = done ? "rgba(16,185,129,0.3)" : "rgba(99,102,241,0.25)";
-        const color = done ? "#6ee7b7" : "#c7d2fe";
-        return `<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:8px;background:${bg};border:1px solid ${border};font-size:.75rem;color:${color};font-weight:500;white-space:nowrap">${countryFlag(c.code)} ${c.name}${pCnt > 0 ? ' <span style="opacity:.6;font-size:.65rem">('+pCnt+')</span>' : ''}${done ? ' <span style="font-size:.6rem">✓</span>' : ''}<span onclick="event.stopPropagation();removeCountry('${c.code}')" style="cursor:pointer;opacity:.5;margin-left:2px;font-size:.8rem">×</span></span>`;
+        const isActive = typeof currentScrapingCountry !== 'undefined' && currentScrapingCountry === c.code;
+        const border = isActive ? "2px solid #ef4444" : "1px solid rgba(99,102,241,0.25)";
+        const bg = isActive ? "rgba(239,68,68,0.08)" : "rgba(99,102,241,0.08)";
+        const shadow = isActive ? "0 0 8px rgba(239,68,68,0.4)" : "none";
+        const nameLines = c.name.length > 10 ? `white-space:normal;max-width:56px;text-align:center` : `white-space:nowrap`;
+        return `<span data-country-chip="${c.code}" style="display:inline-flex;flex-direction:column;align-items:center;gap:2px;padding:4px 6px;border-radius:8px;background:${bg};border:${border};box-shadow:${shadow};cursor:default;flex-shrink:0;min-width:54px;max-width:70px;position:relative">
+          <span style="font-size:1.4rem;line-height:1">${countryFlag(c.code)}</span>
+          <span style="font-size:.55rem;color:#c7d2fe;font-weight:600;line-height:1.2;${nameLines}">${c.name}${pCnt > 0 ? '<br><span style="opacity:.5;font-size:.5rem">('+pCnt+')</span>' : ''}</span>
+          <span onclick="event.stopPropagation();removeCountry('${c.code}')" style="position:absolute;top:-4px;right:-4px;width:14px;height:14px;background:#374151;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:.6rem;color:#9ca3af;line-height:1">×</span>
+        </span>`;
       }).join("");
     }
   }

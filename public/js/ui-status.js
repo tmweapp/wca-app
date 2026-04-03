@@ -25,7 +25,7 @@ function setActiveCountry(code, name){
   const badge = document.getElementById("activeCountryBadge");
   const dlRow = document.getElementById("activeDownloadRow");
   const fb = document.getElementById("statusTextFallback");
-  if(!code && !name){ if(badge) badge.style.display = "none"; if(fb) fb.style.display = ""; return; }
+  if(!code && !name){ if(badge) badge.style.display = "none"; if(fb) fb.style.display = ""; _highlightActiveChip(null); return; }
   const cf = document.getElementById("activeCountryFlag");
   if(cf) cf.textContent = countryFlag(code);
   const cn = document.getElementById("activeCountryName");
@@ -33,6 +33,16 @@ function setActiveCountry(code, name){
   if(badge) badge.style.display = "flex";
   if(dlRow) dlRow.style.display = "flex";
   if(fb) fb.style.display = "none";
+  _highlightActiveChip(code);
+}
+
+function _highlightActiveChip(code){
+  document.querySelectorAll("[data-country-chip]").forEach(el => {
+    const isActive = code && el.dataset.countryChip === code;
+    el.style.border = isActive ? "2px solid #ef4444" : "1px solid rgba(99,102,241,0.25)";
+    el.style.background = isActive ? "rgba(239,68,68,0.08)" : "rgba(99,102,241,0.08)";
+    el.style.boxShadow = isActive ? "0 0 8px rgba(239,68,68,0.4)" : "none";
+  });
 }
 
 function hideActiveCountry(){
