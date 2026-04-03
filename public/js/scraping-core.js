@@ -41,7 +41,7 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
       try {
         // Timeout 12s per evitare fetch appesi
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 12000);
+        const timeout = setTimeout(() => controller.abort(), 50000);
         const resp = await fetch(API+"/api/scrape",{
           method:"POST",headers:{"Content-Type":"application/json"},
           body:JSON.stringify({wcaIds:[member.id], members: profileHref ? [{id:member.id, href:profileHref}] : [], networkDomain: loginDomain}),
@@ -410,7 +410,7 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
       try {
         // Timeout aggressivo: 8s max per NO NETWORK
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 8000);
+        const timeout = setTimeout(() => controller.abort(), 50000);
         const resp = await fetch(API+"/api/scrape",{
           method:"POST",headers:{"Content-Type":"application/json"},
           body:JSON.stringify({

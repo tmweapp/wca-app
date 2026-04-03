@@ -2,7 +2,7 @@
   "version": 2,
   "functions": {
     "api/test-networks.js": { "maxDuration": 60 },
-    "api/scrape.js": { "maxDuration": 30 },
+    "api/scrape.js": { "maxDuration": 60 },
     "api/verify.js": { "maxDuration": 30 },
     "api/enrich.js": { "maxDuration": 30 },
     "api/worker.js": { "maxDuration": 30 },
