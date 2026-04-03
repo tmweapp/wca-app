@@ -182,11 +182,15 @@ module.exports = async (req, res) => {
       let profile = await fetchProfile(wcaId, cookies, memberMap[wcaId], networkDomain, ssoCookies);
 
       // ═══ SSO REFRESH: se il profilo mostra segni di auth fallita, forza re-login ═══
-      // Segnali: login_redirect, access_limited, oppure members_only_count > 2 senza contatti
-      const authFailed = profile.state === "login_redirect";
+      // Segnali: login_redirect OPPURE profilo ok ma senza contatti e senza access_limited
+      // (WCA serve 200 con dati pubblici quando la sessione scade — non fa redirect)
+      const noContactsNow = !profile.contacts || profile.contacts.length === 0;
+      const noContactEmailNow = !profile.contacts?.some(c => c.email);
+      const authFailed = profile.state === "login_redirect" ||
+        (profile.state === "ok" && noContactsNow && !profile.access_limited && !isNetworkMode);
 
       if (authFailed && profile.state !== "not_found") {
-        console.log(`[scrape] ⚠ Auth fallita per ${wcaId}: state=${profile.state} limited=${profile.access_limited} membersOnly=${profile.members_only_count} → SSO refresh`);
+        console.log(`[scrape] ⚠ Auth fallita/sessione scaduta per ${wcaId}: state=${profile.state} contacts=${profile.contacts?.length||0} limited=${profile.access_limited} → SSO refresh`);
         const refreshAuth = await forceSSORrefresh(targetDomain);
         if (!refreshAuth.error) {
           cookies = refreshAuth.cookies;
