@@ -129,26 +129,41 @@ function openResetPanel(){ document.getElementById("resetPanelOverlay").style.di
 function closeResetPanel(){ document.getElementById("resetPanelOverlay").style.display = "none"; }
 
 async function deleteOrphanProfiles(){
-  // Prima mostra stats
+  closeResetPanel();
+  log("🔍 Analisi profili senza email/contatti in corso...","info");
   try {
-    const statsResp = await fetch(API+"/api/cleanup");
-    const stats = await statsResp.json();
-    if(stats.incomplete === 0){
-      alert("Nessun profilo orfano trovato. Tutti i "+stats.total+" partner hanno email o telefono.");
+    // Step 1 — conta per paese
+    const resp = await fetch(API+"/api/partners?action=no_email_counts");
+    const data = await resp.json();
+    if(!data.success){ log("⚠ Errore analisi: "+(data.error||"sconosciuto"),"warn"); return; }
+    if(data.total === 0){
+      log("✅ Nessun profilo senza email/contatti trovato. Il DB è pulito.","ok");
       return;
     }
-    if(!confirm("Trovati "+stats.incomplete+" profili orfani su "+stats.total+" totali.\n\nSono partner senza email/telefono o [not_found].\nVuoi cancellarli? Potrai riscaricarli con dati completi.")) return;
-    closeResetPanel();
-    log("🗑 Cancellazione "+stats.incomplete+" profili orfani in corso...","warn");
-    const delResp = await fetch(API+"/api/cleanup?confirm=yes");
+    // Step 2 — mostra breakdown in popup
+    const rows = data.counts.map(r => {
+      const name = (() => {
+        for(const g of (typeof ALL_COUNTRIES!=="undefined"?ALL_COUNTRIES:[])){
+          const found = g.items.find(([c])=>c===r.country_code);
+          if(found) return found[1];
+        }
+        return r.country_code;
+      })();
+      return `  ${countryFlag(r.country_code)} ${name} (${r.country_code}): ${r.count} profili`;
+    }).join("\n");
+    const msg = `Trovati ${data.total} profili senza email e senza contatti:\n\n${rows}\n\nVuoi cancellarli? Potranno essere riscaricati con dati completi.`;
+    if(!confirm(msg)) return;
+    // Step 3 — elimina
+    log(`🗑 Cancellazione ${data.total} profili senza email...`,"warn");
+    const delResp = await fetch(API+"/api/partners?action=delete_no_email");
     const result = await delResp.json();
     if(result.success){
-      log("✅ Cancellati "+result.deleted+" profili orfani. Rimasti "+result.remaining+" completi.","ok");
-      if(typeof loadPartnerAgenda === "function") loadPartnerAgenda();
+      log(`✅ Cancellati ${result.deleted} profili senza email/contatti. Pronti per re-download.`,"ok");
+      if(typeof loadCountryCounts==="function") loadCountryCounts();
     } else {
       log("⚠ Errore cancellazione: "+(result.error||"sconosciuto"),"warn");
     }
-  } catch(e){ log("⚠ Errore cleanup: "+e.message,"warn"); }
+  } catch(e){ log("⚠ Errore: "+e.message,"warn"); }
 }
 
 function resetLocalScrapeData(){

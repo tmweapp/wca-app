@@ -268,6 +268,72 @@ module.exports = async (req, res) => {
       }
     }
 
+    // Conta profili senza email E senza contatti, per paese
+    if (action === "no_email_counts") {
+      const counts = {};
+      const ids = {};
+      let offset = 0;
+      const batchSize = 1000;
+      while (true) {
+        const url = `${SUPABASE_URL}/rest/v1/wca_profiles?select=wca_id,country_code,email,contacts&order=wca_id.asc&offset=${offset}&limit=${batchSize}`;
+        const r = await fetch(url, {
+          headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` },
+        });
+        if (!r.ok) break;
+        const rows = await r.json();
+        if (!rows || rows.length === 0) break;
+        for (const row of rows) {
+          const noEmail = !row.email || row.email.trim() === "";
+          const noContacts = !row.contacts || (Array.isArray(row.contacts) && row.contacts.length === 0);
+          if (noEmail && noContacts) {
+            const cc = (row.country_code || "??").toUpperCase().trim();
+            counts[cc] = (counts[cc] || 0) + 1;
+            if (!ids[cc]) ids[cc] = [];
+            ids[cc].push(row.wca_id);
+          }
+        }
+        if (rows.length < batchSize) break;
+        offset += batchSize;
+      }
+      // Ordina per count desc
+      const sorted = Object.entries(counts).sort((a,b) => b[1] - a[1]).map(([cc, count]) => ({ country_code: cc, count }));
+      return res.json({ success: true, counts: sorted, total: sorted.reduce((s,r) => s + r.count, 0) });
+    }
+
+    // Elimina profili senza email E senza contatti
+    if (action === "delete_no_email") {
+      const toDelete = [];
+      let offset = 0;
+      const batchSize = 1000;
+      while (true) {
+        const url = `${SUPABASE_URL}/rest/v1/wca_profiles?select=wca_id,email,contacts&order=wca_id.asc&offset=${offset}&limit=${batchSize}`;
+        const r = await fetch(url, {
+          headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` },
+        });
+        if (!r.ok) break;
+        const rows = await r.json();
+        if (!rows || rows.length === 0) break;
+        for (const row of rows) {
+          const noEmail = !row.email || row.email.trim() === "";
+          const noContacts = !row.contacts || (Array.isArray(row.contacts) && row.contacts.length === 0);
+          if (noEmail && noContacts) toDelete.push(row.wca_id);
+        }
+        if (rows.length < batchSize) break;
+        offset += batchSize;
+      }
+      let deleted = 0;
+      for (let i = 0; i < toDelete.length; i += 500) {
+        const batch = toDelete.slice(i, i + 500);
+        const filter = batch.map(id => `wca_id.eq.${encodeURIComponent(id)}`).join(",");
+        const r = await fetch(`${SUPABASE_URL}/rest/v1/wca_profiles?or=(${filter})`, {
+          method: "DELETE",
+          headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` },
+        });
+        if (r.ok) deleted += batch.length;
+      }
+      return res.json({ success: true, deleted, total: toDelete.length });
+    }
+
     if (action === "directory_counts") {
       const counts = {};
       let offset = 0;
