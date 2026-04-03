@@ -37,11 +37,19 @@ function setActiveCountry(code, name){
 }
 
 function _highlightActiveChip(code){
+  // selectedCountriesPreview chips
   document.querySelectorAll("[data-country-chip]").forEach(el => {
     const isActive = code && el.dataset.countryChip === code;
     el.style.border = isActive ? "2px solid #ef4444" : "1px solid rgba(99,102,241,0.25)";
     el.style.background = isActive ? "rgba(239,68,68,0.08)" : "rgba(99,102,241,0.08)";
     el.style.boxShadow = isActive ? "0 0 8px rgba(239,68,68,0.4)" : "none";
+  });
+  // headerFlags chips
+  document.querySelectorAll("[data-flag-chip]").forEach(el => {
+    const isActive = code && el.dataset.flagChip === code;
+    el.classList.toggle("active-download", !!isActive);
+    // Scroll il chip attivo in vista
+    if(isActive) el.scrollIntoView({ behavior:"smooth", block:"nearest", inline:"center" });
   });
 }
 

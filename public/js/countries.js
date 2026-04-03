@@ -208,21 +208,24 @@ function renderFlagChips(){
   ALL_COUNTRIES.forEach(g => g.items.forEach(([code, name]) => { nameMap[code] = name; }));
   const sorted = Object.entries(countryPartnerCounts).filter(([code,v]) => v > 0 && code.length === 2 && /^[A-Z]{2}$/.test(code)).sort((a,b) => b[1] - a[1]);
   let hasIncomplete = false;
+  const activeCode = typeof currentScrapingCountry !== 'undefined' ? currentScrapingCountry : null;
   const chips = sorted.map(([code, cnt]) => {
     const isSelected = selectedCountries.some(c => c.code === code);
+    const isActive = activeCode === code;
     const dir = getDirectory(code);
     const dirTotal = dir ? Object.keys(dir.ids).length : 0;
-    const doneCount = dir ? Object.values(dir.ids).filter(s => s === "done").length : 0;
     const pending = dir ? Object.values(dir.ids).filter(s => s === "pending").length : 0;
-    const completed = dir ? (pending === 0) : false;
     const missing = dirTotal - cnt;
     if(pending > 0) hasIncomplete = true;
-    return `<div class="flag-chip ${isSelected?'selected':''}" onclick="selectFlagCountry('${code}','${nameMap[code]||code}')" title="${nameMap[code]||code}: ${cnt} profili scaricati${dirTotal > 0 ? ', '+missing+' mancanti su '+dirTotal+' in directory' : ''}">
+    const name = nameMap[code] || code;
+    const cls = `flag-chip${isSelected?' selected':''}${isActive?' active-download':''}`;
+    return `<div class="${cls}" data-flag-chip="${code}" onclick="selectFlagCountry('${code}','${name}')" title="${name}: ${cnt} profili${dirTotal > 0 ? ', -'+missing+' su '+dirTotal : ''}">
       <span class="flag-emoji">${countryFlag(code)}</span>
       <span class="flag-counts">
         <span class="flag-count-top">${cnt}</span>
         ${dirTotal > 0 && missing > 0 ? '<span class="flag-count-bottom">-'+missing+'</span>' : (dirTotal > 0 ? '<span class="flag-count-ok">✓</span>' : '')}
       </span>
+      <span class="flag-name">${name}</span>
     </div>`;
   });
   // Tasto retry PROFILI — confronta directory vs profili e scarica solo i mancanti

@@ -435,13 +435,20 @@ body {
 .header-flags-row {
   display: flex;
   align-items: flex-start;
-  gap: 10px;
-  flex-wrap: wrap;
-  padding: 8px 0 10px 0;
+  gap: 6px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 8px 4px 10px 4px;
   border-top: 1px solid rgba(255,255,255,0.04);
   min-height: 0;
-  overflow: visible;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(99,102,241,0.3) transparent;
+  -webkit-overflow-scrolling: touch;
 }
+.header-flags-row::-webkit-scrollbar { height: 4px; }
+.header-flags-row::-webkit-scrollbar-track { background: transparent; }
+.header-flags-row::-webkit-scrollbar-thumb { background: rgba(99,102,241,0.3); border-radius: 2px; }
 .flag-chip {
   display: flex;
   flex-direction: column;
@@ -453,6 +460,7 @@ body {
   transition: all 0.2s;
   position: relative;
 }
+.flag-chip { flex-shrink: 0; min-width: 52px; max-width: 68px; }
 .flag-chip:hover {
   background: rgba(99,102,241,0.12);
 }
@@ -460,9 +468,24 @@ body {
   background: rgba(99,102,241,0.15);
   outline: 1.5px solid rgba(99,102,241,0.5);
 }
+.flag-chip.active-download {
+  outline: 2px solid #ef4444 !important;
+  background: rgba(239,68,68,0.08) !important;
+  box-shadow: 0 0 10px rgba(239,68,68,0.35);
+}
 .flag-chip .flag-emoji {
   font-size: 2rem;
   line-height: 1;
+}
+.flag-chip .flag-name {
+  font-size: .5rem;
+  color: #94a3b8;
+  font-weight: 500;
+  text-align: center;
+  line-height: 1.2;
+  max-width: 60px;
+  word-break: break-word;
+  white-space: normal;
 }
 .flag-chip .flag-counts {
   display: flex;
