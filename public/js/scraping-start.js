@@ -35,13 +35,25 @@ async function startScraping(){
     for(let ci = 0; ci < countries.length && scraping; ci++){
       const c = countries[ci];
 
-      // === CHECK RAPIDO: country già completata? Skip automatico ===
-      if(c.code && isCountryCompleted(c.code) && !updateAddress){
-        const info = completedCountries[c.code];
-        log(`⏭ ${c.name} (${c.code}): già completato (${info.count} partner) — skip`,"ok");
-        setStatus(`${c.name}: già completo — skip`, true);
-        skippedAll++;
-        continue;
+      // === CHECK: verifica su Supabase se il paese è già completo ===
+      // NON usare isCountryCompleted (localStorage) — può essere corrotto da sessioni precedenti
+      // Lascia che scrapeDiscoverCountry verifichi su Supabase (existing_ids) i profili reali
+      if(c.code && !updateAddress){
+        try {
+          const ckResp = await fetch(API+"/api/partners?action=existing_ids&country="+encodeURIComponent(c.code));
+          const ckData = await ckResp.json();
+          const dbCount = ckData.success ? (ckData.count || ckData.ids?.length || 0) : 0;
+          // Carica directory count
+          const dirResp = await fetch(API+"/api/load-directory?country="+encodeURIComponent(c.code));
+          const dirData = await dirResp.json();
+          const dirCount = dirData.members?.length || 0;
+          if(dirCount > 0 && dbCount >= dirCount){
+            log(`⏭ ${c.name} (${c.code}): ${dbCount}/${dirCount} profili già in Supabase — skip`,"ok");
+            setStatus(`${c.name}: già completo — skip`, true);
+            skippedAll++;
+            continue;
+          }
+        } catch(e){ /* se fallisce, procedi col download */ }
       }
 
       if(countries.length > 1) log(`═══ PAESE ${ci+1}/${countries.length}: ${c.name} (${c.code}) ═══`,"ok");
