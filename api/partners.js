@@ -284,10 +284,9 @@ module.exports = async (req, res) => {
         const rows = await r.json();
         if (!rows || rows.length === 0) break;
         for (const row of rows) {
-          // Nessuna email nel campo top-level E nessun contatto con email
-          const noTopEmail = !row.email || row.email.trim() === "";
-          const noContactEmail = !Array.isArray(row.contacts) || !row.contacts.some(c => c.email && c.email.trim() !== "");
-          if (noTopEmail && noContactEmail) {
+          // Nessun contatto con email personale (contacts[].email)
+          const noContactEmail = !Array.isArray(row.contacts) || row.contacts.length === 0 || !row.contacts.some(c => c.email && c.email.trim() !== "");
+          if (noContactEmail) {
             const cc = (row.country_code || "??").toUpperCase().trim();
             counts[cc] = (counts[cc] || 0) + 1;
             total++;
@@ -314,9 +313,8 @@ module.exports = async (req, res) => {
         const rows = await r.json();
         if (!rows || rows.length === 0) break;
         for (const row of rows) {
-          const noTopEmail = !row.email || row.email.trim() === "";
-          const noContactEmail = !Array.isArray(row.contacts) || !row.contacts.some(c => c.email && c.email.trim() !== "");
-          if (noTopEmail && noContactEmail) toDelete.push(row.wca_id);
+          const noContactEmail = !Array.isArray(row.contacts) || row.contacts.length === 0 || !row.contacts.some(c => c.email && c.email.trim() !== "");
+          if (noContactEmail) toDelete.push(row.wca_id);
         }
         if (rows.length < batchSize) break;
         offset += batchSize;
