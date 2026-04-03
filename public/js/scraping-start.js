@@ -32,28 +32,36 @@ async function startScraping(){
     const countries = selectedCountries.length > 0 ? [...selectedCountries] : [{code:"", name:"Tutti"}];
     let skippedAll = 0;
 
+    // === PRE-LOAD: una sola chiamata per avere profili e directory per tutti i paesi ===
+    let dbProfileCounts = {};  // country_code → n profili in Supabase
+    let dbDirCounts = {};      // country_code → n record in directory Supabase
+    if(!updateAddress){
+      try {
+        const [profResp, dirResp] = await Promise.all([
+          fetch(API+"/api/partners?action=country_counts"),
+          fetch(API+"/api/partners?action=directory_counts"),
+        ]);
+        const profData = await profResp.json();
+        const dirData  = await dirResp.json();
+        if(profData.counts) for(const [cc, n] of Object.entries(profData.counts)) dbProfileCounts[cc] = n;
+        if(dirData.counts)  for(const [cc, n] of Object.entries(dirData.counts))  dbDirCounts[cc] = n;
+        log(`📊 Pre-check: ${Object.keys(dbProfileCounts).length} paesi con profili, ${Object.keys(dbDirCounts).length} paesi con directory`,"ok");
+      } catch(e){ log(`⚠ Pre-check fallito: ${e.message} — nessun skip automatico`,"warn"); }
+    }
+
     for(let ci = 0; ci < countries.length && scraping; ci++){
       const c = countries[ci];
 
-      // === CHECK: verifica su Supabase se il paese è già completo ===
-      // NON usare isCountryCompleted (localStorage) — può essere corrotto da sessioni precedenti
-      // Lascia che scrapeDiscoverCountry verifichi su Supabase (existing_ids) i profili reali
+      // === CHECK RAPIDO: confronta profili Supabase vs directory Supabase ===
       if(c.code && !updateAddress){
-        try {
-          const ckResp = await fetch(API+"/api/partners?action=existing_ids&country="+encodeURIComponent(c.code));
-          const ckData = await ckResp.json();
-          const dbCount = ckData.success ? (ckData.count || ckData.ids?.length || 0) : 0;
-          // Carica directory count
-          const dirResp = await fetch(API+"/api/load-directory?country="+encodeURIComponent(c.code));
-          const dirData = await dirResp.json();
-          const dirCount = dirData.members?.length || 0;
-          if(dirCount > 0 && dbCount >= dirCount){
-            log(`⏭ ${c.name} (${c.code}): ${dbCount}/${dirCount} profili già in Supabase — skip`,"ok");
-            setStatus(`${c.name}: già completo — skip`, true);
-            skippedAll++;
-            continue;
-          }
-        } catch(e){ /* se fallisce, procedi col download */ }
+        const dbProf = dbProfileCounts[c.code] || 0;
+        const dbDir  = dbDirCounts[c.code]  || 0;
+        if(dbDir > 0 && dbProf >= dbDir){
+          log(`⏭ ${c.name} (${c.code}): ${dbProf}/${dbDir} profili in Supabase — skip`,"ok");
+          setStatus(`${c.name}: già completo — skip`, true);
+          skippedAll++;
+          continue;
+        }
       }
 
       if(countries.length > 1) log(`═══ PAESE ${ci+1}/${countries.length}: ${c.name} (${c.code}) ═══`,"ok");
