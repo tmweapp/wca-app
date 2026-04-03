@@ -369,7 +369,8 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
   // NON include membri con network diversi da quelli selezionati — quelli vanno saltati
   const noNetworkMembers = fullDir.members.filter(m => !m.networks || m.networks.length === 0);
 
-  log(`📊 ${countryName}: ${fullDir.members.length} totali, ${networkMemberIds.size} con network, ${noNetworkMembers.length} senza network`,"ok");
+  const withNetwork = fullDir.members.filter(m => m.networks && m.networks.length > 0).length;
+  log(`📊 ${countryName}: ${fullDir.members.length} totali, ${withNetwork} con network, ${noNetworkMembers.length} senza network`,"ok");
 
   if(noNetworkMembers.length === 0){
     log(`✅ Nessun partner senza network — procedura completata!`,"ok");

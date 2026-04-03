@@ -45,7 +45,11 @@ async function startScraping(){
       }
 
       if(countries.length > 1) log(`═══ PAESE ${ci+1}/${countries.length}: ${c.name} (${c.code}) ═══`,"ok");
-      await scrapeDiscoverCountry(c.code, c.name, updateAddress, filterByNetwork ? selectedNetDomains : null);
+      try {
+        await scrapeDiscoverCountry(c.code, c.name, updateAddress, filterByNetwork ? selectedNetDomains : null);
+      } catch(e){
+        log(`❌ Errore ${c.name}: ${e.message} — passo al prossimo paese`,"err");
+      }
 
       if(ci + 1 < countries.length && scraping){
         log(`⏸ Pausa ${COUNTRY_PAUSE}s prima del prossimo paese...`);
