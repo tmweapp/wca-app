@@ -193,32 +193,46 @@ module.exports = async (req, res) => {
       return res.json({ success: true, total: orphans.length, fixed, deleted, failed });
     }
 
-    // Elimina record wca_directory con networks vuoti (SQL diretto via RPC)
+    // Elimina record wca_directory con networks vuoti
     if (action === "repair_network") {
       try {
-        const sql = `WITH deleted AS (DELETE FROM wca_directory WHERE networks IS NULL OR networks = '[]'::jsonb RETURNING wca_id) SELECT count(*) as deleted FROM deleted;`;
-        const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/exec_sql`, {
-          method: "POST",
-          headers: {
-            "apikey": SUPABASE_KEY,
-            "Authorization": `Bearer ${SUPABASE_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ query: sql }),
+        // Step 1: DELETE records con networks IS NULL (PostgREST supporta is.null)
+        const delNull = await fetch(`${SUPABASE_URL}/rest/v1/wca_directory?networks=is.null`, {
+          method: "DELETE",
+          headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}`, "Prefer": "return=representation", "Content-Type": "application/json" },
         });
-        if (!r.ok) {
-          const txt = await r.text();
-          return res.json({ success: false, error: `SQL error: ${txt}` });
+        const nullRows = delNull.ok ? (await delNull.json()) : [];
+
+        // Step 2: Scan per empty arrays [] — solo wca_id, pagine da 5000
+        const emptyIds = [];
+        let offset = 0;
+        while (true) {
+          const r = await fetch(`${SUPABASE_URL}/rest/v1/wca_directory?select=wca_id,networks&limit=5000&offset=${offset}`, {
+            headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` },
+          });
+          if (!r.ok) break;
+          const rows = await r.json();
+          if (!rows || rows.length === 0) break;
+          for (const row of rows) {
+            if (Array.isArray(row.networks) && row.networks.length === 0) emptyIds.push(row.wca_id);
+          }
+          if (rows.length < 5000) break;
+          offset += 5000;
         }
-        const result = await r.json();
-        // exec_sql può restituire [{deleted: N}] oppure il count nel body
-        let deleted = 0;
-        if (Array.isArray(result) && result.length > 0) {
-          deleted = parseInt(result[0].deleted || result[0].count || 0);
-        } else if (result && typeof result === "object") {
-          deleted = parseInt(result.deleted || result.count || 0);
+
+        // Step 3: DELETE empty arrays in batch da 500
+        let deletedEmpty = 0;
+        for (let i = 0; i < emptyIds.length; i += 500) {
+          const batch = emptyIds.slice(i, i + 500);
+          const filter = batch.map(id => `wca_id.eq.${id}`).join(",");
+          const r = await fetch(`${SUPABASE_URL}/rest/v1/wca_directory?or=(${filter})`, {
+            method: "DELETE",
+            headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` },
+          });
+          if (r.ok) deletedEmpty += batch.length;
         }
-        return res.json({ success: true, deleted });
+
+        return res.json({ success: true, deleted: nullRows.length + deletedEmpty, nulls: nullRows.length, empties: deletedEmpty });
       } catch (e) {
         return res.json({ success: false, error: e.message });
       }
