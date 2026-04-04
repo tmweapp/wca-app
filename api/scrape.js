@@ -174,7 +174,7 @@ module.exports = async (req, res) => {
   if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
 
   try {
-    const { wcaIds, members, networkDomain } = req.body || {};
+    const { wcaIds, members, networkDomain, memberNetworks } = req.body || {};
     if (!wcaIds || !Array.isArray(wcaIds) || wcaIds.length === 0) return res.status(400).json({ error: "wcaIds richiesto" });
 
     const isNetworkMode = networkDomain && networkDomain !== "wcaworld.com";
@@ -247,9 +247,18 @@ module.exports = async (req, res) => {
       const needsRetry = (noContacts && profile.state === "ok") || (noContactEmails && profile.state === "ok");
       const wasGeneric = !isNetworkMode;
 
-      if (needsRetry && wasGeneric && profile.networks && profile.networks.length > 0) {
-        console.log(`[scrape] Auto-retry: ${wcaId} contacts=${profile.contacts?.length||0} contactEmails=${noContactEmails} limited=${profile.access_limited} networks: ${profile.networks.join(", ")}`);
-        const domainsToTry = networkNameToDomains(profile.networks);
+      // Determina network per auto-retry: preferisci directory networks (già come domini),
+      // fallback su HTML-extracted networks (nomi umani → conversione)
+      const VIRTUAL_NETS = new Set(["wca-first","wca-advanced","wca-chinaglobal","wca-interglobal","wca-vendors"]);
+      const BADGE_NETS = new Set(["allworldshipping","cass","qs","iata"]);
+      const dirNetDomains = (memberNetworks || []).filter(d => !VIRTUAL_NETS.has(d) && !BADGE_NETS.has(d) && d.includes("."));
+      const htmlNetDomains = (profile.networks && profile.networks.length > 0) ? networkNameToDomains(profile.networks) : [];
+      const retryDomains = dirNetDomains.length > 0 ? dirNetDomains : htmlNetDomains;
+      const hasRetryNetworks = retryDomains.length > 0 || (profile.networks && profile.networks.length > 0);
+
+      if (needsRetry && wasGeneric && hasRetryNetworks) {
+        console.log(`[scrape] Auto-retry: ${wcaId} contacts=${profile.contacts?.length||0} contactEmails=${noContactEmails} limited=${profile.access_limited} dirNets=[${dirNetDomains.join(",")}] htmlNets=[${(profile.networks||[]).join(",")}]`);
+        const domainsToTry = retryDomains.length > 0 ? retryDomains : networkNameToDomains(profile.networks);
         console.log(`[scrape] Auto-retry domini: ${domainsToTry.join(", ") || "nessuno"}`);
 
         for (const retryDomain of domainsToTry) {

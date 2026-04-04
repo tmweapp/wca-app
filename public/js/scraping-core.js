@@ -44,7 +44,7 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
         const timeout = setTimeout(() => controller.abort(), 50000);
         const resp = await fetch(API+"/api/scrape",{
           method:"POST",headers:{"Content-Type":"application/json"},
-          body:JSON.stringify({wcaIds:[member.id], members: profileHref ? [{id:member.id, href:profileHref}] : [], networkDomain: loginDomain}),
+          body:JSON.stringify({wcaIds:[member.id], members: profileHref ? [{id:member.id, href:profileHref}] : [], networkDomain: loginDomain, memberNetworks: member.networks || []}),
           signal: controller.signal
         });
         clearTimeout(timeout);
