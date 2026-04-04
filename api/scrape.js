@@ -182,8 +182,13 @@ module.exports = async (req, res) => {
       let profile = await fetchProfile(wcaId, cookies, memberMap[wcaId], networkDomain, ssoCookies);
 
       // ═══ SSO REFRESH: se il profilo mostra segni di auth fallita, forza re-login ═══
-      // Segnali: login_redirect, access_limited, oppure members_only_count > 2 senza contatti
-      const authFailed = profile.state === "login_redirect";
+      // Segnali: login_redirect (redirect esplicito) OPPURE soft expiry (WCA risponde 200
+      // ma nasconde i dati con "Members only" — sessione accettata ma non autenticata)
+      const softExpiry = profile.state === "ok"
+        && profile.members_only_count > 0
+        && (!profile.contacts || profile.contacts.length === 0);
+      const authFailed = profile.state === "login_redirect" || softExpiry;
+      if (softExpiry) console.log(`[scrape] ⚠ SOFT EXPIRY per ${wcaId}: members_only=${profile.members_only_count} contacts=${profile.contacts?.length||0} → SSO refresh`);
 
       if (authFailed && profile.state !== "not_found") {
         console.log(`[scrape] ⚠ Auth fallita per ${wcaId}: state=${profile.state} limited=${profile.access_limited} membersOnly=${profile.members_only_count} → SSO refresh`);

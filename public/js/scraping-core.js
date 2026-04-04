@@ -39,9 +39,9 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
     let retries = 0;
     while(retries <= MAX_RETRIES && scraping){
       try {
-        // Timeout 12s per evitare fetch appesi
+        // Timeout 50s: permette SSO refresh (15-25s) + fetch profilo
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 12000);
+        const timeout = setTimeout(() => controller.abort(), 50000);
         const resp = await fetch(API+"/api/scrape",{
           method:"POST",headers:{"Content-Type":"application/json"},
           body:JSON.stringify({wcaIds:[member.id], members: profileHref ? [{id:member.id, href:profileHref}] : [], networkDomain: loginDomain}),
@@ -408,9 +408,9 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
       setProgress(i, noNetToDownload.length);
 
       try {
-        // Timeout aggressivo: 8s max per NO NETWORK
+        // Timeout 50s: permette SSO refresh (15-25s) + fetch profilo
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 8000);
+        const timeout = setTimeout(() => controller.abort(), 50000);
         const resp = await fetch(API+"/api/scrape",{
           method:"POST",headers:{"Content-Type":"application/json"},
           body:JSON.stringify({
