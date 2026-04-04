@@ -95,6 +95,29 @@ CREATE TABLE IF NOT EXISTS wca_jobs (
 
 CREATE INDEX IF NOT EXISTS idx_directory_country ON wca_directory(country_code);
 CREATE INDEX IF NOT EXISTS idx_profiles_country ON wca_profiles(country_code);
+
+CREATE TABLE IF NOT EXISTS wca_events (
+  id SERIAL PRIMARY KEY,
+  type TEXT NOT NULL,
+  msg TEXT,
+  wca_id TEXT,
+  ts TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_events_ts ON wca_events(ts DESC);
+CREATE INDEX IF NOT EXISTS idx_events_type ON wca_events(type);
+
+-- Mantieni solo gli ultimi 1000 eventi (pulizia automatica)
+CREATE OR REPLACE FUNCTION trim_wca_events() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  DELETE FROM wca_events WHERE id IN (
+    SELECT id FROM wca_events ORDER BY ts DESC OFFSET 1000
+  );
+  RETURN NULL;
+END;
+$$;
+DROP TRIGGER IF EXISTS trim_events_trigger ON wca_events;
+CREATE TRIGGER trim_events_trigger AFTER INSERT ON wca_events
+  FOR EACH STATEMENT EXECUTE FUNCTION trim_wca_events();
   `;
 
   return res.json(results);

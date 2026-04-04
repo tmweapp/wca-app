@@ -10,8 +10,18 @@
  */
 const fetch = require("node-fetch");
 const cheerio = require("cheerio");
-const { BASE, UA, getCachedCookies, saveCookiesToCache, testCookies, ssoLogin } = require("./utils/auth");
+const { BASE, UA, getCachedCookies, saveCookiesToCache, testCookies, ssoLogin, SUPABASE_URL, SUPABASE_KEY } = require("./utils/auth");
 const { extractProfile, NETWORK_DOMAINS, getNetworkBase, networkNameToDomains } = require("./utils/extract");
+
+// ── Log evento su Supabase (fire-and-forget) ──
+function logEvent(type, msg, wcaId) {
+  const body = JSON.stringify({ type, msg, wca_id: wcaId || null, ts: new Date().toISOString() });
+  fetch(`${SUPABASE_URL}/rest/v1/wca_events`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` },
+    body, timeout: 3000,
+  }).catch(() => {});
+}
 
 // ═══ FETCH URL con gestione redirect manuale ═══
 // ssoCookies: cookies per sso.api.wcaworld.com (necessari per CheckLoggedIn redirect)
@@ -188,10 +198,14 @@ module.exports = async (req, res) => {
         && profile.members_only_count > 0
         && (!profile.contacts || profile.contacts.length === 0);
       const authFailed = profile.state === "login_redirect" || softExpiry;
-      if (softExpiry) console.log(`[scrape] ⚠ SOFT EXPIRY per ${wcaId}: members_only=${profile.members_only_count} contacts=${profile.contacts?.length||0} → SSO refresh`);
+      if (softExpiry) {
+        console.log(`[scrape] ⚠ SOFT EXPIRY per ${wcaId}: members_only=${profile.members_only_count} contacts=${profile.contacts?.length||0} → SSO refresh`);
+        logEvent("soft_expiry", `Soft expiry rilevato: members_only=${profile.members_only_count}`, wcaId);
+      }
 
       if (authFailed && profile.state !== "not_found") {
         console.log(`[scrape] ⚠ Auth fallita per ${wcaId}: state=${profile.state} membersOnly=${profile.members_only_count} → SSO refresh`);
+        logEvent("sso_refresh_start", `SSO refresh avviato: state=${profile.state}`, wcaId);
         const refreshAuth = await forceSSORrefresh(targetDomain);
         if (!refreshAuth.error) {
           cookies = refreshAuth.cookies;
@@ -205,6 +219,7 @@ module.exports = async (req, res) => {
               return res.json({ success: true, results: [{ wca_id: wcaId, state: "session_expired", members_only_count: retryProfile.members_only_count }] });
             }
             console.log(`[scrape] ✅ SSO refresh OK per ${wcaId}: contacts=${retryProfile.contacts?.length || 0}`);
+            logEvent("sso_refresh_ok", `SSO refresh OK: contacts=${retryProfile.contacts?.length||0}`, wcaId);
             profile = retryProfile;
             profile.sso_refreshed = true;
           } else if (retryProfile.state !== "not_found") {

@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WCA Monitor</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0a0a0f; color: #e2e8f0; font-family: 'Inter', sans-serif; font-size: 13px; min-height: 100vh; padding: 20px; }
+  h1 { font-size: 1.1rem; font-weight: 700; color: #a5b4fc; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
+  .subtitle { color: #64748b; font-size: 0.75rem; margin-bottom: 20px; font-family: 'JetBrains Mono', monospace; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+  @media (max-width: 700px) { .grid { grid-template-columns: 1fr; } }
+  .card { background: #0f0f1a; border: 1px solid #1e1e3a; border-radius: 10px; padding: 16px; }
+  .card-title { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #475569; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+  .pulse { width: 6px; height: 6px; border-radius: 50%; background: #22c55e; animation: pulse 2s infinite; display: inline-block; }
+  @keyframes pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.85); } }
+  .pulse.warn { background: #f59e0b; }
+  .pulse.dead { background: #ef4444; animation: none; }
+
+  /* Session cards */
+  .session-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; border-radius: 7px; margin-bottom: 6px; background: #12121f; border: 1px solid #1a1a30; }
+  .session-row.ok { border-color: rgba(34,197,94,0.3); background: rgba(34,197,94,0.04); }
+  .session-row.warn { border-color: rgba(245,158,11,0.3); background: rgba(245,158,11,0.04); }
+  .session-row.dead { border-color: rgba(239,68,68,0.3); background: rgba(239,68,68,0.04); }
+  .session-domain { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: #94a3b8; font-weight: 600; }
+  .session-age { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; }
+  .session-status { font-size: 0.65rem; font-weight: 700; padding: 2px 7px; border-radius: 10px; }
+  .session-status.ok { background: rgba(34,197,94,0.15); color: #86efac; }
+  .session-status.warn { background: rgba(245,158,11,0.15); color: #fcd34d; }
+  .session-status.dead { background: rgba(239,68,68,0.15); color: #fca5a5; }
+  .session-aspx { font-size: 0.6rem; color: #475569; margin-left: 6px; }
+
+  /* Stats bar */
+  .stats-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+  .stat-box { flex: 1; min-width: 90px; background: #0f0f1a; border: 1px solid #1e1e3a; border-radius: 8px; padding: 12px; text-align: center; }
+  .stat-val { font-size: 1.6rem; font-weight: 700; color: #a5b4fc; font-family: 'JetBrains Mono', monospace; line-height: 1; }
+  .stat-lbl { font-size: 0.6rem; color: #475569; text-transform: uppercase; letter-spacing: 0.06em; margin-top: 4px; }
+
+  /* Event log */
+  #eventLog { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; line-height: 1.7; overflow-y: auto; max-height: 340px; }
+  .ev { padding: 4px 6px; border-radius: 4px; display: flex; gap: 8px; align-items: baseline; }
+  .ev:nth-child(even) { background: rgba(255,255,255,0.015); }
+  .ev-ts { color: #475569; white-space: nowrap; flex-shrink: 0; }
+  .ev-type { flex-shrink: 0; font-weight: 700; }
+  .ev-type.soft_expiry { color: #f59e0b; }
+  .ev-type.sso_refresh_start { color: #60a5fa; }
+  .ev-type.sso_refresh_ok { color: #4ade80; }
+  .ev-type.sso_refresh_fail { color: #f87171; }
+  .ev-type.session_expired { color: #f87171; }
+  .ev-msg { color: #94a3b8; }
+  .ev-wca { color: #6366f1; font-size: 0.65rem; }
+  .no-events { color: #334155; text-align: center; padding: 24px; font-size: 0.75rem; }
+
+  /* TTL bar */
+  .ttl-bar-wrap { margin-top: 8px; }
+  .ttl-label { display: flex; justify-content: space-between; font-size: 0.65rem; color: #475569; margin-bottom: 4px; }
+  .ttl-bar { height: 5px; border-radius: 3px; background: #1e1e3a; overflow: hidden; }
+  .ttl-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease, background 0.5s ease; }
+
+  /* Refresh indicator */
+  .top-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  .refresh-info { font-size: 0.7rem; color: #334155; display: flex; align-items: center; gap: 6px; }
+  .spinner { width: 10px; height: 10px; border: 1.5px solid #334155; border-top-color: #6366f1; border-radius: 50%; animation: spin 0.8s linear infinite; display: none; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .status-dot.online { background: #22c55e; box-shadow: 0 0 6px #22c55e; }
+  .status-dot.offline { background: #ef4444; }
+
+  /* Empty session placeholder */
+  .no-sessions { color: #334155; text-align: center; padding: 20px; font-size: 0.75rem; }
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <div>
+    <h1>🛰 WCA Session Monitor</h1>
+    <div class="subtitle" id="lastUpdate">In attesa di dati...</div>
+  </div>
+  <div class="refresh-info">
+    <div id="statusDot" class="status-dot offline"></div>
+    <span id="refreshLabel">Connessione...</span>
+    <div class="spinner" id="spinner"></div>
+  </div>
+</div>
+
+<!-- Stats row -->
+<div class="stats-row">
+  <div class="stat-box">
+    <div class="stat-val" id="statProfiles">—</div>
+    <div class="stat-lbl">Profili DB</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-val" id="statSessions">—</div>
+    <div class="stat-lbl">Sessioni attive</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-val" id="statSoftExpiry">—</div>
+    <div class="stat-lbl">Soft expiry (1h)</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-val" id="statSsoRefresh">—</div>
+    <div class="stat-lbl">SSO refresh (1h)</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-val" id="statSsoOk">—</div>
+    <div class="stat-lbl">SSO OK (1h)</div>
+  </div>
+</div>
+
+<div class="grid">
+  <!-- Sessioni -->
+  <div class="card">
+    <div class="card-title">
+      <span class="pulse" id="sessionPulse"></span>
+      Stato Sessioni WCA
+    </div>
+    <div id="sessionList"><div class="no-sessions">Caricamento...</div></div>
+  </div>
+
+  <!-- Log eventi -->
+  <div class="card">
+    <div class="card-title">
+      📋 Log eventi (ultimi 100)
+    </div>
+    <div id="eventLog"><div class="no-events">Nessun evento registrato ancora.<br>Gli eventi appaiono durante il download.</div></div>
+  </div>
+</div>
+
+<script>
+const API = location.origin;
+const POLL_MS = 5000; // 5 secondi
+
+function fmt(ts) {
+  if (!ts) return "—";
+  const d = new Date(ts);
+  return d.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+}
+
+function fmtAge(sec) {
+  if (sec < 60) return sec + "s";
+  return Math.floor(sec / 60) + "m " + (sec % 60) + "s";
+}
+
+function statusClass(s) {
+  if (s.expired) return "dead";
+  if (s.warning) return "warn";
+  return "ok";
+}
+
+function renderSessions(sessions) {
+  const el = document.getElementById("sessionList");
+  const pulse = document.getElementById("sessionPulse");
+
+  if (!sessions || sessions.length === 0) {
+    el.innerHTML = '<div class="no-sessions">Nessuna sessione in cache.<br>Clicca Login nell\'app per creare una sessione.</div>';
+    pulse.className = "pulse dead";
+    document.getElementById("statSessions").textContent = "0";
+    return;
+  }
+
+  const anyDead = sessions.some(s => s.expired);
+  const anyWarn = sessions.some(s => s.warning);
+  pulse.className = "pulse" + (anyDead ? " dead" : anyWarn ? " warn" : "");
+
+  const activeSessions = sessions.filter(s => !s.expired).length;
+  document.getElementById("statSessions").textContent = activeSessions + "/" + sessions.length;
+
+  el.innerHTML = sessions.map(s => {
+    const cls = statusClass(s);
+    const pct = Math.max(0, Math.min(100, 100 - (s.age_seconds / 600) * 100));
+    const barColor = cls === "ok" ? "#22c55e" : cls === "warn" ? "#f59e0b" : "#ef4444";
+    return `
+      <div class="session-row ${cls}">
+        <div>
+          <span class="session-domain">${s.domain}</span>
+          <span class="session-aspx">${s.hasASPX ? "✓ ASPXAUTH" : "✗ no auth"} ${s.has_sso ? "· SSO" : ""}</span>
+          <div class="ttl-bar-wrap">
+            <div class="ttl-label"><span>età: ${fmtAge(s.age_seconds)}</span><span>TTL 10min</span></div>
+            <div class="ttl-bar"><div class="ttl-fill" style="width:${pct}%;background:${barColor}"></div></div>
+          </div>
+        </div>
+        <div>
+          <span class="session-status ${cls}">${s.status}</span>
+          <div style="font-size:0.6rem;color:#475569;text-align:right;margin-top:3px">${fmt(s.updated_at)}</div>
+        </div>
+      </div>`;
+  }).join("");
+}
+
+function renderEvents(events) {
+  const el = document.getElementById("eventLog");
+  if (!events || events.length === 0) {
+    el.innerHTML = '<div class="no-events">Nessun evento registrato ancora.<br>Gli eventi appaiono durante il download.</div>';
+    return;
+  }
+  el.innerHTML = events.map(ev => `
+    <div class="ev">
+      <span class="ev-ts">${fmt(ev.ts)}</span>
+      <span class="ev-type ${ev.type}">${ev.type}</span>
+      <span class="ev-msg">${ev.msg || ""}</span>
+      ${ev.wca_id ? `<span class="ev-wca">#${ev.wca_id}</span>` : ""}
+    </div>`).join("");
+}
+
+function countEvents(events, type, sinceMs) {
+  const since = Date.now() - sinceMs;
+  return events.filter(e => e.type === type && new Date(e.ts).getTime() > since).length;
+}
+
+async function poll() {
+  document.getElementById("spinner").style.display = "inline-block";
+  try {
+    const resp = await fetch(API + "/api/status");
+    const data = await resp.json();
+    document.getElementById("spinner").style.display = "none";
+
+    if (!data.success) throw new Error(data.error);
+
+    document.getElementById("statusDot").className = "status-dot online";
+    document.getElementById("refreshLabel").textContent = "Live · aggiorna ogni 5s";
+    document.getElementById("lastUpdate").textContent = "Ultimo aggiornamento: " + fmt(data.ts);
+
+    // Stats
+    document.getElementById("statProfiles").textContent = data.db?.total_profiles ?? "—";
+    const ONE_HOUR = 60 * 60 * 1000;
+    document.getElementById("statSoftExpiry").textContent = countEvents(data.events, "soft_expiry", ONE_HOUR);
+    document.getElementById("statSsoRefresh").textContent = countEvents(data.events, "sso_refresh_start", ONE_HOUR);
+    document.getElementById("statSsoOk").textContent = countEvents(data.events, "sso_refresh_ok", ONE_HOUR);
+
+    renderSessions(data.sessions);
+    renderEvents(data.events);
+
+  } catch (e) {
+    document.getElementById("spinner").style.display = "none";
+    document.getElementById("statusDot").className = "status-dot offline";
+    document.getElementById("refreshLabel").textContent = "Errore: " + e.message;
+  }
+}
+
+poll();
+setInterval(poll, POLL_MS);
+</script>
+</body>
+</html>
