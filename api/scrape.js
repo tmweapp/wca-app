@@ -140,15 +140,9 @@ async function getAuthCookies(domain) {
   }
 
   if (!cookies) {
-    // ⚠ Per wcaworld.com NON usare tmsrlmin come fallback:
-    // tmsrlmin ha accesso limitato e non vede i contatti dei membri.
-    // L'utente DEVE fare login manuale per avere la sessione con accesso pieno.
-    if (isMainDomain) {
-      console.log("[scrape] ⛔ Nessuna sessione in cache per wcaworld.com — richiesto login utente");
-      return { error: "session_expired_please_login" };
-    }
-    // Per i network specifici: SSO anonimo è accettabile
-    console.log(`[scrape] SSO login su ${networkBase}...`);
+    // Nessuna cache valida → SSO login automatico (come giorno 1)
+    // Usa WCA_USERNAME/WCA_PASSWORD da env vars — se non impostate, fallback a tmsrlmin
+    console.log(`[scrape] Nessuna cache → SSO login su ${networkBase}...`);
     const loginResult = await ssoLogin(null, null, networkBase);
     if (!loginResult.success) return { error: loginResult.error };
     cookies = loginResult.cookies;
