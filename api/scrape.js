@@ -181,13 +181,22 @@ module.exports = async (req, res) => {
     for (const wcaId of batch) {
       let profile = await fetchProfile(wcaId, cookies, memberMap[wcaId], networkDomain, ssoCookies);
 
-      // ═══ SSO REFRESH: solo se il profilo dà login_redirect esplicito ═══
-      // NON fare SSO refresh per profili senza contatti — troppo lento (15-25s), causa timeout
-      // La sessione viene rinnovata proattivamente ogni 15min via cache TTL
-      const authFailed = profile.state === "login_redirect";
+      // ═══ SSO REFRESH: login_redirect OPPURE soft-expiry (200 senza contatti) ═══
+      // "Soft expiry": WCA accetta il cookie ma la sessione è scaduta internamente →
+      //   risponde 200 con profilo pubblico (niente contatti), NON redirect al login.
+      // Ora è sicuro fare refresh (client 50s, server 60s, SSO ~20s + fetch ~8s = ~28s).
+      // IMPORTANTE: solo in modalità wcaworld.com (non network) e solo se NON access_limited
+      // (access_limited = profilo genuinamente ristretto, non problema di sessione).
+      const softExpired = profile.state === "ok" &&
+        (!profile.contacts || profile.contacts.length === 0) &&
+        !profile.access_limited &&
+        !isNetworkMode;
 
-      if (authFailed) {
-        console.log(`[scrape] ⚠ Login redirect per ${wcaId} → SSO refresh`);
+      const authFailed = profile.state === "login_redirect" || softExpired;
+
+      if (authFailed && profile.state !== "not_found") {
+        const reason = profile.state === "login_redirect" ? "login_redirect" : "soft_expired (0 contacts, not limited)";
+        console.log(`[scrape] ⚠ Auth fallita [${reason}] per ${wcaId} → SSO refresh`);
         const refreshAuth = await forceSSORrefresh(targetDomain);
         if (!refreshAuth.error) {
           cookies = refreshAuth.cookies;
@@ -197,6 +206,8 @@ module.exports = async (req, res) => {
             console.log(`[scrape] SSO refresh OK per ${wcaId}: contacts=${retryProfile.contacts?.length || 0} limited=${retryProfile.access_limited}`);
             profile = retryProfile;
             profile.sso_refreshed = true;
+          } else {
+            console.log(`[scrape] SSO refresh non risolutivo per ${wcaId}: state=${retryProfile.state}`);
           }
         }
       }
