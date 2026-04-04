@@ -134,6 +134,8 @@ async function ssoLogin(username, password, targetBase) {
   username = username || process.env.WCA_USERNAME || "tmsrlmin";
   password = password || process.env.WCA_PASSWORD || "G0u3v!VvCn";
   targetBase = targetBase || BASE; // default wcaworld.com
+  const usingEnvCreds = !!process.env.WCA_USERNAME;
+  console.log(`[auth] SSO credentials: username=${username} usingEnvCreds=${usingEnvCreds} hasEnvPwd=${!!process.env.WCA_PASSWORD}`);
 
   // Estrai il dominio dal base URL (es. "wcaprojects.com" da "https://www.wcaprojects.com")
   const TARGET_DOMAIN = targetBase.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "");
