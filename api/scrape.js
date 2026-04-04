@@ -201,12 +201,16 @@ module.exports = async (req, res) => {
             // Verifica che dopo il refresh i dati siano reali (non soft expiry di nuovo)
             const stillExpired = retryProfile.members_only_count > 0 && (!retryProfile.contacts || retryProfile.contacts.length === 0);
             if (stillExpired) {
-              console.log(`[scrape] ❌ SSO refresh FALLITO per ${wcaId}: ancora soft expiry dopo refresh → skip profilo`);
+              console.log(`[scrape] ❌ SSO refresh FALLITO per ${wcaId}: ancora soft expiry dopo refresh → skip`);
               return res.json({ success: true, results: [{ wca_id: wcaId, state: "session_expired", members_only_count: retryProfile.members_only_count }] });
             }
             console.log(`[scrape] ✅ SSO refresh OK per ${wcaId}: contacts=${retryProfile.contacts?.length || 0}`);
             profile = retryProfile;
             profile.sso_refreshed = true;
+          } else if (retryProfile.state !== "not_found") {
+            // Retry ha restituito uno stato non-ok diverso da not_found → skip profilo, non salvare l'originale vuoto
+            console.log(`[scrape] ❌ Retry post-refresh: state=${retryProfile.state} → skip`);
+            return res.json({ success: true, results: [{ wca_id: wcaId, state: "session_expired" }] });
           }
         } else {
           console.log(`[scrape] ❌ SSO refresh error per ${wcaId}: ${refreshAuth.error} → skip profilo`);
