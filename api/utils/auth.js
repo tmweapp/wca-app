@@ -26,11 +26,10 @@ async function getCachedCookies(domain) {
     const rows = await resp.json();
     if (!rows || rows.length === 0) return null;
     const row = rows[0];
-    // Cookie validi per max 10 minuti — mantiene la sessione WCA fresca per i dati dei contatti
-    // WCA usa auth di sessione diversa per contatti vs Directory: 10min garantisce SSO refresh
-    // prima della scadenza della sessione server-side WCA (stimata ~15-20 min)
+    // Cookie validi per max 2 ore — il .ASPXAUTH dell'utente dura ore/giorni
+    // NON usare TTL breve: il tuo account ha full access, tmsrlmin no
     const age = Date.now() - new Date(row.updated_at).getTime();
-    if (age > 10 * 60 * 1000) { console.log(`[auth] Cached cookies scaduti (>10min) domain=${domain||"wcaworld.com"}`); return null; }
+    if (age > 120 * 60 * 1000) { console.log(`[auth] Cached cookies scaduti (>2h) domain=${domain||"wcaworld.com"}`); return null; }
     console.log(`[auth] Usando cookies cached (età: ${Math.round(age/1000)}s) domain=${domain||"wcaworld.com"} hasSso=${!!row.sso_cookies}`);
     // Ritorna ANCHE i cookies SSO — servono per i redirect a sso.api.wcaworld.com/CheckLoggedIn
     return { cookies: row.cookies, ssoCookies: row.sso_cookies || "" };
