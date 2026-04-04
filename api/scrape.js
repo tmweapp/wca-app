@@ -186,7 +186,7 @@ module.exports = async (req, res) => {
 
     // Auth sul dominio target
     const auth = await getAuthCookies(targetDomain);
-    if (auth.error) return res.status(500).json({ success: false, error: auth.error });
+    if (auth.error) return res.status(200).json({ success: false, error: auth.error });
     let cookies = auth.cookies;
     let ssoCookies = auth.ssoCookies || "";
 

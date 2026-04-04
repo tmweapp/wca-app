@@ -43,7 +43,7 @@ function showLoginRequiredBanner(){
     "box-shadow:0 4px 20px rgba(0,0,0,0.5)","border-bottom:2px solid #ef4444"
   ].join(";");
   banner.innerHTML = `
-    <span>⛔ SESSIONE SCADUTA — Vai su <b>Login</b> nell'app, effettua l'accesso, poi riprendi il download.</span>
+    <span>⛔ SESSIONE SCADUTA — Clicca <b style="cursor:pointer;text-decoration:underline" onclick="document.querySelector('[data-page=login]')?.click()">Login</b> nel menu in alto, accedi con le tue credenziali WCA, poi clicca <b>Continua</b> per riprendere.</span>
     <button onclick="document.getElementById('loginRequiredBanner').remove()"
       style="background:#ef4444;color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-weight:700;margin-left:16px">✕</button>
   `;
