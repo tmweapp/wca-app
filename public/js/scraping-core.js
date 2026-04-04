@@ -41,7 +41,7 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
       try {
         // Timeout 12s per evitare fetch appesi
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 50000);
+        const timeout = setTimeout(() => controller.abort(), 12000);
         const resp = await fetch(API+"/api/scrape",{
           method:"POST",headers:{"Content-Type":"application/json"},
           body:JSON.stringify({wcaIds:[member.id], members: profileHref ? [{id:member.id, href:profileHref}] : [], networkDomain: loginDomain}),
@@ -60,21 +60,12 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
         const profile = data.results?.[0];
         if(!profile) return { ok:false, error:"no_result" };
         if(profile.state === "ok"){
-          // Guardia anti-sessione-scaduta: se 0 contatti e non limited, non salvare e riprova
-          const hasNoContacts = !profile.contacts || profile.contacts.length === 0;
-          if(hasNoContacts && !profile.access_limited && retries < MAX_RETRIES){
-            retries++;
-            log(`⚠ ${profile.company_name} (${profile.wca_id}): 0 contatti senza access_limited — probabile sessione scaduta, retry ${retries}/${MAX_RETRIES}`,"warn");
-            await sleepWithActivity("🔄", `Retry per sessione scaduta`, 3000);
-            continue;
-          }
           scrapedProfiles.unshift(profile);
           if(scrapedProfiles.length > MAX_TABS) scrapedProfiles.pop();
           addScrapedTab(profile, 0);
           trimScrapedTabs(MAX_TABS);
           const limited = profile.access_limited ? " [LIMITATO]" : "";
-          const noContact = hasNoContacts && !profile.access_limited ? " [⚠NO CONTATTI]" : "";
-          log(`✓ ${profile.company_name} (${profile.wca_id}) contatti:${profile.contacts?.length||0}${limited}${noContact} [${networkLabel}]`,"ok");
+          log(`✓ ${profile.company_name} (${profile.wca_id}) contatti:${profile.contacts?.length||0}${limited} [${networkLabel}]`,"ok");
           await saveToSupabase(profile);
           markIdDone(country, profile.wca_id);
           updateResultRow(profile.wca_id, "ok");
@@ -419,7 +410,7 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
       try {
         // Timeout aggressivo: 8s max per NO NETWORK
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 50000);
+        const timeout = setTimeout(() => controller.abort(), 8000);
         const resp = await fetch(API+"/api/scrape",{
           method:"POST",headers:{"Content-Type":"application/json"},
           body:JSON.stringify({
