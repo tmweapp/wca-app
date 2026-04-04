@@ -14,12 +14,12 @@ module.exports = async (req, res) => {
     // ═══ CRITICO: salva i cookies del login utente nella cache Supabase ═══
     // Così il /api/scrape li riusa invece delle credenziali hardcoded
     if (result.success && result.cookies) {
-      const isValid = await testCookies(result.cookies, BASE);
-      console.log(`[login] User login success, testCookies=${isValid}, saving to cache for scrape reuse`);
-      if (isValid) {
-        await saveCookiesToCache(result.cookies, "wcaworld.com", result.ssoCookies || "");
-        console.log(`[login] ✓ Cookies utente salvati in cache — il scrape li userà`);
-      }
+      // Salva SEMPRE se il login SSO ha avuto successo — non usare testCookies come gate.
+      // testCookies può fallire anche con cookies validi (WCA risponde diversamente,
+      // nessun logout link, timeout) e impedirebbe il salvataggio della sessione utente.
+      await saveCookiesToCache(result.cookies, "wcaworld.com", result.ssoCookies || "");
+      const hasASPX = result.cookies.includes(".ASPXAUTH");
+      console.log(`[login] ✓ Cookies utente salvati in cache (hasASPX=${hasASPX}) — il scrape li userà`);
     }
 
     return res.json(result);
