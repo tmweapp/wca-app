@@ -128,12 +128,15 @@ async function getAuthCookies(domain) {
   let ssoCookies = "";
 
   // getCachedCookies ritorna { cookies, ssoCookies } oppure null
+  // NON ri-testare i cookies cached: getCachedCookies applica già il TTL di 2h.
+  // testCookies aggiunge una richiesta extra a WCA che può fallire per mille motivi
+  // (timeout, pagina diversa, nessun logout link) scartando cookies perfettamente validi.
+  // Il soft-expiry detector in scrape.js gestisce il caso di sessione scaduta lato WCA.
   const cached = await getCachedCookies(domain);
   if (cached) {
     cookies = cached.cookies;
     ssoCookies = cached.ssoCookies || "";
-    const valid = await testCookies(cookies, networkBase);
-    if (!valid) { cookies = null; ssoCookies = ""; }
+    console.log(`[scrape] ✓ Cookies cached trovati (len=${cookies.length}, hasASPX=${cookies.includes(".ASPXAUTH")})`);
   }
 
   if (!cookies) {
@@ -141,7 +144,7 @@ async function getAuthCookies(domain) {
     // tmsrlmin ha accesso limitato e non vede i contatti dei membri.
     // L'utente DEVE fare login manuale per avere la sessione con accesso pieno.
     if (isMainDomain) {
-      console.log("[scrape] ⛔ Nessuna sessione valida per wcaworld.com — richiesto login utente");
+      console.log("[scrape] ⛔ Nessuna sessione in cache per wcaworld.com — richiesto login utente");
       return { error: "session_expired_please_login" };
     }
     // Per i network specifici: SSO anonimo è accettabile
