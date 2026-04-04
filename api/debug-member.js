@@ -8,7 +8,7 @@ module.exports = async (req, res) => {
 
   try {
     // Check wca_directory
-    const r1 = await fetch(`${SUPABASE_URL}/rest/v1/wca_directory?select=wca_id,networks,scrape_url,scrape_domain,country,name&wca_id=eq.${wcaId}`, {
+    const r1 = await fetch(`${SUPABASE_URL}/rest/v1/wca_directory?select=*&wca_id=eq.${wcaId}`, {
       headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
     });
     const dir = await r1.json();
@@ -20,7 +20,7 @@ module.exports = async (req, res) => {
     const prof = await r2.json();
 
     // Sample: 5 random directory entries WITH networks to see format
-    const r3 = await fetch(`${SUPABASE_URL}/rest/v1/wca_directory?select=wca_id,networks,scrape_url&limit=5&order=wca_id.desc&scrape_url=neq.`, {
+    const r3 = await fetch(`${SUPABASE_URL}/rest/v1/wca_directory?select=wca_id,networks,scrape_url&limit=10&order=wca_id.desc`, {
       headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
     });
     const sample = await r3.json();
