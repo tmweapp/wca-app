@@ -122,6 +122,7 @@ async function fetchProfile(wcaId, cookies, profileHref, networkDomain, ssoCooki
 
 // ═══ AUTH: ottieni cookies validi per un dominio ═══
 async function getAuthCookies(domain) {
+  const isMainDomain = !domain || domain === "wcaworld.com";
   const networkBase = getNetworkBase(domain);
   let cookies = null;
   let ssoCookies = "";
@@ -136,6 +137,14 @@ async function getAuthCookies(domain) {
   }
 
   if (!cookies) {
+    // ⚠ Per wcaworld.com NON usare tmsrlmin come fallback:
+    // tmsrlmin ha accesso limitato e non vede i contatti dei membri.
+    // L'utente DEVE fare login manuale per avere la sessione con accesso pieno.
+    if (isMainDomain) {
+      console.log("[scrape] ⛔ Nessuna sessione valida per wcaworld.com — richiesto login utente");
+      return { error: "session_expired_please_login" };
+    }
+    // Per i network specifici: SSO anonimo è accettabile
     console.log(`[scrape] SSO login su ${networkBase}...`);
     const loginResult = await ssoLogin(null, null, networkBase);
     if (!loginResult.success) return { error: loginResult.error };

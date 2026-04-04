@@ -28,6 +28,28 @@ function sleep(ms){
   return new Promise(r=>setTimeout(r,ms));
 }
 
+// ═══ BANNER SESSIONE SCADUTA ═══
+// Mostra un banner rosso persistente che richiede il login prima di continuare
+function showLoginRequiredBanner(){
+  const existing = document.getElementById("loginRequiredBanner");
+  if(existing) return; // già mostrato
+  const banner = document.createElement("div");
+  banner.id = "loginRequiredBanner";
+  banner.style.cssText = [
+    "position:fixed","top:0","left:0","right:0","z-index:9999",
+    "background:#7f1d1d","color:#fecaca","padding:14px 20px",
+    "font-weight:700","font-size:14px","display:flex",
+    "align-items:center","justify-content:space-between",
+    "box-shadow:0 4px 20px rgba(0,0,0,0.5)","border-bottom:2px solid #ef4444"
+  ].join(";");
+  banner.innerHTML = `
+    <span>⛔ SESSIONE SCADUTA — Vai su <b>Login</b> nell'app, effettua l'accesso, poi riprendi il download.</span>
+    <button onclick="document.getElementById('loginRequiredBanner').remove()"
+      style="background:#ef4444;color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-weight:700;margin-left:16px">✕</button>
+  `;
+  document.body.prepend(banner);
+}
+
 // ═══ DOWNLOAD MODE — indica cosa si sta scaricando ═══
 let currentDownloadMode = null;
 function setDownloadMode(mode){

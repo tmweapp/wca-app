@@ -50,6 +50,13 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
         clearTimeout(timeout);
         const data = await resp.json();
         if(!data.success){
+          // ⛔ Sessione scaduta: l'utente deve fare login prima di continuare
+          if(data.error === "session_expired_please_login"){
+            scraping = false;
+            log("⛔ SESSIONE SCADUTA — Fai Login nell'app e poi riprendi il download","error");
+            showLoginRequiredBanner();
+            return { ok:false, error:"session_expired_please_login" };
+          }
           if(data.error && data.error.includes("SSO") && retries < MAX_RETRIES){
             retries++;
             await sleepWithActivity("🔄", `SSO retry ${retries}/${MAX_RETRIES}`, 5000);
@@ -74,9 +81,11 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
           updateScrapeStats({ downloaded: scrapeStats.downloaded + 1 });
           return { ok:true, profile };
         } else if(profile.state === "session_expired"){
-          // SSO refresh fatto lato server ma non risolto — logga e salta
-          log(`⚠ ${wcaId}: sessione ripristinata ma profilo non accessibile — skip`,"warn");
-          return { ok:false, error:"session_expired_skip" };
+          // SSO refresh fatto lato server ma non risolto — ferma tutto
+          scraping = false;
+          log("⛔ SESSIONE NON VALIDA — Fai Login nell'app e poi riprendi il download","error");
+          showLoginRequiredBanner();
+          return { ok:false, error:"session_expired_stop" };
         } else if(profile.state === "login_redirect" && retries < MAX_RETRIES){
           retries++;
           await sleepWithActivity("🔑", `Sessione scaduta — retry ${retries}/${MAX_RETRIES}`, 5000);
