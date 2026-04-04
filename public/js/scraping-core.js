@@ -50,12 +50,6 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
         clearTimeout(timeout);
         const data = await resp.json();
         if(!data.success){
-          // Sessione scaduta irrecuperabile — ferma TUTTO il download
-          if(data.session_expired){
-            log("🔴 SESSIONE SCADUTA — download bloccato. Clicca LOGIN e riprendi.","warn");
-            scraping = false;
-            return { ok:false, error:"session_expired" };
-          }
           if(data.error && data.error.includes("SSO") && retries < MAX_RETRIES){
             retries++;
             await sleepWithActivity("🔄", `SSO retry ${retries}/${MAX_RETRIES}`, 5000);
@@ -79,6 +73,10 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
           consecutiveFailures = 0;
           updateScrapeStats({ downloaded: scrapeStats.downloaded + 1 });
           return { ok:true, profile };
+        } else if(profile.state === "session_expired"){
+          // SSO refresh fatto lato server ma non risolto — logga e salta
+          log(`⚠ ${wcaId}: sessione ripristinata ma profilo non accessibile — skip`,"warn");
+          return { ok:false, error:"session_expired_skip" };
         } else if(profile.state === "login_redirect" && retries < MAX_RETRIES){
           retries++;
           await sleepWithActivity("🔑", `Sessione scaduta — retry ${retries}/${MAX_RETRIES}`, 5000);
@@ -430,11 +428,6 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
 
         const data = await resp.json();
         if(!data.success){
-          if(data.session_expired){
-            log("🔴 SESSIONE SCADUTA — download bloccato. Clicca LOGIN e riprendi.","warn");
-            scraping = false;
-            break;
-          }
           noNetSkipped++; noNetConsecFails++;
           if(noNetConsecFails >= MAX_CONSEC_FAILS_NONET){
             log(`⛔ ${noNetConsecFails} fail consecutivi NO NETWORK — skip fase 5`,"err");
@@ -446,10 +439,14 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
 
         const profile = data.results?.[0];
         if(!profile || profile.state !== "ok"){
-          noNetSkipped++; noNetConsecFails++;
-          if(noNetConsecFails >= MAX_CONSEC_FAILS_NONET){
-            log(`⛔ ${noNetConsecFails} fail consecutivi NO NETWORK — skip fase 5`,"err");
-            break;
+          if(profile?.state === "session_expired"){
+            log(`⚠ ${profile.wca_id}: sessione ripristinata ma non accessibile — skip`,"warn");
+          } else {
+            noNetSkipped++; noNetConsecFails++;
+            if(noNetConsecFails >= MAX_CONSEC_FAILS_NONET){
+              log(`⛔ ${noNetConsecFails} fail consecutivi NO NETWORK — skip fase 5`,"err");
+              break;
+            }
           }
           await sleep(200);
           continue;
