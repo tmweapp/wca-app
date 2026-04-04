@@ -19,16 +19,31 @@ module.exports = async (req, res) => {
     });
     const prof = await r2.json();
 
-    // Sample: 5 random directory entries WITH networks to see format
-    const r3 = await fetch(`${SUPABASE_URL}/rest/v1/wca_directory?select=wca_id,networks,scrape_url&limit=10&order=wca_id.desc`, {
-      headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
+    // Stats: conteggio networks vuoti vs pieni
+    const rAll = await fetch(`${SUPABASE_URL}/rest/v1/wca_directory?select=wca_id,networks,scrape_url`, {
+      headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, Range: "0-99999" }
     });
-    const sample = await r3.json();
+    const allDir = await rAll.json();
+    const total = allDir.length;
+    const emptyNet = allDir.filter(r => !r.networks || r.networks.length === 0).length;
+    const hasNet = total - emptyNet;
+    const emptyScrapeUrl = allDir.filter(r => !r.scrape_url).length;
+    const onlyVirtual = allDir.filter(r => r.networks?.length > 0 && !r.networks.some(n => n.includes("."))).length;
+    const hasRealDomain = allDir.filter(r => r.networks?.some(n => n.includes("."))).length;
+
+    // Distribuzione network
+    const netCounts = {};
+    for (const r of allDir) {
+      for (const n of (r.networks || [])) {
+        netCounts[n] = (netCounts[n] || 0) + 1;
+      }
+    }
 
     return res.json({
       directory: dir,
       profile: prof.map(p => ({ ...p, contacts: p.contacts?.length + " contatti" })),
-      sample_directory: sample.map(s => ({ wca_id: s.wca_id, networks: s.networks, scrape_url: s.scrape_url?.substring(0, 80) })),
+      stats: { total, emptyNet, hasNet, emptyScrapeUrl, onlyVirtual, hasRealDomain },
+      network_distribution: netCounts,
     });
   } catch (e) {
     return res.status(500).json({ error: e.message });
