@@ -50,6 +50,12 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
         clearTimeout(timeout);
         const data = await resp.json();
         if(!data.success){
+          // Sessione scaduta irrecuperabile — ferma TUTTO il download
+          if(data.session_expired){
+            log("🔴 SESSIONE SCADUTA — download bloccato. Clicca LOGIN e riprendi.","warn");
+            scraping = false;
+            return { ok:false, error:"session_expired" };
+          }
           if(data.error && data.error.includes("SSO") && retries < MAX_RETRIES){
             retries++;
             await sleepWithActivity("🔄", `SSO retry ${retries}/${MAX_RETRIES}`, 5000);
@@ -424,6 +430,11 @@ async function scrapeDiscoverCountry(country, countryName, updateAddress = false
 
         const data = await resp.json();
         if(!data.success){
+          if(data.session_expired){
+            log("🔴 SESSIONE SCADUTA — download bloccato. Clicca LOGIN e riprendi.","warn");
+            scraping = false;
+            break;
+          }
           noNetSkipped++; noNetConsecFails++;
           if(noNetConsecFails >= MAX_CONSEC_FAILS_NONET){
             log(`⛔ ${noNetConsecFails} fail consecutivi NO NETWORK — skip fase 5`,"err");

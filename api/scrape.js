@@ -191,18 +191,26 @@ module.exports = async (req, res) => {
       if (softExpiry) console.log(`[scrape] ⚠ SOFT EXPIRY per ${wcaId}: members_only=${profile.members_only_count} contacts=${profile.contacts?.length||0} → SSO refresh`);
 
       if (authFailed && profile.state !== "not_found") {
-        console.log(`[scrape] ⚠ Auth fallita per ${wcaId}: state=${profile.state} limited=${profile.access_limited} membersOnly=${profile.members_only_count} → SSO refresh`);
+        console.log(`[scrape] ⚠ Auth fallita per ${wcaId}: state=${profile.state} membersOnly=${profile.members_only_count} → SSO refresh`);
         const refreshAuth = await forceSSORrefresh(targetDomain);
         if (!refreshAuth.error) {
           cookies = refreshAuth.cookies;
           ssoCookies = refreshAuth.ssoCookies || "";
-          // Riprova con nuovi cookies
           const retryProfile = await fetchProfile(wcaId, cookies, memberMap[wcaId], networkDomain, ssoCookies);
           if (retryProfile.state === "ok") {
-            console.log(`[scrape] SSO refresh OK per ${wcaId}: contacts=${retryProfile.contacts?.length || 0} limited=${retryProfile.access_limited}`);
+            // Verifica che dopo il refresh i dati siano reali (non soft expiry di nuovo)
+            const stillExpired = retryProfile.members_only_count > 0 && (!retryProfile.contacts || retryProfile.contacts.length === 0);
+            if (stillExpired) {
+              console.log(`[scrape] ❌ SSO refresh FALLITO per ${wcaId}: ancora soft expiry dopo refresh → blocco download`);
+              return res.json({ success: false, session_expired: true, error: "Sessione scaduta: re-login necessario" });
+            }
+            console.log(`[scrape] ✅ SSO refresh OK per ${wcaId}: contacts=${retryProfile.contacts?.length || 0}`);
             profile = retryProfile;
             profile.sso_refreshed = true;
           }
+        } else {
+          console.log(`[scrape] ❌ SSO refresh error per ${wcaId}: ${refreshAuth.error} → blocco download`);
+          return res.json({ success: false, session_expired: true, error: "SSO login fallito: " + refreshAuth.error });
         }
       }
 
